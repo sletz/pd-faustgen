@@ -28,6 +28,7 @@ typedef struct _faust_ui
     FAUSTFLOAT          p_default;
     FAUSTFLOAT          p_saved;
     char                p_kept;
+    size_t              p_index;
     FAUSTFLOAT          p_tempv;
     struct _faust_ui*   p_next;
 }t_faust_ui;
@@ -37,6 +38,7 @@ typedef struct _faust_ui_manager
     UIGlue      f_glue;
     t_object*   f_owner;
     t_faust_ui* f_uis;
+    size_t      f_nuis;
     t_symbol**  f_names;
     size_t      f_nnames;
     MetaGlue    f_meta_glue;
@@ -76,6 +78,42 @@ static void faust_ui_manager_prepare_changes(t_faust_ui_manager *x)
         c->p_tempv = *(c->p_zone);
         c = c->p_next;
     }
+    x->f_nuis = 0;
+}
+
+static int cmpui(const void *p1, const void *p2)
+{
+  t_faust_ui *c1 = *(t_faust_ui*const*)p1;
+  t_faust_ui *c2 = *(t_faust_ui*const*)p2;
+  return (int)c1->p_index - (int)c2->p_index;
+}
+
+static void faust_ui_manager_sort(t_faust_ui_manager *x)
+{
+  t_faust_ui *c = x->f_uis;
+  if (c) {
+    t_faust_ui **cv = (t_faust_ui**)getbytes(x->f_nuis*sizeof(t_faust_ui*));
+    size_t i = 0;
+    if (!cv) {
+      pd_error(x->f_owner, "faustgen~: memory allocation failed - ui sort");
+      return;
+    }
+    while (c) {
+      cv[i++] = c;
+      c = c->p_next;
+    }
+    if (i == x->f_nuis && i > 0) {
+      qsort(cv, x->f_nuis, sizeof(t_faust_ui*), cmpui);
+      for (i = 1; i < x->f_nuis; i++) {
+	cv[i-1]->p_next = cv[i];
+      }
+      cv[i-1]->p_next = NULL;
+      x->f_uis = cv[0];
+    } else {
+      pd_error(x->f_owner, "faustgen~: internal error - ui sort");
+    }
+    freebytes(cv, x->f_nuis*sizeof(t_faust_ui*));
+  }
 }
 
 static void faust_ui_manager_finish_changes(t_faust_ui_manager *x)
@@ -103,6 +141,7 @@ static void faust_ui_manager_finish_changes(t_faust_ui_manager *x)
             x->f_uis = x->f_uis->p_next;
             freebytes(x->f_uis, sizeof(*x->f_uis));
         }
+	faust_ui_manager_sort(x);
     }
 }
 
@@ -165,6 +204,7 @@ static void faust_ui_manager_add_param(t_faust_ui_manager *x, const char* label,
     c->p_default   = init;
     c->p_saved     = saved;
     c->p_kept      = 1;
+    c->p_index     = x->f_nuis++;
     *(c->p_zone)   = current;
 }
 
@@ -314,6 +354,7 @@ t_faust_ui_manager* faust_ui_manager_new(t_object* owner)
         
         ui_manager->f_owner     = owner;
         ui_manager->f_uis       = NULL;
+        ui_manager->f_nuis      = 0;
         ui_manager->f_names     = NULL;
         ui_manager->f_nnames    = 0;
         
