@@ -137,6 +137,30 @@ static void faustgen_tilde_compile_options(t_faustgen_tilde *x, t_symbol* s, int
 #include <windows.h>
 #endif
 
+/* purr-data support. If this is non-NULL then access to the GUI uses
+   JavaScript instead of Tcl/Tk. */
+static void (*nw_gui_vmess)(const char *sel, char *fmt, ...) = NULL;
+
+/* New menu-based interface to the editor. */
+static void faustgen_tilde_menu_open(t_faustgen_tilde *x)
+{
+  if (x->f_dsp_instance) {
+    const char *pathname = faust_opt_manager_get_full_path(x->f_opt_manager, x->f_dsp_name->s_name);
+    if (nw_gui_vmess)
+      nw_gui_vmess("open_textfile", "s", pathname);
+    else
+      sys_vgui("::pd_menucommands::menu_openfile {%s}\n", pathname);
+  } else {
+    pd_error(x, "faustgen~: no FAUST DSP file defined");
+  }
+}
+
+#if 0
+/* Old click-based editor interface. This doesn't work very well, as the
+   system() call blocks until the editor exits, and filename arguments aren't
+   always quoted. Modern Pd offers a better interface which hooks into the
+   Open context menu option and doesn't block the caller, see above. */
+
 static void faustgen_tilde_open_texteditor(t_faustgen_tilde *x)
 {
     if(x->f_dsp_instance)
@@ -166,6 +190,7 @@ static void faustgen_tilde_open_texteditor(t_faustgen_tilde *x)
     }
     pd_error(x, "faustgen~: no FAUST DSP file defined");
 }
+#endif
 
 /*
 static void faustgen_tilde_read(t_faustgen_tilde *x, t_symbol* s)
@@ -574,6 +599,16 @@ static void *faustgen_tilde_new(t_symbol* s, int argc, t_atom* argv)
     return x;
 }
 
+#ifndef _WIN32
+#define __USE_GNU 1 // to get RTLD_DEFAULT
+#include <dlfcn.h> // for dlsym
+#ifndef RTLD_DEFAULT
+/* If RTLD_DEFAULT still isn't defined then just passing NULL will hopefully
+   do the trick. */
+#define RTLD_DEFAULT NULL
+#endif
+#endif
+
 void faustgen_tilde_setup(void)
 {
     t_class* c = class_new(gensym("faustgen~"),
@@ -588,7 +623,11 @@ void faustgen_tilde_setup(void)
         class_addmethod(c,  (t_method)faustgen_tilde_autocompile,       gensym("autocompile"),      A_GIMME, 0);
         class_addmethod(c,  (t_method)faustgen_tilde_print,             gensym("print"),            A_NULL, 0);
         class_addmethod(c,  (t_method)faustgen_tilde_dump,              gensym("dump"),             A_NULL, 0);
+#if 0
         class_addmethod(c,  (t_method)faustgen_tilde_open_texteditor,   gensym("click"),            A_NULL, 0);
+#endif
+        class_addmethod(c,  (t_method)faustgen_tilde_menu_open,         gensym("click"),            A_NULL, 0);
+        class_addmethod(c,  (t_method)faustgen_tilde_menu_open,         gensym("menu-open"),        A_NULL, 0);
         
         //class_addmethod(c,      (t_method)faustgen_tilde_read,             gensym("read"),           A_SYMBOL);
         class_addanything(c, (t_method)faustgen_tilde_anything);
@@ -606,5 +645,11 @@ void faustgen_tilde_setup(void)
     }
     
     faustgen_tilde_class = c;
+#ifdef _WIN32
+    nw_gui_vmess = (void*)GetProcAddress(GetModuleHandle("pd.dll"), "gui_vmess");
+#else
+    nw_gui_vmess = dlsym(RTLD_DEFAULT, "gui_vmess");
+#endif
+    if (nw_gui_vmess) logpost(NULL, 3, "faustgen~: using JavaScript interface (Pd-l2ork nw.js version)");
 }
 
