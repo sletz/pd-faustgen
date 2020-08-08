@@ -249,6 +249,47 @@ static void faustgen_tilde_print(t_faustgen_tilde *x)
     }
 }
 
+static void faustgen_tilde_dump(t_faustgen_tilde *x)
+{
+    if(x->f_dsp_factory) {
+      t_outlet *out = faust_io_manager_get_extra_output(x->f_io_manager);
+      t_atom argv[1];
+      int numparams;
+      SETSYMBOL(argv, x->f_dsp_name);
+      outlet_anything(out, gensym("name"), 1, argv);
+      SETSYMBOL(argv, gensym(faust_opt_manager_get_full_path(x->f_opt_manager, x->f_dsp_name->s_name)));
+      outlet_anything(out, gensym("path"), 1, argv);
+      SETFLOAT(argv, faust_io_manager_get_ninputs(x->f_io_manager));
+      outlet_anything(out, gensym("numinputs"), 1, argv);
+      SETFLOAT(argv, faust_io_manager_get_noutputs(x->f_io_manager));
+      outlet_anything(out, gensym("numoutputs"), 1, argv);
+      if(x->f_dsp_factory) {
+	char* text = NULL;
+	text = getCTarget(x->f_dsp_factory);
+	if(text) {
+	  if(strnlen(text, 1) > 0) {
+	    SETSYMBOL(argv, gensym(text));
+	    outlet_anything(out, gensym("target"), 1, argv);
+	  }
+	  free(text);
+	}
+	text = getCDSPFactoryCompileOptions(x->f_dsp_factory);
+	if(text) {
+	  if(strnlen(text, 1) > 0) {
+	    SETSYMBOL(argv, gensym(text));
+	    outlet_anything(out, gensym("options"), 1, argv);
+	  }
+	  free(text);
+	}
+      }
+      numparams = faust_ui_manager_dump(x->f_ui_manager, gensym("param"), out);
+      SETFLOAT(argv, numparams);
+      outlet_anything(out, gensym("numparams"), 1, argv);
+    } else {
+      pd_error(x, "faustgen~: no FAUST DSP file defined");
+    }
+}
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 //                                  PURE DATA GENERIC INTERFACE                                 //
@@ -546,6 +587,7 @@ void faustgen_tilde_setup(void)
         class_addmethod(c,  (t_method)faustgen_tilde_compile_options,   gensym("compileoptions"),   A_GIMME, 0);
         class_addmethod(c,  (t_method)faustgen_tilde_autocompile,       gensym("autocompile"),      A_GIMME, 0);
         class_addmethod(c,  (t_method)faustgen_tilde_print,             gensym("print"),            A_NULL, 0);
+        class_addmethod(c,  (t_method)faustgen_tilde_dump,              gensym("dump"),             A_NULL, 0);
         class_addmethod(c,  (t_method)faustgen_tilde_open_texteditor,   gensym("click"),            A_NULL, 0);
         
         //class_addmethod(c,      (t_method)faustgen_tilde_read,             gensym("read"),           A_SYMBOL);
