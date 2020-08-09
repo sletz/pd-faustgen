@@ -4,7 +4,7 @@
 #X obj 336 115 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 0
 1;
 #X msg 336 135 \; pd dsp \$1;
-#X obj 32 318 dac~ 1 2;
+#X obj 166 315 dac~ 1 2;
 #X obj 62 172 nbx 5 14 0 1 0 0 empty empty empty 0 -8 0 10 -262144
 -1 -1 0 256;
 #X obj 62 129 loadbang;
@@ -24,7 +24,7 @@ using the programming language "Pure" : https://github.com/agraef/pure-lang.
 #X text 26 409 faustgen~ institutions: CICM - ANR MUSICOLL;
 #X text 26 437 faustgen~ developer: Pierre Guillot;
 #X msg 62 191 gain \$1;
-#X obj 31 108 osc~ 220;
+#X obj 166 128 osc~ 220;
 #N canvas 766 136 471 246 options 0;
 #X text 16 50 Change the compile options and recompile;
 #X msg 17 71 compileoptions -vec -vs 64;
@@ -76,14 +76,14 @@ information. Use the debug level 3 to displays information about the
 code in the Pd console., f 72;
 #X text 177 233 Click on the object to open the code in your default
 text editor, f 22;
-#N canvas 332 276 618 466 get.parameters.values 0;
-#X obj 193 396 nbx 5 14 -1e+37 1e+37 0 0 empty empty empty 0 -8 0 10
+#N canvas 1141 298 618 466 get.parameters.values 0;
+#X obj 22 396 nbx 5 14 -1e+37 1e+37 0 0 empty empty empty 0 -8 0 10
 -262144 -1 -1 0 256;
-#X obj 249 396 nbx 5 14 -1e+37 1e+37 0 0 empty empty empty 0 -8 0 10
+#X obj 78 396 nbx 5 14 -1e+37 1e+37 0 0 empty empty empty 0 -8 0 10
 -262144 -1 -1 1 256;
-#X obj 305 396 nbx 5 14 -1e+37 1e+37 0 0 empty empty empty 0 -8 0 10
+#X obj 134 396 nbx 5 14 -1e+37 1e+37 0 0 empty empty empty 0 -8 0 10
 -262144 -1 -1 3 256;
-#X obj 361 396 nbx 5 14 -1e+37 1e+37 0 0 empty empty empty 0 -8 0 10
+#X obj 190 396 nbx 5 14 -1e+37 1e+37 0 0 empty empty empty 0 -8 0 10
 -262144 -1 -1 4 256;
 #X obj 22 352 faustgen~ examples/parameters;
 #X text 20 9 You can use the name of the parameters without any arguments
@@ -93,7 +93,7 @@ to output their current values via the extra control outlet.;
 #X msg 72 104 checkbox;
 #X msg 132 104 slider;
 #X msg 181 104 number;
-#X obj 193 375 route button checkbox slider number, f 38;
+#X obj 22 375 route button checkbox slider number, f 38;
 #X obj 288 261 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 1
 1;
 #X obj 375 262 nbx 5 14 0 3 0 0 empty empty empty 0 -8 0 10 -262144
@@ -120,8 +120,8 @@ value, f 23;
 #X text 233 129 Print the informations of the FAUST code, f 22;
 #X msg 272 104 dump;
 #X text 316 99 Dump the information on the control outlet, f 22;
-#X obj 418 396 print dump;
-#X connect 4 1 11 0;
+#X obj 247 396 print dump;
+#X connect 4 0 11 0;
 #X connect 6 0 4 0;
 #X connect 7 0 4 0;
 #X connect 8 0 4 0;
@@ -153,10 +153,10 @@ value, f 23;
 #X connect 27 0 4 0;
 #X connect 31 0 4 0;
 #X restore 327 219 pd get.parameters.values;
-#N canvas 253 455 614 360 set.parameters.values 0;
-#X obj 22 252 faustgen~ examples/parameters;
-#X obj 22 84 noise~;
-#X obj 22 303 dac~ 1 2;
+#N canvas 1161 418 614 360 set.parameters.values 0;
+#X obj 222 252 faustgen~ examples/parameters;
+#X obj 393 84 noise~;
+#X obj 393 303 dac~ 1 2;
 #X msg 282 204 print;
 #X obj 162 139 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 1
 1;
@@ -184,9 +184,9 @@ to output their current values via the extra control outlet. In this
 example \, all the parameters are used to control the gain of the output
 signal.;
 #X text 324 198 Print the informations of the FAUST code, f 22;
-#X connect 0 0 2 0;
-#X connect 0 0 2 1;
-#X connect 1 0 0 0;
+#X connect 0 1 2 0;
+#X connect 0 1 2 1;
+#X connect 1 0 0 1;
 #X connect 3 0 0 0;
 #X connect 4 0 5 0;
 #X connect 5 0 0 0;
@@ -208,9 +208,9 @@ signal.;
 #X connect 20 0 17 0;
 #X connect 20 0 18 0;
 #X restore 327 191 pd set.parameters.values;
-#N canvas 575 109 646 630 set.parameters.lists 0;
-#X obj 30 598 dac~ 1 2;
-#X msg 45 195 print;
+#N canvas 1209 201 646 630 set.parameters.lists 0;
+#X obj 195 578 dac~ 1 2;
+#X msg 29 195 print;
 #N canvas 0 22 450 278 (subpatch) 0;
 #X array \$0-gains 20 float 3;
 #A 0 0.619565 0.782608 0.75 0.717391 0.717391 0.717391 0.195654 0.195654
@@ -232,50 +232,50 @@ signal.;
 2608.6 2391.2 1086.81;
 #X coords 0 20000 20 0 199 92 1 0 0;
 #X restore 397 328 graph;
-#X obj 30 107 noise~;
-#X obj 30 525 faustgen~ examples/resonator;
-#X obj 119 177 list trim;
-#X obj 119 155 list prepend gain 0;
-#X obj 119 133 array get \$0-gains;
-#X obj 119 112 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144
+#X obj 195 511 noise~;
+#X obj 30 535 faustgen~ examples/resonator;
+#X obj 103 177 list trim;
+#X obj 103 155 list prepend gain 0;
+#X obj 103 133 array get \$0-gains;
+#X obj 103 112 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144
 -1 -1;
 #X text 17 13 Use lists of values to control the lists of parameters.
 The first element of the list must be the name of the parameter \,
 the second argument is the index of the first parameters the other
 arguments are the list., f 44;
-#X obj 139 291 list trim;
-#X obj 139 227 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144
+#X obj 133 292 list trim;
+#X obj 133 228 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144
 -1 -1;
-#X obj 139 248 array get \$0-decays 2 4;
-#X obj 139 270 list prepend decay 2;
-#X text 44 145 Print to display the parameters' information, f 11
+#X obj 133 249 array get \$0-decays 2 4;
+#X obj 133 271 list prepend decay 2;
+#X text 28 145 Print to display the parameters' information, f 11
 ;
-#X obj 203 320 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144
+#X obj 197 321 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144
 -1 -1;
-#X msg 203 362 freq 4 \$1;
+#X msg 197 363 freq 4 \$1;
 #X text 395 10 Change the value of the arrays and use the bangs to
 send them to the faustgen~ object, f 33;
-#X text 116 84 Set the values of all the "gain" parameters, f 23;
-#X text 137 199 Set the values of 4 "decay" parameters starting with
+#X text 100 84 Set the values of all the "gain" parameters, f 23;
+#X text 131 200 Set the values of 4 "decay" parameters starting with
 the index 2, f 36;
-#X text 201 292 Set the value of the 3rd "freq" parameter, f 23;
-#X obj 201 481 list trim;
-#X obj 201 417 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144
+#X text 195 293 Set the value of the 3rd "freq" parameter, f 23;
+#X obj 195 482 list trim;
+#X obj 195 418 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144
 -1 -1;
-#X obj 256 416 nbx 5 14 -1e+37 1e+37 0 0 empty empty empty 0 -8 0 10
+#X obj 250 417 nbx 5 14 -1e+37 1e+37 0 0 empty empty empty 0 -8 0 10
 -262144 -1 -1 0 256;
-#X obj 312 416 nbx 5 14 -1e+37 1e+37 0 0 empty empty empty 0 -8 0 10
+#X obj 306 417 nbx 5 14 -1e+37 1e+37 0 0 empty empty empty 0 -8 0 10
 -262144 -1 -1 0 256;
-#X obj 201 438 array get \$0-decays;
-#X obj 201 460 list prepend decay 0;
-#X text 199 388 Dynamic approach, f 9;
-#X text 254 398 Index;
-#X text 312 398 Size;
-#X obj 203 341 array get \$0-freq 3 1;
+#X obj 195 439 array get \$0-decays;
+#X obj 195 461 list prepend decay 0;
+#X text 193 389 Dynamic approach, f 9;
+#X text 248 399 Index;
+#X text 306 399 Size;
+#X obj 197 342 array get \$0-freq 3 1;
 #X connect 1 0 6 0;
-#X connect 5 0 6 0;
-#X connect 6 0 0 0;
-#X connect 6 0 0 1;
+#X connect 5 0 6 1;
+#X connect 6 1 0 0;
+#X connect 6 1 0 1;
 #X connect 7 0 6 0;
 #X connect 8 0 7 0;
 #X connect 9 0 8 0;
@@ -300,10 +300,10 @@ the index 2, f 36;
 #X connect 5 0 6 0;
 #X connect 6 0 4 0;
 #X connect 17 0 26 0;
-#X connect 18 0 26 0;
+#X connect 18 0 26 1;
 #X connect 21 0 22 0;
 #X connect 23 0 21 0;
 #X connect 24 0 23 0;
-#X connect 26 0 3 0;
-#X connect 26 0 3 1;
-#X connect 26 0 21 0;
+#X connect 26 1 3 0;
+#X connect 26 1 3 1;
+#X connect 26 1 21 0;
