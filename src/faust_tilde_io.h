@@ -20,8 +20,6 @@ size_t faust_io_manager_get_ninputs(t_faust_io_manager const *x);
 
 size_t faust_io_manager_get_noutputs(t_faust_io_manager const *x);
 
-char faust_io_manager_has_extra_output(t_faust_io_manager const *x);
-
 t_outlet* faust_io_manager_get_extra_output(t_faust_io_manager *x);
 
 char faust_io_manager_init(t_faust_io_manager *x, int const nins, int const nouts);

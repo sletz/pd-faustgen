@@ -38,7 +38,6 @@ typedef struct _faustgen_tilde
     t_faust_opt_manager* f_opt_manager;
  
     t_symbol*           f_dsp_name;
-    t_float             f_dummy;
     t_clock*            f_clock;
     double              f_clock_time;
     long                f_time;
@@ -631,8 +630,7 @@ void faustgen_tilde_setup(void)
         
         //class_addmethod(c,      (t_method)faustgen_tilde_read,             gensym("read"),           A_SYMBOL);
         class_addanything(c, (t_method)faustgen_tilde_anything);
-        
-        CLASS_MAINSIGNALIN(c, t_faustgen_tilde, f_dummy);
+
         logpost(NULL, 3, "Faust website: faust.grame.fr");
         logpost(NULL, 3, "Faust development: GRAME");
         

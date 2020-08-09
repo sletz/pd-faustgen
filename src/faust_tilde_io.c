@@ -128,23 +128,7 @@ static char faust_io_manager_resize_outputs(t_faust_io_manager *x, size_t const 
     
     if(rnouts == couts)
     {
-        if(!faust_io_manager_has_extra_output(x))
-        {
-            x->f_extra_outlet = outlet_new((t_object *)x->f_owner, NULL);
-            if(x->f_extra_outlet)
-            {
-                return 0;
-            }
-            pd_error(x->f_owner, "faustgen~: memory allocation failed - extra output");
-            return 1;
-        }
         return 0;
-    }
-    
-    if(faust_io_manager_has_extra_output(x))
-    {
-        outlet_free(x->f_extra_outlet);
-        x->f_extra_outlet = NULL;
     }
     for(i = couts; i > rnouts; --i)
     {
@@ -164,14 +148,7 @@ static char faust_io_manager_resize_outputs(t_faust_io_manager *x, size_t const 
         }
         x->f_outlets = noutlets;
         x->f_noutlets = rnouts;
-        
-        x->f_extra_outlet = outlet_new((t_object *)x->f_owner, NULL);
-        if(x->f_extra_outlet)
-        {
-            return 0;
-        }
-        pd_error(x->f_owner, "faustgen~: memory allocation failed - extra output");
-        return 1;
+        return 0;
     }
     pd_error(x->f_owner, "faustgen~: memory allocation failed - output");
     return 1;
@@ -190,12 +167,18 @@ t_faust_io_manager* faust_io_manager_new(t_object* owner, t_canvas* canvas)
         x->f_canvas         = canvas;
         x->f_nsignals       = 0;
         x->f_signals        = NULL;
-        x->f_ninlets        = 1;
-        x->f_inlets         = getbytes(sizeof(t_inlet *));
+        x->f_ninlets        = 0;
+        x->f_inlets         = NULL;
         x->f_noutlets       = 0;
         x->f_outlets        = NULL;
-        x->f_extra_outlet   = NULL;
+        x->f_extra_outlet   = outlet_new((t_object *)x->f_owner, NULL);
         x->f_valid          = 0;
+        if(!x->f_extra_outlet)
+        {
+            pd_error(owner, "faustgen~: memory allocation failed - extra output");
+	    freebytes(x, sizeof(t_faust_io_manager));
+            return NULL;
+        }
     }
     return x;
 }
@@ -205,6 +188,7 @@ void faust_io_manager_free(t_faust_io_manager* x)
     faust_io_manager_free_inputs(x);
     faust_io_manager_free_outputs(x);
     faust_io_manager_free_signals(x);
+    outlet_free(x->f_extra_outlet);
     freebytes(x, sizeof(t_faust_io_manager));
 }
 
@@ -216,11 +200,6 @@ size_t faust_io_manager_get_ninputs(t_faust_io_manager const *x)
 size_t faust_io_manager_get_noutputs(t_faust_io_manager const *x)
 {
     return x->f_noutlets;
-}
-
-char faust_io_manager_has_extra_output(t_faust_io_manager const *x)
-{
-    return x->f_extra_outlet != NULL;
 }
 
 t_outlet* faust_io_manager_get_extra_output(t_faust_io_manager *x)
@@ -236,10 +215,9 @@ char faust_io_manager_init(t_faust_io_manager *x, int const nins, int const nout
     {
         gobj_vis((t_gobj *)x->f_owner, x->f_canvas, 0);
     }
-    size_t const rnins = nins > 1 ? nins : 1;
-    valid += faust_io_manager_resize_inputs(x, (size_t)rnins);
+    valid += faust_io_manager_resize_inputs(x, (size_t)nins);
     valid += faust_io_manager_resize_outputs(x, (size_t)nouts);
-    valid += faust_io_manager_resize_signals(x, (size_t)rnins + (size_t)nouts);
+    valid += faust_io_manager_resize_signals(x, (size_t)nins + (size_t)nouts);
     if(redraw)
     {
         gobj_vis((t_gobj *)x->f_owner, x->f_canvas, 1);
