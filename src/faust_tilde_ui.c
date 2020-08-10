@@ -175,7 +175,7 @@ static void faust_ui_manager_add_param(t_faust_ui_manager *x, const char* label,
     FAUSTFLOAT saved, current;
     t_symbol* name  = gensym(label);
     t_symbol* lname = faust_ui_manager_get_long_name(x, label);
-    t_faust_ui *c   = faust_ui_manager_get(x, name);
+    t_faust_ui *c   = faust_ui_manager_get(x, lname);
     if(c)
     {
         saved   = c->p_saved;
