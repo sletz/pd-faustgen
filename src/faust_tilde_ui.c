@@ -162,18 +162,42 @@ static t_symbol* faust_ui_manager_get_long_name(t_faust_ui_manager *x, const cha
     memset(name, 0, MAXFAUSTSTRING);
     for(i = 0; i < x->f_nnames; ++i)
     {
+        // remove dummy "0x00" labels for anonymous groups
+        if (strcmp(x->f_names[i]->s_name, "0x00") == 0) continue;
         strncat(name, x->f_names[i]->s_name, MAXFAUSTSTRING - strnlen(name, MAXFAUSTSTRING) - 1);
         strncat(name, "/", MAXFAUSTSTRING - strnlen(name, MAXFAUSTSTRING) - 1);
     }
-    strncat(name, label, MAXFAUSTSTRING - strnlen(name, MAXFAUSTSTRING) - 1);
+    // remove dummy "0x00" labels for anonymous controls
+    if (strcmp(label, "0x00"))
+      strncat(name, label, MAXFAUSTSTRING - strnlen(name, MAXFAUSTSTRING) - 1);
+    else if (*name) // remove trailing "/"
+      name[strnlen(name, MAXFAUSTSTRING) - 1] = 0;
+    // The result is a canonicalized path which has all the "0x00" components
+    // removed. This path may be empty if all components, including the
+    // control label itself, are "0x00".
     return gensym(name);
+}
+
+static t_symbol* faust_ui_manager_get_name(t_faust_ui_manager *x, const char* label)
+{
+    size_t i;
+    // return the last component in the path which isn't "0x00"
+    if (strcmp(label, "0x00")) return gensym(label);
+    for(i = x->f_nnames; i > 0; --i)
+    {
+      if (strcmp(x->f_names[i-1]->s_name, "0x00"))
+	return gensym(x->f_names[i-1]->s_name);
+    }
+    // the resulting name may be empty if all components, including the
+    // control label itself, are "0x00"
+    return gensym("");
 }
 
 static void faust_ui_manager_add_param(t_faust_ui_manager *x, const char* label, int const type, FAUSTFLOAT* zone,
                                         FAUSTFLOAT init, FAUSTFLOAT min, FAUSTFLOAT max, FAUSTFLOAT step)
 {
     FAUSTFLOAT saved, current;
-    t_symbol* name  = gensym(label);
+    t_symbol* name  = faust_ui_manager_get_name(x, label);
     t_symbol* lname = faust_ui_manager_get_long_name(x, label);
     t_faust_ui *c   = faust_ui_manager_get(x, lname);
     if(c)
