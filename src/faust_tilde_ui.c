@@ -93,18 +93,18 @@ static void faust_ui_manager_sort(t_faust_ui_manager *x)
   t_faust_ui *c = x->f_uis;
   if (c) {
     t_faust_ui **cv = (t_faust_ui**)getbytes(x->f_nuis*sizeof(t_faust_ui*));
-    size_t i = 0;
+    size_t i, n = 0;
     if (!cv) {
       pd_error(x->f_owner, "faustgen~: memory allocation failed - ui sort");
       return;
     }
-    while (c) {
-      cv[i++] = c;
+    while (c && n < x->f_nuis) {
+      cv[n++] = c;
       c = c->p_next;
     }
-    if (i == x->f_nuis && i > 0) {
-      qsort(cv, x->f_nuis, sizeof(t_faust_ui*), cmpui);
-      for (i = 1; i < x->f_nuis; i++) {
+    if (n <= x->f_nuis && n > 0) {
+      qsort(cv, n, sizeof(t_faust_ui*), cmpui);
+      for (i = 1; i < n; i++) {
 	cv[i-1]->p_next = cv[i];
       }
       cv[i-1]->p_next = NULL;
@@ -200,7 +200,7 @@ static void faust_ui_manager_add_param(t_faust_ui_manager *x, const char* label,
     t_symbol* name  = faust_ui_manager_get_name(x, label);
     t_symbol* lname = faust_ui_manager_get_long_name(x, label);
     t_faust_ui *c   = faust_ui_manager_get(x, lname);
-    if(c)
+    if(c && !c->p_kept)
     {
         saved   = c->p_saved;
         current = c->p_tempv;
