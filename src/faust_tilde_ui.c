@@ -338,7 +338,7 @@ static void faust_ui_manager_ui_add_sound_file(t_faust_ui_manager* x, const char
 
 static void faust_ui_manager_ui_declare(t_faust_ui_manager* x, FAUSTFLOAT* zone, const char* key, const char* value)
 {
-    //logpost(x->f_owner, 3, "%s: %s - %f", key, value, *zone);
+    //if (zone && value && *value) logpost(x->f_owner, 3, "%s: %s (%p)", key, value, zone);
 }
 
 // META UIS
