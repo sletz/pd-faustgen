@@ -323,6 +323,10 @@ static void faustgen_tilde_anything(t_faustgen_tilde *x, t_symbol* s, int argc, 
 {
     if(x->f_dsp_instance)
     {
+        int msg = faust_ui_manager_get_midi(x->f_ui_manager, s, argc, argv);
+        if(msg) {
+            return;
+        }
         if(!argc)
         {
             t_float value;
