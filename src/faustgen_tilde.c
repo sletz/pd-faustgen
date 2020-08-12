@@ -328,6 +328,14 @@ static void faustgen_tilde_dump(t_faustgen_tilde *x)
     }
 }
 
+
+static void faustgen_tilde_defaults(t_faustgen_tilde *x)
+{
+  if(x->f_dsp_instance) {
+    faust_ui_manager_restore_default(x->f_ui_manager);
+  }
+}
+
 static void faustgen_tilde_midiout(t_faustgen_tilde *x, t_symbol* s, int argc, t_atom* argv)
 {
   if (argc <= 0)
@@ -743,6 +751,7 @@ void faustgen_tilde_setup(void)
         class_addmethod(c,  (t_method)faustgen_tilde_autocompile,       gensym("autocompile"),      A_GIMME, 0);
         class_addmethod(c,  (t_method)faustgen_tilde_print,             gensym("print"),            A_NULL, 0);
         class_addmethod(c,  (t_method)faustgen_tilde_dump,              gensym("dump"),             A_NULL, 0);
+        class_addmethod(c,  (t_method)faustgen_tilde_defaults,          gensym("defaults"),         A_NULL, 0);
         class_addmethod(c,  (t_method)faustgen_tilde_midiout,           gensym("midiout"),          A_GIMME, 0);
         class_addmethod(c,  (t_method)faustgen_tilde_midichan,          gensym("midichan"),         A_GIMME, 0);
 #if 0
