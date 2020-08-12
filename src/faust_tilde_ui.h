@@ -24,7 +24,7 @@ char faust_ui_manager_set_value(t_faust_ui_manager *x, t_symbol const *name, t_f
 
 char faust_ui_manager_get_value(t_faust_ui_manager const *x, t_symbol const *name, t_float* f);
 
-int faust_ui_manager_get_midi(t_faust_ui_manager const *x, t_symbol const *s, int argc, t_atom* argv);
+int faust_ui_manager_get_midi(t_faust_ui_manager const *x, t_symbol const *s, int argc, t_atom* argv, int midichan);
 
 void faust_ui_manager_save_states(t_faust_ui_manager *x);
 
@@ -34,6 +34,7 @@ void faust_ui_manager_print(t_faust_ui_manager const *x, char const log);
 
 int faust_ui_manager_dump(t_faust_ui_manager const *x, t_symbol *s, t_outlet *out);
 
-void faust_ui_manager_midiout(t_faust_ui_manager const *x, t_outlet *out);
+void faust_ui_manager_midiout(t_faust_ui_manager const *x, int midichan,
+			      t_symbol *midirecv, t_outlet *out);
 
 #endif

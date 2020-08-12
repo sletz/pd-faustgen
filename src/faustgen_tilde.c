@@ -43,6 +43,9 @@ typedef struct _faustgen_tilde
     long                f_time;
 
     bool                f_midiout;
+    int                 f_midichan;
+    t_symbol*           f_midirecv;
+    t_symbol*           f_instance;
 } t_faustgen_tilde;
 
 static t_class *faustgen_tilde_class;
@@ -316,6 +319,29 @@ static void faustgen_tilde_dump(t_faustgen_tilde *x)
     }
 }
 
+static void faustgen_tilde_midiout(t_faustgen_tilde *x, t_symbol* s, int argc, t_atom* argv)
+{
+  if (argc <= 0)
+    // disable MIDI receiver
+    x->f_midirecv = NULL;
+  else if (argv->a_type == A_FLOAT)
+    // toggle MIDI output via control outlet
+    x->f_midiout = argv->a_w.w_float != 0;
+  else if (argv->a_type == A_SYMBOL)
+    // enable MIDI receiver
+    x->f_midirecv = argv->a_w.w_symbol;
+}
+
+static void faustgen_tilde_midichan(t_faustgen_tilde *x, t_symbol* s, int argc, t_atom* argv)
+{
+  if (argc <= 0)
+    // disable MIDI channel
+    x->f_midichan = -1;
+  else if (argv->a_type == A_FLOAT && argv->a_w.w_float >= 0)
+    // set MIDI channel (0 means omni)
+    x->f_midichan = argv->a_w.w_float-1;
+}
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 //                                  PURE DATA GENERIC INTERFACE                                 //
@@ -325,7 +351,7 @@ static void faustgen_tilde_anything(t_faustgen_tilde *x, t_symbol* s, int argc, 
 {
     if(x->f_dsp_instance)
     {
-        int msg = faust_ui_manager_get_midi(x->f_ui_manager, s, argc, argv);
+        int msg = faust_ui_manager_get_midi(x->f_ui_manager, s, argc, argv, x->f_midichan);
         if(msg) {
             return;
         }
@@ -422,9 +448,9 @@ static t_int *faustgen_tilde_perform_single(t_int *w)
             realoutputs[i][j] = (t_sample)faustsigs[ninputs+i][j];
         }
     }
-    if (x->f_midiout) {
-      t_outlet *out = faust_io_manager_get_extra_output(x->f_io_manager);
-      faust_ui_manager_midiout(x->f_ui_manager, out);
+    if (x->f_midiout || x->f_midirecv) {
+      t_outlet *out = x->f_midiout?faust_io_manager_get_extra_output(x->f_io_manager):NULL;
+      faust_ui_manager_midiout(x->f_ui_manager, x->f_midichan, x->f_midirecv, out);
     }
     return (w+9);
 }
@@ -455,9 +481,9 @@ static t_int *faustgen_tilde_perform_double(t_int *w)
             realoutputs[i][j] = (t_sample)faustsigs[ninputs+i][j];
         }
     }
-    if (x->f_midiout) {
-      t_outlet *out = faust_io_manager_get_extra_output(x->f_io_manager);
-      faust_ui_manager_midiout(x->f_ui_manager, out);
+    if (x->f_midiout || x->f_midirecv) {
+      t_outlet *out = x->f_midiout?faust_io_manager_get_extra_output(x->f_io_manager):NULL;
+      faust_ui_manager_midiout(x->f_ui_manager, x->f_midichan, x->f_midirecv, out);
     }
     return (w+9);
 }
@@ -605,8 +631,49 @@ static void *faustgen_tilde_new(t_symbol* s, int argc, t_atom* argv)
         x->f_opt_manager    = faust_opt_manager_new((t_object *)x, canvas_getcurrent());
         x->f_dsp_name       = argc ? atom_getsymbolarg(0, argc, argv) : gensym(default_file);
         x->f_clock          = clock_new(x, (t_method)faustgen_tilde_autocompile_tick);
-        x->f_midiout        = true;
-        faust_opt_manager_parse_compile_options(x->f_opt_manager, argc ? argc-1 : 0, argv ? argv+1 : NULL);
+        x->f_midiout = false;
+        x->f_midichan = -1;
+        x->f_instance = x->f_midirecv = NULL;
+        // parse the remaining creation arguments
+        if (argc > 0 && argv) {
+          while (argv++, --argc > 0) {
+            if (argv->a_type == A_FLOAT &&
+                argv->a_w.w_float >= 0) {
+              // float value gives (1-based) MIDI channel, 0 means omni
+              x->f_midichan = argv->a_w.w_float-1;
+            } else if (argv->a_type == A_SYMBOL &&
+                     argv->a_w.w_symbol &&
+                     // check that it's not a (compiler) option
+                     argv->a_w.w_symbol->s_name[0] != '-')  {
+              if (strcmp(argv->a_w.w_symbol->s_name, "midiout") == 0)
+                // turn on MIDI output
+                x->f_midiout = true;
+              else if (strncmp(argv->a_w.w_symbol->s_name, "midiout=",
+                               strlen("midiout=")) == 0) {
+                // midiout flag; this can be empty (turning on MIDI output),
+                // an integer (turning MIDI output off or on, depending on
+                // whether the value is zero or not), or a symbol to be used
+                // as a receiver for outgoing MIDI messages
+                const char *arg = argv->a_w.w_symbol->s_name+strlen("midiout=");
+                unsigned num;
+                if (!*arg)
+                  x->f_midiout = true;
+                else if (sscanf(arg, "%u", &num) == 1)
+                  x->f_midiout = num != 0;
+                else
+                  x->f_midirecv = gensym(arg);
+              } else {
+                // instance name; currently this isn't used anywhere, but the
+                // plan is to employ this to identify a subpatch for an
+                // auto-generated Pd GUI a la pd-faust
+                x->f_instance = argv->a_w.w_symbol;
+              }
+            } else
+              break;
+          }
+        }
+        // any remaining creation arguments are for the compiler
+        faust_opt_manager_parse_compile_options(x->f_opt_manager, argc, argv);
         faustgen_tilde_compile(x);
         if(!x->f_dsp_instance)
         {
@@ -641,6 +708,8 @@ void faustgen_tilde_setup(void)
         class_addmethod(c,  (t_method)faustgen_tilde_autocompile,       gensym("autocompile"),      A_GIMME, 0);
         class_addmethod(c,  (t_method)faustgen_tilde_print,             gensym("print"),            A_NULL, 0);
         class_addmethod(c,  (t_method)faustgen_tilde_dump,              gensym("dump"),             A_NULL, 0);
+        class_addmethod(c,  (t_method)faustgen_tilde_midiout,           gensym("midiout"),          A_GIMME, 0);
+        class_addmethod(c,  (t_method)faustgen_tilde_midichan,          gensym("midichan"),         A_GIMME, 0);
 #if 0
         class_addmethod(c,  (t_method)faustgen_tilde_open_texteditor,   gensym("click"),            A_NULL, 0);
 #endif

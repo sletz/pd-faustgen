@@ -739,7 +739,7 @@ static void faust_ui_midi_init(void)
   }
 }
 
-int faust_ui_manager_get_midi(t_faust_ui_manager const *x, t_symbol const *s, int argc, t_atom* argv)
+int faust_ui_manager_get_midi(t_faust_ui_manager const *x, t_symbol const *s, int argc, t_atom* argv, int midichan)
 {
   int i;
   faust_ui_midi_init();
@@ -771,6 +771,8 @@ int faust_ui_manager_get_midi(t_faust_ui_manager const *x, t_symbol const *s, in
 	// channels. Thus 0..15 will denote the channels of the first MIDI
 	// device, 16..31 the channels of the second one, etc.
 	chan--;
+	// match against the object's channel if any
+	if (midichan >= 0 && chan != midichan) return i;
       } else
 	chan = -1;
     }
@@ -950,9 +952,11 @@ static int midi_defaultval(FAUSTFLOAT z, FAUSTFLOAT p_min, FAUSTFLOAT p_max,
     return -1;
 }
 
-void faust_ui_manager_midiout(t_faust_ui_manager const *x, t_outlet *out)
+void faust_ui_manager_midiout(t_faust_ui_manager const *x, int midichan,
+			      t_symbol *midirecv, t_outlet *out)
 {
   faust_ui_midi_init();
+  if (!midirecv && !out) return; // nothing to do
   // Run through all the passive UI elements with MIDI bindings.
   t_faust_ui *c = x->f_uis;
   while (c) {
@@ -1009,12 +1013,16 @@ void faust_ui_manager_midiout(t_faust_ui_manager const *x, t_outlet *out)
 	  if (midi_argc[i] > 0) SETFLOAT(argv+0, val);
 	  if (midi_argc[i] > 1) SETFLOAT(argv+1, num);
 	  if (midi_argc[i] < argc) {
-	    // voice message, add channel (0 by default)
+	    // voice message, add channel (either the object's default MIDI
+	    // channel, or 0 by default)
+	    if (chan < 0) chan = midichan;
 	    if (chan < 0) chan = 0;
 	    // Pd MIDI channels are 1-based
 	    SETFLOAT(argv+(argc-1), chan+1);
 	  }
-	  outlet_anything(out, s, argc, argv);
+	  if (out) outlet_anything(out, s, argc, argv);
+	  if (midirecv && midirecv->s_thing)
+	    typedmess(midirecv->s_thing, s, argc, argv);
 	}
       }
     }
