@@ -295,6 +295,239 @@ the index 2, f 36;
 #X connect 28 0 23 0;
 #X connect 32 0 18 0;
 #X restore 327 246 pd set.parameters.lists;
+#N canvas 794 308 654 452 midi 0;
+#X obj 233 43 tgl 15 1 empty empty empty 17 7 0 10 -262144 -1 -1 1
+1;
+#X msg 233 96 clock;
+#X msg 129 96 start;
+#X msg 179 96 stop;
+#N canvas 0 0 450 300 (subpatch) 0;
+#X array scope-l 1000 float 1;
+#A 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
+#X array scope-r 1000 float 1;
+#A 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
+#X coords 0 1 999 -1 200 140 1;
+#X restore 400 287 graph;
+#X obj 233 67 metro 10;
+#X obj 289 14 hsl 128 15 0 127 0 0 empty empty empty -2 -8 0 10 -262144
+-1 -1 0 1;
+#X floatatom 286 38 5 0 0 0 - - -;
+#X obj 506 121 r midi;
+#X obj 506 150 route ctl;
+#X msg 506 179 \$2 \$1;
+#X obj 506 208 route 1 2;
+#X floatatom 506 237 5 0 0 0 - - -;
+#X floatatom 556 237 5 0 0 0 - - -;
+#X obj 507 28 tgl 15 1 empty empty empty 17 7 0 10 -262144 -1 -1 0
+1;
+#X msg 507 51 \; pd dsp \$1;
+#X obj 103 220 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 0
+1;
+#X msg 103 194 midiout midi;
+#X msg 103 242 midiout \$1;
+#X msg 103 168 midiout;
+#X msg 103 304 midichan \$1;
+#X floatatom 103 279 5 0 0 0 - - -;
+#X obj 310 70 tgl 15 1 empty empty empty 17 7 0 10 -262144 -1 -1 1
+1;
+#X msg 310 94 active \$1;
+#X obj 347 190 tgl 15 1 empty empty empty 17 7 0 10 -262144 -1 -1 1
+1;
+#X msg 347 214 active \$1;
+#N canvas 860 399 450 300 dac 0;
+#X obj 23 64 metro 100;
+#X obj 48 127 dac~;
+#X obj 111 152 tabwrite~ scope-r;
+#X obj 111 121 tabwrite~ scope-l;
+#X obj 112 32 inlet~;
+#X obj 172 32 inlet~;
+#X obj 23 32 inlet;
+#X connect 0 0 2 0;
+#X connect 0 0 3 0;
+#X connect 4 0 1 0;
+#X connect 4 0 3 0;
+#X connect 5 0 1 1;
+#X connect 5 0 2 0;
+#X connect 6 0 0 0;
+#X restore 334 392 pd dac;
+#X obj 334 362 tgl 15 1 empty empty empty 17 7 0 10 -262144 -1 -1 1
+1;
+#X obj 239 318 print midiout;
+#X text 337 69 mute dsp;
+#X text 372 188 bypass dsp;
+#X text 25 70 MIDI sync (start \, stop \, clock);
+#X text 506 96 "midi" receiver;
+#X text 4 164 send MIDI to "midi" receiver, f 11;
+#X text 4 225 send MIDI to control outlet, f 11;
+#X text 4 281 set MIDI channel (0 = omni), f 10;
+#N canvas 916 411 450 300 midi-input 0;
+#X obj 14 50 ctlin;
+#X obj 14 71 pack f f f;
+#X msg 14 92 ctl \$1 \$2 \$3;
+#X obj 116 70 pack f f f;
+#X obj 213 70 pack f f f;
+#X obj 116 49 notein;
+#X msg 116 91 note \$1 \$2 \$3;
+#X obj 213 49 polytouchin;
+#X msg 213 91 polytouch \$1 \$2 \$3;
+#X obj 12 121 pgmin;
+#X obj 12 142 pack f f;
+#X msg 12 163 pgm \$1 \$2;
+#X obj 116 142 pack f f;
+#X obj 213 142 pack f f;
+#X obj 116 121 bendin;
+#X msg 116 163 bend \$1 \$2;
+#X obj 213 121 touchin;
+#X msg 213 163 touch \$1 \$2;
+#X obj 11 193 midiin;
+#X obj 11 214 sel 250 251 252;
+#X msg 11 235 start;
+#X msg 45 258 cont;
+#X msg 79 237 stop;
+#X obj 213 259 outlet;
+#X text 10 7 This is a little helper patch which encodes MIDI messages
+in SMMF format.;
+#X connect 0 0 1 0;
+#X connect 0 1 1 1;
+#X connect 0 2 1 2;
+#X connect 1 0 2 0;
+#X connect 2 0 23 0;
+#X connect 3 0 6 0;
+#X connect 4 0 8 0;
+#X connect 5 0 3 0;
+#X connect 5 1 3 1;
+#X connect 5 2 3 2;
+#X connect 6 0 23 0;
+#X connect 7 0 4 0;
+#X connect 7 1 4 1;
+#X connect 7 2 4 2;
+#X connect 8 0 23 0;
+#X connect 9 0 10 0;
+#X connect 9 1 10 1;
+#X connect 10 0 11 0;
+#X connect 11 0 23 0;
+#X connect 12 0 15 0;
+#X connect 13 0 17 0;
+#X connect 14 0 12 0;
+#X connect 14 1 12 1;
+#X connect 15 0 23 0;
+#X connect 16 0 13 0;
+#X connect 16 1 13 1;
+#X connect 17 0 23 0;
+#X connect 18 0 19 0;
+#X connect 19 0 20 0;
+#X connect 19 1 21 0;
+#X connect 19 2 22 0;
+#X connect 20 0 23 0;
+#X connect 21 0 23 0;
+#X connect 22 0 23 0;
+#X restore 214 218 pd midi-input;
+#X msg 280 125 compile;
+#X msg 278 276 compile;
+#X msg 335 125 defaults;
+#X msg 335 276 defaults;
+#X obj 239 294 faustgen~ examples/amp;
+#X obj 233 143 faustgen~ examples/sync;
+#X text 5 371 Extra creation arguments: number denotes the MIDI channel
+(0 = omni) \, midiout=1 enables MIDI output \, midiout=sym sends outgoing
+MIDI messages to the given receiver, f 49;
+#X text 213 182 MIDI input uses SMMF format, f 16;
+#X obj 7 349 faustgen~ examples/amp 1 midiout=midi;
+#X connect 0 0 5 0;
+#X connect 1 0 42 0;
+#X connect 2 0 42 0;
+#X connect 3 0 42 0;
+#X connect 5 0 1 0;
+#X connect 6 0 7 0;
+#X connect 7 0 5 1;
+#X connect 8 0 9 0;
+#X connect 9 0 10 0;
+#X connect 10 0 11 0;
+#X connect 11 0 12 0;
+#X connect 11 1 13 0;
+#X connect 14 0 15 0;
+#X connect 16 0 18 0;
+#X connect 17 0 41 0;
+#X connect 18 0 41 0;
+#X connect 19 0 41 0;
+#X connect 20 0 41 0;
+#X connect 21 0 20 0;
+#X connect 22 0 23 0;
+#X connect 23 0 42 0;
+#X connect 24 0 25 0;
+#X connect 25 0 41 0;
+#X connect 27 0 26 0;
+#X connect 36 0 41 0;
+#X connect 37 0 42 0;
+#X connect 38 0 41 0;
+#X connect 39 0 42 0;
+#X connect 40 0 41 0;
+#X connect 41 0 28 0;
+#X connect 41 1 26 1;
+#X connect 41 2 26 2;
+#X connect 42 1 41 1;
+#X connect 42 1 41 2;
+#X restore 327 324 pd midi;
+#X text 223 169 Reset parameters to their defaults, f 15;
+#X msg 224 150 defaults;
 #X connect 1 0 2 0;
 #X connect 4 0 17 0;
 #X connect 5 0 6 0;
@@ -307,3 +540,4 @@ the index 2, f 36;
 #X connect 26 1 3 0;
 #X connect 26 1 3 1;
 #X connect 26 1 21 0;
+#X connect 34 0 26 0;
