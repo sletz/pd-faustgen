@@ -11,7 +11,13 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 
+// ag: I'm not sure what this definition is supposed to do, but this will
+// almost certainly cause trouble when compiling against a Pd version that
+// uses double precision t_sample values. Disabled for now, which means that
+// Faust's default FAUSTFLOAT type will be used (normally float).
+#if 0
 #define FAUSTFLOAT t_sample
+#endif
 #include <faust/dsp/llvm-c-dsp.h>
 
 #include "faust_tilde_ui.h"
@@ -41,6 +47,9 @@ typedef struct _faustgen_tilde
     t_clock*            f_clock;
     double              f_clock_time;
     long                f_time;
+
+    bool                f_active;
+    t_symbol*           f_activesym;
 
     bool                f_midiout;
     int                 f_midichan;
@@ -379,6 +388,13 @@ static void faustgen_tilde_anything(t_faustgen_tilde *x, t_symbol* s, int argc, 
             {
                 return;
             }
+            if(s == x->f_activesym)
+            // ag: default action for 'active' message, toggles the activation
+            // status of the dsp
+            {
+                x->f_active = argv[0].a_w.w_float != 0;
+                return;
+            }
             pd_error(x, "faustgen~: parameter '%s' not defined", s->s_name);
             return;
         }
@@ -433,6 +449,23 @@ static t_int *faustgen_tilde_perform_single(t_int *w)
     t_sample const** realinputs = (t_sample const**)w[6];
     t_sample** realoutputs      = (t_sample **)w[7];
     t_faustgen_tilde *x = (t_faustgen_tilde *)w[8];
+    if (!x->f_active) {
+      // ag: default `active` flag: bypass or mute the dsp
+      if (ninputs == noutputs) {
+	for (i = 0; i < ninputs; ++i) {
+	  for(j = 0; j < nsamples; ++j) {
+	    realoutputs[i][j] = realinputs[i][j];
+	  }
+	}
+      } else {
+	for (i = 0; i < noutputs; ++i) {
+	  for(j = 0; j < nsamples; ++j) {
+	    realoutputs[i][j] = 0.0;
+	  }
+	}
+      }
+      return (w+9);
+    }
     for(i = 0; i < ninputs; ++i)
     {
         for(j = 0; j < nsamples; ++j)
@@ -634,6 +667,8 @@ static void *faustgen_tilde_new(t_symbol* s, int argc, t_atom* argv)
         x->f_midiout = false;
         x->f_midichan = -1;
         x->f_instance = x->f_midirecv = NULL;
+        x->f_activesym = gensym("active");
+        x->f_active = true;
         // parse the remaining creation arguments
         if (argc > 0 && argv) {
           while (argv++, --argc > 0) {
