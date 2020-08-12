@@ -41,6 +41,8 @@ typedef struct _faustgen_tilde
     t_clock*            f_clock;
     double              f_clock_time;
     long                f_time;
+
+    bool                f_midiout;
 } t_faustgen_tilde;
 
 static t_class *faustgen_tilde_class;
@@ -404,6 +406,7 @@ static t_int *faustgen_tilde_perform_single(t_int *w)
     float** faustsigs   = (float **)w[5];
     t_sample const** realinputs = (t_sample const**)w[6];
     t_sample** realoutputs      = (t_sample **)w[7];
+    t_faustgen_tilde *x = (t_faustgen_tilde *)w[8];
     for(i = 0; i < ninputs; ++i)
     {
         for(j = 0; j < nsamples; ++j)
@@ -419,7 +422,11 @@ static t_int *faustgen_tilde_perform_single(t_int *w)
             realoutputs[i][j] = (t_sample)faustsigs[ninputs+i][j];
         }
     }
-    return (w+8);
+    if (x->f_midiout) {
+      t_outlet *out = faust_io_manager_get_extra_output(x->f_io_manager);
+      faust_ui_manager_midiout(x->f_ui_manager, out);
+    }
+    return (w+9);
 }
 
 static t_int *faustgen_tilde_perform_double(t_int *w)
@@ -432,6 +439,7 @@ static t_int *faustgen_tilde_perform_double(t_int *w)
     double** faustsigs  = (double **)w[5];
     t_sample const** realinputs = (t_sample const**)w[6];
     t_sample** realoutputs      = (t_sample **)w[7];
+    t_faustgen_tilde *x = (t_faustgen_tilde *)w[8];
     for(i = 0; i < ninputs; ++i)
     {
         for(j = 0; j < nsamples; ++j)
@@ -447,7 +455,11 @@ static t_int *faustgen_tilde_perform_double(t_int *w)
             realoutputs[i][j] = (t_sample)faustsigs[ninputs+i][j];
         }
     }
-    return (w+8);
+    if (x->f_midiout) {
+      t_outlet *out = faust_io_manager_get_extra_output(x->f_io_manager);
+      faust_ui_manager_midiout(x->f_ui_manager, out);
+    }
+    return (w+9);
 }
 
 static void faustgen_tilde_free_signals(t_faustgen_tilde *x)
@@ -538,20 +550,22 @@ static void faustgen_tilde_dsp(t_faustgen_tilde *x, t_signal **sp)
             if(faust_opt_has_double_precision(x->f_opt_manager))
             {
                 faustgen_tilde_alloc_signals_double(x, ninputs, noutputs, nsamples);
-                dsp_add((t_perfroutine)faustgen_tilde_perform_double, 7,
+                dsp_add((t_perfroutine)faustgen_tilde_perform_double, 8,
                         (t_int)x->f_dsp_instance, (t_int)nsamples, (t_int)ninputs, (t_int)noutputs,
                         (t_int)x->f_signal_matrix_double,
                         (t_int)faust_io_manager_get_input_signals(x->f_io_manager),
-                        (t_int)faust_io_manager_get_output_signals(x->f_io_manager));
+                        (t_int)faust_io_manager_get_output_signals(x->f_io_manager),
+                        (t_int)x);
             }
             else
             {
                 faustgen_tilde_alloc_signals_single(x, ninputs, noutputs, nsamples);
-                dsp_add((t_perfroutine)faustgen_tilde_perform_single, 7,
+                dsp_add((t_perfroutine)faustgen_tilde_perform_single, 8,
                         (t_int)x->f_dsp_instance, (t_int)nsamples, (t_int)ninputs, (t_int)noutputs,
                         (t_int)x->f_signal_matrix_single,
                         (t_int)faust_io_manager_get_input_signals(x->f_io_manager),
-                        (t_int)faust_io_manager_get_output_signals(x->f_io_manager));
+                        (t_int)faust_io_manager_get_output_signals(x->f_io_manager),
+                        (t_int)x);
             }
         }
         if(initialized)
@@ -591,6 +605,7 @@ static void *faustgen_tilde_new(t_symbol* s, int argc, t_atom* argv)
         x->f_opt_manager    = faust_opt_manager_new((t_object *)x, canvas_getcurrent());
         x->f_dsp_name       = argc ? atom_getsymbolarg(0, argc, argv) : gensym(default_file);
         x->f_clock          = clock_new(x, (t_method)faustgen_tilde_autocompile_tick);
+        x->f_midiout        = true;
         faust_opt_manager_parse_compile_options(x->f_opt_manager, argc ? argc-1 : 0, argv ? argv+1 : NULL);
         faustgen_tilde_compile(x);
         if(!x->f_dsp_instance)
