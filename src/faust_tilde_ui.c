@@ -239,6 +239,41 @@ static void faust_ui_manager_free_names(t_faust_ui_manager *x)
     x->f_nnames = 0;
 }
 
+/* ag: Pd’s input syntax for symbols is rather restrictive. Whitespace is not
+   allowed, and many punctuation characters have a special meaning in Pd.
+   However, any of these are allowed in Faust labels. Therefore group and
+   control labels in the Faust source are mangled into a form which only
+   contains alphanumeric characters and hyphens, so that the control names are
+   always legal Pd symbols. For instance, a Faust control name like "meter #1
+   (dB)" will become "meter-1-dB" which can be input directly as a symbol in
+   Pd without any problems. */
+
+#include <ctype.h>
+
+static t_symbol* mangle(const char* label)
+{
+  // ASCII-only version for now. To be on the safe side, this should be
+  // rewritten so that it works with UTF-8 some time.
+  size_t i = 0;
+  char name[MAXFAUSTSTRING];
+  int state = 0;
+  memset(name, 0, MAXFAUSTSTRING);
+  while (*label && i < MAXFAUSTSTRING-1) {
+    if (isalnum(*label)) {
+      if (state) {
+	name[i++] = '-';
+	if (i >= MAXFAUSTSTRING-1) break;
+      }
+      name[i++] = *label++;
+      state = 0;
+    } else {
+      label++;
+      state = 1;
+    }
+  }
+  return gensym(name);
+}
+
 static t_symbol* faust_ui_manager_get_long_name(t_faust_ui_manager *x, const char* label)
 {
     size_t i;
@@ -253,7 +288,7 @@ static t_symbol* faust_ui_manager_get_long_name(t_faust_ui_manager *x, const cha
     }
     // remove dummy "0x00" labels for anonymous controls
     if (strcmp(label, "0x00"))
-      strncat(name, label, MAXFAUSTSTRING - strnlen(name, MAXFAUSTSTRING) - 1);
+      strncat(name, mangle(label)->s_name, MAXFAUSTSTRING - strnlen(name, MAXFAUSTSTRING) - 1);
     else if (*name) // remove trailing "/"
       name[strnlen(name, MAXFAUSTSTRING) - 1] = 0;
     // The result is a canonicalized path which has all the "0x00" components
@@ -266,11 +301,11 @@ static t_symbol* faust_ui_manager_get_name(t_faust_ui_manager *x, const char* la
 {
     size_t i;
     // return the last component in the path which isn't "0x00"
-    if (strcmp(label, "0x00")) return gensym(label);
+    if (strcmp(label, "0x00")) return mangle(label);
     for(i = x->f_nnames; i > 0; --i)
     {
       if (strcmp(x->f_names[i-1]->s_name, "0x00"))
-	return gensym(x->f_names[i-1]->s_name);
+	return x->f_names[i-1];
     }
     // the resulting name may be empty if all components, including the
     // control label itself, are "0x00"
@@ -370,7 +405,7 @@ static void faust_ui_manager_ui_open_box(t_faust_ui_manager* x, const char* labe
         if(temp)
         {
             x->f_names  = temp;
-            x->f_names[x->f_nnames] = gensym(label);
+            x->f_names[x->f_nnames] = mangle(label);
             x->f_nnames = x->f_nnames + 1;
             return;
         }
@@ -385,7 +420,7 @@ static void faust_ui_manager_ui_open_box(t_faust_ui_manager* x, const char* labe
         x->f_names = getbytes(sizeof(t_symbol *));
         if(x->f_names)
         {
-            x->f_names[0] = gensym(label);
+            x->f_names[0] = mangle(label);
             x->f_nnames = 1;
             return;
         }
