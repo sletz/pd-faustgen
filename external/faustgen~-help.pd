@@ -528,6 +528,32 @@ MIDI messages to the given receiver, f 49;
 #X restore 327 324 pd midi;
 #X text 223 169 Reset parameters to their defaults, f 15;
 #X msg 224 150 defaults;
+#N canvas 702 414 463 334 receivers 0;
+#X text 22 19 The faustgen~ receiver can be used to send a message
+to all faustgen~ objects in a patch., f 25;
+#X msg 23 83 \; faustgen~ print;
+#X msg 23 182 \; examples/gain print;
+#X text 23 129 You can also send a message to all instances of a given
+dsp..., f 25;
+#X msg 23 282 \; examples/gain-0 print;
+#X text 222 95 You can send a message to the instance name..., f 16
+;
+#X obj 223 63 faustgen~ examples/gain foo;
+#X msg 302 153 \; examples/gain:foo print;
+#X msg 222 153 \; foo print;
+#X text 23 229 ... or to just a single instance given by its unique
+receiver (printed as "unique name" by the print message)., f 40;
+#X text 222 17 faustgen~ objects can also have an additional instance
+name:, f 31;
+#X text 342 95 ... or to the name:instance receiver., f 16;
+#X msg 274 274 compile;
+#X msg 334 274 defaults;
+#X obj 274 300 s faustgen~;
+#X text 272 197 Two useful examples: recompile all faustgen~ objects
+\, and reset their control variables to the defaults., f 27;
+#X connect 12 0 14 0;
+#X connect 13 0 14 0;
+#X restore 327 350 pd receivers;
 #X connect 1 0 2 0;
 #X connect 4 0 17 0;
 #X connect 5 0 6 0;
