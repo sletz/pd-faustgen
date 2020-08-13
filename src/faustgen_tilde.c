@@ -54,7 +54,8 @@ typedef struct _faustgen_tilde
     bool                f_midiout;
     int                 f_midichan;
     t_symbol*           f_midirecv;
-    t_symbol*           f_instance;
+    t_symbol*           f_instance_name;
+    t_symbol*           f_unique_name;
 } t_faustgen_tilde;
 
 static t_class *faustgen_tilde_class;
@@ -256,6 +257,9 @@ static void faustgen_tilde_print(t_faustgen_tilde *x)
     if(x->f_dsp_factory)
     {
         post("faustgen~: %s", faust_opt_manager_get_full_path(x->f_opt_manager, x->f_dsp_name->s_name));
+        post("             unique name: %s", x->f_unique_name->s_name);
+        if (x->f_instance_name)
+          post("             instance name: %s", x->f_instance_name->s_name);
         faust_io_manager_print(x->f_io_manager, 0);
         if(x->f_dsp_factory)
         {
@@ -295,6 +299,12 @@ static void faustgen_tilde_dump(t_faustgen_tilde *x)
       int numparams;
       SETSYMBOL(argv, x->f_dsp_name);
       outlet_anything(out, gensym("name"), 1, argv);
+      SETSYMBOL(argv, x->f_unique_name);
+      outlet_anything(out, gensym("unique-name"), 1, argv);
+      if (x->f_instance_name) {
+	SETSYMBOL(argv, x->f_instance_name);
+	outlet_anything(out, gensym("instance-name"), 1, argv);
+      }
       SETSYMBOL(argv, gensym(faust_opt_manager_get_full_path(x->f_opt_manager, x->f_dsp_name->s_name)));
       outlet_anything(out, gensym("path"), 1, argv);
       SETFLOAT(argv, faust_io_manager_get_ninputs(x->f_io_manager));
@@ -642,8 +652,41 @@ static void faustgen_tilde_dsp(t_faustgen_tilde *x, t_signal **sp)
     }
 }
 
+static t_symbol *make_instance_name(t_symbol *dsp_name, t_symbol *instance_name)
+{
+  char buf[MAXPDSTRING];
+  snprintf(buf, MAXPDSTRING, "%s:%s", dsp_name->s_name,
+	   instance_name->s_name);
+  return gensym(buf);
+}
+
+static t_symbol *make_unique_name(t_symbol *dsp_name)
+{
+  // this simply counts up starting from zero until we find a symbol that's
+  // not bound yet, so this will hopefully create reproducible results, as
+  // long as the relative order of the faustgen~ objects in the patch
+  // doesn't change
+  unsigned counter = 0;
+  t_symbol *s;
+  do {
+    char buf[MAXPDSTRING];
+    snprintf(buf, MAXPDSTRING, "%s-%u", dsp_name->s_name, counter);
+    s = gensym(buf);
+    counter++;
+  } while (s->s_thing);
+  return s;
+}
+
 static void faustgen_tilde_free(t_faustgen_tilde *x)
 {
+    pd_unbind(&x->f_obj.ob_pd, gensym("faustgen~"));
+    pd_unbind(&x->f_obj.ob_pd, x->f_dsp_name);
+    pd_unbind(&x->f_obj.ob_pd, x->f_unique_name);
+    if (x->f_instance_name) {
+      pd_unbind(&x->f_obj.ob_pd, x->f_instance_name);
+      pd_unbind(&x->f_obj.ob_pd,
+		make_instance_name(x->f_dsp_name, x->f_instance_name));
+    }
     faustgen_tilde_delete_instance(x);
     faustgen_tilde_delete_factory(x);
     faust_ui_manager_free(x->f_ui_manager);
@@ -674,7 +717,7 @@ static void *faustgen_tilde_new(t_symbol* s, int argc, t_atom* argv)
         x->f_clock          = clock_new(x, (t_method)faustgen_tilde_autocompile_tick);
         x->f_midiout = false;
         x->f_midichan = -1;
-        x->f_instance = x->f_midirecv = NULL;
+        x->f_instance_name = x->f_midirecv = NULL;
         x->f_activesym = gensym("active");
         x->f_active = true;
         // parse the remaining creation arguments
@@ -706,10 +749,11 @@ static void *faustgen_tilde_new(t_symbol* s, int argc, t_atom* argv)
                 else
                   x->f_midirecv = gensym(arg);
               } else {
-                // instance name; currently this isn't used anywhere, but the
-                // plan is to employ this to identify a subpatch for an
-                // auto-generated Pd GUI a la pd-faust
-                x->f_instance = argv->a_w.w_symbol;
+                // the instance name is used as an additional identifier of
+                // the dsp in the receivers (see below); the plan is to also
+                // employ this to identify a subpatch for an auto-generated Pd
+                // GUI a la pd-faust in the future
+                x->f_instance_name = argv->a_w.w_symbol;
               }
             } else
               break;
@@ -723,6 +767,20 @@ static void *faustgen_tilde_new(t_symbol* s, int argc, t_atom* argv)
             faustgen_tilde_free(x);
             return NULL;
         }
+	// ag: global faustgen~ receiver
+	pd_bind(&x->f_obj.ob_pd, gensym("faustgen~"));
+	// dsp name
+	pd_bind(&x->f_obj.ob_pd, x->f_dsp_name);
+	// unique name derived from the dsp name
+	x->f_unique_name = make_unique_name(x->f_dsp_name);
+	pd_bind(&x->f_obj.ob_pd, x->f_unique_name);
+	if (x->f_instance_name) {
+	  // instance name
+	  pd_bind(&x->f_obj.ob_pd, x->f_instance_name);
+	  // dsp-name:instance-name
+	  pd_bind(&x->f_obj.ob_pd,
+		  make_instance_name(x->f_dsp_name, x->f_instance_name));
+	}
     }
     return x;
 }
