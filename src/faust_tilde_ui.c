@@ -8,6 +8,7 @@
 #include "faust_tilde_ui.h"
 #include <faust/dsp/llvm-c-dsp.h>
 #include <string.h>
+#include <ctype.h>
 #include <float.h>
 #include <math.h>
 
@@ -248,8 +249,6 @@ static void faust_ui_manager_free_names(t_faust_ui_manager *x)
    (dB)" will become "meter-1-dB" which can be input directly as a symbol in
    Pd without any problems. */
 
-#include <ctype.h>
-
 static t_symbol* mangle(const char* label)
 {
   // ASCII-only version for now. To be on the safe side, this should be
@@ -271,7 +270,10 @@ static t_symbol* mangle(const char* label)
       state = 1;
     }
   }
-  return gensym(name);
+  // If name is still empty now then label consists of just non-alphanumeric
+  // symbols; in that case, the best that we can do is pretend that it's an
+  // empty label ("0x00" in Faust; we'll later get rid of those as well).
+  return gensym(*name?name:"0x00");
 }
 
 static t_symbol* faust_ui_manager_get_long_name(t_faust_ui_manager *x, const char* label)
@@ -287,29 +289,34 @@ static t_symbol* faust_ui_manager_get_long_name(t_faust_ui_manager *x, const cha
         strncat(name, "/", MAXFAUSTSTRING - strnlen(name, MAXFAUSTSTRING) - 1);
     }
     // remove dummy "0x00" labels for anonymous controls
-    if (strcmp(label, "0x00"))
-      strncat(name, mangle(label)->s_name, MAXFAUSTSTRING - strnlen(name, MAXFAUSTSTRING) - 1);
+    t_symbol *mangled;
+    if (strcmp(label, "0x00") &&
+	strcmp((mangled = mangle(label))->s_name, "0x00"))
+      strncat(name, mangled->s_name, MAXFAUSTSTRING - strnlen(name, MAXFAUSTSTRING) - 1);
     else if (*name) // remove trailing "/"
       name[strnlen(name, MAXFAUSTSTRING) - 1] = 0;
     // The result is a canonicalized path which has all the "0x00" components
     // removed. This path may be empty if all components, including the
-    // control label itself, are "0x00".
-    return gensym(name);
+    // control label itself, are "0x00". In that case, return "anon" instead.
+    return gensym(*name?name:"anon");
 }
 
 static t_symbol* faust_ui_manager_get_name(t_faust_ui_manager *x, const char* label)
 {
     size_t i;
     // return the last component in the path which isn't "0x00"
-    if (strcmp(label, "0x00")) return mangle(label);
+    t_symbol *mangled;
+    if (strcmp(label, "0x00") &&
+	strcmp((mangled = mangle(label))->s_name, "0x00"))
+      return mangled;
     for(i = x->f_nnames; i > 0; --i)
     {
       if (strcmp(x->f_names[i-1]->s_name, "0x00"))
 	return x->f_names[i-1];
     }
-    // the resulting name may be empty if all components, including the
-    // control label itself, are "0x00"
-    return gensym("");
+    // The resulting name may be empty if all components, including the
+    // control label itself, are "0x00"; in that case, return "anon" instead.
+    return gensym("anon");
 }
 
 static int midi_defaultval(FAUSTFLOAT z, FAUSTFLOAT p_min, FAUSTFLOAT p_max,
