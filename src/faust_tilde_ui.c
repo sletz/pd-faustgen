@@ -667,10 +667,9 @@ static void faust_ui_manager_ui_declare(t_faust_ui_manager* x, FAUSTFLOAT* zone,
 
 static void faust_ui_manager_meta_declare(t_faust_ui_manager* x, const char* key, const char* value)
 {
-    int num;
     logpost(x->f_owner, 3, "             %s: %s", key, value);
-    if (strcmp(key, "nvoices") == 0 && sscanf(value, "%d", &num) == 1 && num >= 0) {
-      x->f_nvoices = num;
+    if (strcmp(key, "nvoices") == 0) {
+      pd_error(x->f_owner, "faustgen~: warning: nvoices declaration not implemented");
     }
 }
 
@@ -706,6 +705,7 @@ t_faust_ui_manager* faust_ui_manager_new(t_object* owner)
         ui_manager->f_nuis      = 0;
         ui_manager->f_names     = NULL;
         ui_manager->f_nnames    = 0;
+        ui_manager->f_nvoices   = 0;
         ui_manager->f_init_recv = NULL;
         ui_manager->f_active_recv = NULL;
         
