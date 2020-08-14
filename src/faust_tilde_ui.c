@@ -87,10 +87,54 @@ static struct {
   t_faust_midi_ui midi[N_MIDI_UI];
 } last_meta;
 
+// A simple proxy object to receive parameter updates from the GUI.
+typedef struct {
+  t_pd pd;
+  struct _faust_ui_manager *owner;
+  t_symbol *uisym; // the symbol to bind to
+  t_symbol *lname; // the actual long name of the symbol
+  // recursive means that we're currently sending a message which might
+  // trigger an update, so we don't want to receive messages in that case.
+  bool recursive;
+} t_faust_ui_proxy;
+
+static t_class *faust_ui_proxy_class;
+
+static t_faust_ui_proxy *faust_ui_receive_new(t_faust_ui_manager *owner, t_symbol *uisym, t_symbol *lname)
+{
+  t_faust_ui_proxy *r = getbytes(sizeof(t_faust_ui_proxy));
+  r->pd = faust_ui_proxy_class;
+  r->owner = owner;
+  r->uisym = uisym;
+  r->lname = lname;
+  r->recursive = false;
+  pd_bind(&r->pd, r->uisym);
+  return r;
+}
+
+static void faust_ui_receive_free(t_faust_ui_proxy *r)
+{
+  pd_unbind(&r->pd, r->uisym);
+  freebytes(r, sizeof(t_faust_ui_proxy));
+}
+
+static void faust_ui_receive(t_faust_ui_proxy *r, t_floatarg v);
+static void faust_bang_receive(t_faust_ui_proxy *r);
+
+void faust_ui_receive_setup(void)
+{
+  faust_ui_proxy_class = class_new(gensym("faustgen~ proxy receive"), 0, 0, sizeof(t_faust_ui_proxy), 0, 0);
+  class_addbang(faust_ui_proxy_class, faust_bang_receive);
+  class_addfloat(faust_ui_proxy_class, faust_ui_receive);
+}
+
 typedef struct _faust_ui
 {
     t_symbol*           p_name;
     t_symbol*           p_longname;
+    t_symbol*           p_uisym;
+    t_faust_ui_proxy *  p_uirecv;
+    FAUSTFLOAT          p_uival;
     int                 p_type;
     FAUSTFLOAT*         p_zone;
     FAUSTFLOAT          p_min;
@@ -116,12 +160,15 @@ typedef struct _faust_ui_manager
     size_t      f_nnames;
     MetaGlue    f_meta_glue;
     int         f_nvoices;
+    t_faust_ui_proxy *f_init_recv, *f_active_recv;
 }t_faust_ui_manager;
 
 static void faust_ui_free(t_faust_ui *c)
 {
   if (c->p_midi)
     freebytes(c->p_midi, c->p_nmidi*sizeof(t_faust_midi_ui));
+  if (c->p_uirecv)
+    faust_ui_receive_free(c->p_uirecv);
 }
 
 static void faust_ui_manager_free_uis(t_faust_ui_manager *x)
@@ -350,6 +397,8 @@ static void faust_ui_manager_add_param(t_faust_ui_manager *x, const char* label,
         current     = init;
     }
     c->p_longname  = lname;
+    c->p_uisym     = NULL;
+    c->p_uirecv    = NULL;
     c->p_type      = type;
     c->p_zone      = zone;
     c->p_min       = min;
@@ -657,6 +706,8 @@ t_faust_ui_manager* faust_ui_manager_new(t_object* owner)
         ui_manager->f_nuis      = 0;
         ui_manager->f_names     = NULL;
         ui_manager->f_nnames    = 0;
+        ui_manager->f_init_recv = NULL;
+        ui_manager->f_active_recv = NULL;
         
         ui_manager->f_meta_glue.metaInterface = ui_manager;
         ui_manager->f_meta_glue.declare       = (metaDeclareFun)faust_ui_manager_meta_declare;
@@ -681,8 +732,29 @@ void faust_ui_manager_init(t_faust_ui_manager *x, void* dspinstance)
 
 void faust_ui_manager_clear(t_faust_ui_manager *x)
 {
+    if (x->f_init_recv) faust_ui_receive_free(x->f_init_recv);
+    if (x->f_active_recv) faust_ui_receive_free(x->f_active_recv);
     faust_ui_manager_free_uis(x);
     faust_ui_manager_free_names(x);
+}
+
+static void gui_update(FAUSTFLOAT v, t_faust_ui_proxy *r)
+{
+  if (r) {
+    t_symbol *s = r->uisym;
+    if (s && s->s_thing) {
+      // This suppresses a recursive update while we're sending the message.
+      r->recursive = true;
+      pd_float(s->s_thing, v);
+      r->recursive = false;
+    }
+  }
+}
+
+static void set_zone(FAUSTFLOAT *z, FAUSTFLOAT v, t_faust_ui_proxy *r)
+{
+  *z = v;
+  gui_update(v, r);
 }
 
 char faust_ui_manager_set_value(t_faust_ui_manager *x, t_symbol const *name, t_float const f)
@@ -690,38 +762,15 @@ char faust_ui_manager_set_value(t_faust_ui_manager *x, t_symbol const *name, t_f
     t_faust_ui* ui = faust_ui_manager_get(x, name);
     if(ui)
     {
-        if(ui->p_type == FAUST_UI_TYPE_BUTTON)
+        if(ui->p_type == FAUST_UI_TYPE_BUTTON || ui->p_type == FAUST_UI_TYPE_TOGGLE)
         {
-            if(f > FLT_EPSILON)
-            {
-                *(ui->p_zone) = 0;
-                *(ui->p_zone) = 1;
-            }
-            else
-            {
-                *(ui->p_zone) = 0;
-            }
-            return 0;
-        }
-        else if(ui->p_type == FAUST_UI_TYPE_TOGGLE)
-        {
-            *(ui->p_zone) = (FAUSTFLOAT)(f > FLT_EPSILON);
+            set_zone(ui->p_zone, (FAUSTFLOAT)(f > FLT_EPSILON), ui->p_uirecv);
             return 0;
         }
         else if(ui->p_type == FAUST_UI_TYPE_NUMBER)
         {
             const FAUSTFLOAT v = (FAUSTFLOAT)(f);
-            if(v < ui->p_min)
-            {
-                *(ui->p_zone) = ui->p_min;
-                return 0;
-            }
-            if(v > ui->p_max)
-            {
-                *(ui->p_zone) = ui->p_max;
-                return 0;
-            }
-            *(ui->p_zone) = v;
+            set_zone(ui->p_zone, (FAUSTFLOAT)(v < ui->p_min?ui->p_min:v > ui->p_max?ui->p_max:v), ui->p_uirecv);
             return 0;
         }
     }
@@ -871,6 +920,7 @@ int faust_ui_manager_get_midi(t_faust_ui_manager const *x, t_symbol const *s, in
 	  }
 	  if (log) {
 	    //logpost(x->f_owner, 3, "%s = %g", c->p_name->s_name, *c->p_zone);
+	    gui_update(*c->p_zone, c->p_uirecv);
 	  }
 	}
       }
@@ -896,7 +946,7 @@ void faust_ui_manager_restore_states(t_faust_ui_manager *x)
     t_faust_ui *c = x->f_uis;
     while(c)
     {
-        *(c->p_zone) = c->p_saved;
+        set_zone(c->p_zone, c->p_saved, c->p_uirecv);
         c = c->p_next;
     }
 }
@@ -906,7 +956,7 @@ void faust_ui_manager_restore_default(t_faust_ui_manager *x)
     t_faust_ui *c = x->f_uis;
     while(c)
     {
-        *(c->p_zone) = c->p_default;
+        set_zone(c->p_zone, c->p_default, c->p_uirecv);
         c = c->p_next;
     }
 }
@@ -1070,4 +1120,265 @@ void faust_ui_manager_midiout(t_faust_ui_manager const *x, int midichan,
     }
     c = c->p_next;
   }
+}
+
+void faust_ui_manager_gui_update(t_faust_ui_manager const *x)
+{
+  // Run through all the passive UI elements.
+  t_faust_ui *c = x->f_uis;
+  while (c) {
+    if (c->p_type == FAUST_UI_TYPE_BARGRAPH &&
+	c->p_uisym && c->p_uisym->s_thing) {
+      // only output changed values
+      if (*c->p_zone != c->p_uival) {
+	gui_update(*c->p_zone, c->p_uirecv);
+	c->p_uival = *c->p_zone;
+      }
+    }
+    c = c->p_next;
+  }
+}
+
+static t_symbol *make_sym(t_symbol *dsp_name, t_symbol *longname)
+{
+  char name[MAXPDSTRING];
+  snprintf(name, MAXPDSTRING, "%s/%s", dsp_name->s_name, longname->s_name);
+  return gensym(name);
+}
+
+void faust_ui_manager_gui(t_faust_ui_manager *x,
+			  t_symbol *unique_name, t_symbol *instance_name)
+{
+  // Check that the target subpatch exists.
+  char ui_name[MAXPDSTRING];
+  snprintf(ui_name, MAXPDSTRING, "pd-%s", instance_name->s_name);
+  t_symbol *ui = gensym(ui_name);
+  if (!ui->s_thing) return;
+  // Formatting data for the GUI.
+  const int black = -1; // foreground color for all GUI elements
+  const int white = -0x40000; // background color of active controls
+  const int gray  = -0x38e39; // background color of passive controls
+  // Spacing of number boxes and horizontal sliders. You may have to adjust
+  // this if your Pd version differs from the usual defaults, or if you change
+  // the font sizes below.
+  const int nentry_x = 75, nentry_y = 30;
+  const int hslider_x = 150, hslider_y = 30;
+  // GUI font sizes. fn1 sets the font size of the slider labels, fn2 that of
+  // the number boxes. Common font sizes are 10 and 12.
+  const int fn1 = 10, fn2 = 10;
+  // Run through all UI elements. First determine the width and height of the
+  // GOP area.
+  int wd = 10+hslider_x+nentry_x, ht = hslider_y, y = 0;
+  t_faust_ui *c = x->f_uis;
+  while (c) {
+    ht += hslider_y;
+    c = c->p_next;
+  }
+  // Initialize the subpatch and create the GOP area.
+  int argc = 0;
+  t_atom argv[50];
+  typedmess(ui->s_thing, gensym("clear"), 0, NULL);
+  SETFLOAT(argv+argc, 0); argc++;
+  SETFLOAT(argv+argc, -1); argc++;
+  SETFLOAT(argv+argc, 1); argc++;
+  SETFLOAT(argv+argc, 1); argc++;
+  SETFLOAT(argv+argc, wd); argc++;
+  SETFLOAT(argv+argc, ht); argc++;
+  SETFLOAT(argv+argc, 1); argc++;
+  SETFLOAT(argv+argc, 0); argc++;
+  SETFLOAT(argv+argc, 0); argc++;
+  typedmess(ui->s_thing, gensym("coords"), argc, argv);
+  argc = 0;
+  // Run through all UI elements again, this time generating the actual
+  // contents of the GUI patch.
+  c = x->f_uis;
+  while (c) {
+    t_symbol *s = make_sym(unique_name, c->p_longname);
+    c->p_uisym = s;
+    if (c->p_uirecv) {
+      // No need to recreate any existing receiver, just make sure that the
+      // data is up-to-date.
+      c->p_uirecv->uisym = s;
+      c->p_uirecv->lname = c->p_longname;
+    } else
+      c->p_uirecv = faust_ui_receive_new(x, s, c->p_longname);
+    y += hslider_y;
+    switch (c->p_type) {
+    case FAUST_UI_TYPE_BUTTON:
+    case FAUST_UI_TYPE_TOGGLE:
+      // We render both buttons and toggles as Pd toggles, since Pd bangs
+      // don't provide the on/off switching functionality that we need.
+      SETFLOAT(argv+argc, 10); argc++;
+      SETFLOAT(argv+argc, y); argc++;
+      SETSYMBOL(argv+argc, gensym("tgl")); argc++;
+      SETFLOAT(argv+argc, 15); argc++;
+      SETFLOAT(argv+argc, 0); argc++;
+      SETSYMBOL(argv+argc, s); argc++;
+      SETSYMBOL(argv+argc, s); argc++;
+      SETSYMBOL(argv+argc, c->p_name); argc++;
+      SETFLOAT(argv+argc, 17); argc++;
+      SETFLOAT(argv+argc, 7); argc++;
+      SETFLOAT(argv+argc, 0); argc++;
+      SETFLOAT(argv+argc, fn1); argc++;
+      SETFLOAT(argv+argc, white); argc++;
+      SETFLOAT(argv+argc, black); argc++;
+      SETFLOAT(argv+argc, black); argc++;
+      SETFLOAT(argv+argc, 0); argc++;
+      SETFLOAT(argv+argc, 1); argc++;
+      typedmess(ui->s_thing, gensym("obj"), argc, argv);
+      argc = 0;
+      if (s->s_thing) {
+	gui_update(*c->p_zone, c->p_uirecv);
+	c->p_uival = *c->p_zone;
+      } else {
+	// this shouldn't happen
+	pd_error(x->f_owner, "faustgen~: can't initialize %s - gui", s->s_name);
+      }
+      break;
+    case FAUST_UI_TYPE_NUMBER:
+    case FAUST_UI_TYPE_BARGRAPH:
+      // These are both rendered as horizontal sliders (the bargraphs get a
+      // different background color, though, to distinguish it as a passive
+      // control).
+      SETFLOAT(argv+argc, 10); argc++;
+      SETFLOAT(argv+argc, y); argc++;
+      SETSYMBOL(argv+argc, gensym("hsl")); argc++;
+      SETFLOAT(argv+argc, 128); argc++;
+      SETFLOAT(argv+argc, 15); argc++;
+      SETFLOAT(argv+argc, c->p_min); argc++;
+      SETFLOAT(argv+argc, c->p_max); argc++;
+      SETFLOAT(argv+argc, 0); argc++;
+      SETFLOAT(argv+argc, 0); argc++;
+      SETSYMBOL(argv+argc, s); argc++;
+      SETSYMBOL(argv+argc, s); argc++;
+      SETSYMBOL(argv+argc, c->p_name); argc++;
+      SETFLOAT(argv+argc, -2); argc++;
+      SETFLOAT(argv+argc, -6); argc++;
+      SETFLOAT(argv+argc, 0); argc++;
+      SETFLOAT(argv+argc, fn1); argc++;
+      SETFLOAT(argv+argc, c->p_type==FAUST_UI_TYPE_BARGRAPH?gray:white); argc++;
+      SETFLOAT(argv+argc, black); argc++;
+      SETFLOAT(argv+argc, black); argc++;
+      SETFLOAT(argv+argc, 0); argc++;
+      SETFLOAT(argv+argc, 1); argc++;
+      typedmess(ui->s_thing, gensym("obj"), argc, argv);
+      argc = 0;
+      SETFLOAT(argv+argc, 10+hslider_x); argc++;
+      SETFLOAT(argv+argc, y); argc++;
+      SETSYMBOL(argv+argc, gensym("nbx")); argc++;
+      SETFLOAT(argv+argc, 5); argc++;
+      SETFLOAT(argv+argc, 14); argc++;
+      SETFLOAT(argv+argc, c->p_min); argc++;
+      SETFLOAT(argv+argc, c->p_max); argc++;
+      SETFLOAT(argv+argc, 0); argc++;
+      SETFLOAT(argv+argc, 0); argc++;
+      SETSYMBOL(argv+argc, s); argc++;
+      SETSYMBOL(argv+argc, s); argc++;
+      SETSYMBOL(argv+argc, gensym("empty")); argc++;
+      SETFLOAT(argv+argc, 0); argc++;
+      SETFLOAT(argv+argc, -6); argc++;
+      SETFLOAT(argv+argc, 0); argc++;
+      SETFLOAT(argv+argc, fn2); argc++;
+      SETFLOAT(argv+argc, c->p_type==FAUST_UI_TYPE_BARGRAPH?gray:white); argc++;
+      SETFLOAT(argv+argc, black); argc++;
+      SETFLOAT(argv+argc, black); argc++;
+      SETFLOAT(argv+argc, 256); argc++;
+      typedmess(ui->s_thing, gensym("obj"), argc, argv);
+      if (s->s_thing) {
+	gui_update(*c->p_zone, c->p_uirecv);
+	c->p_uival = *c->p_zone;
+      } else {
+	// this shouldn't happen
+	pd_error(x->f_owner, "faustgen~: can't initialize %s - gui", s->s_name);
+      }
+      argc = 0;
+      break;
+    default:
+      // this can't happen
+      pd_error(x->f_owner, "faustgen~: invalid UI type - gui");
+      break;
+    }
+    c = c->p_next;
+  }
+  // Add the special init and active controls.
+  t_symbol *s = make_sym(unique_name, gensym("init"));
+  SETFLOAT(argv+argc, wd-38); argc++;
+  SETFLOAT(argv+argc, 3); argc++;
+  SETSYMBOL(argv+argc, gensym("bng")); argc++;
+  SETFLOAT(argv+argc, 15); argc++;
+  SETFLOAT(argv+argc, 250); argc++;
+  SETFLOAT(argv+argc, 50); argc++;
+  SETFLOAT(argv+argc, 1); argc++;
+  SETSYMBOL(argv+argc, s); argc++;
+  SETSYMBOL(argv+argc, s); argc++;
+  SETSYMBOL(argv+argc, gensym("empty")); argc++;
+  SETFLOAT(argv+argc, 0); argc++;
+  SETFLOAT(argv+argc, -6); argc++;
+  SETFLOAT(argv+argc, 0); argc++;
+  SETFLOAT(argv+argc, fn1); argc++;
+  SETFLOAT(argv+argc, white); argc++;
+  SETFLOAT(argv+argc, black); argc++;
+  SETFLOAT(argv+argc, black); argc++;
+  typedmess(ui->s_thing, gensym("obj"), argc, argv);
+  argc = 0;
+  if (x->f_init_recv) {
+    x->f_init_recv->uisym = s;
+    x->f_init_recv->lname = NULL;
+  } else
+    x->f_init_recv = faust_ui_receive_new(x, s, NULL);
+  s = make_sym(unique_name, gensym("active"));
+  SETFLOAT(argv+argc, wd-18); argc++;
+  SETFLOAT(argv+argc, 3); argc++;
+  SETSYMBOL(argv+argc, gensym("tgl")); argc++;
+  SETFLOAT(argv+argc, 15); argc++;
+  SETFLOAT(argv+argc, 1); argc++;
+  SETSYMBOL(argv+argc, s); argc++;
+  SETSYMBOL(argv+argc, s); argc++;
+  SETSYMBOL(argv+argc, gensym("empty")); argc++;
+  SETFLOAT(argv+argc, 0); argc++;
+  SETFLOAT(argv+argc, -6); argc++;
+  SETFLOAT(argv+argc, 0); argc++;
+  SETFLOAT(argv+argc, fn1); argc++;
+  SETFLOAT(argv+argc, white); argc++;
+  SETFLOAT(argv+argc, black); argc++;
+  SETFLOAT(argv+argc, black); argc++;
+  SETFLOAT(argv+argc, 1); argc++;
+  SETFLOAT(argv+argc, 1); argc++;
+  typedmess(ui->s_thing, gensym("obj"), argc, argv);
+  argc = 0;
+  if (x->f_active_recv) {
+    x->f_active_recv->uisym = s;
+    x->f_active_recv->lname = NULL;
+  } else
+    x->f_active_recv = faust_ui_receive_new(x, s, NULL);
+}
+
+// Receive a value from the GUI.
+static void faust_ui_receive(t_faust_ui_proxy *r, t_floatarg v)
+{
+  if (!r->lname) {
+    // Special active receiver, we need to pass this on to our grandparent
+    // faustgen~ object.
+    t_object *ob = r->owner->f_owner;
+    if (ob) {
+      t_atom a;
+      SETFLOAT(&a, v);
+      //logpost(r->owner->f_owner, 3, "%s = %g", r->uisym->s_name, v);
+      typedmess(&ob->ob_pd, gensym("active"), 1, &a);
+    } else {
+      pd_error(r->owner->f_owner, "faustgen~: parent not found - gui");
+    }
+  } else if (!r->recursive) {
+    t_faust_ui* c = faust_ui_manager_get(r->owner, r->lname);
+    if (c) {
+      //logpost(r->owner->f_owner, 3, "%s = %g", r->uisym->s_name, v);
+      *c->p_zone = v;
+    }
+  }
+}
+
+static void faust_bang_receive(t_faust_ui_proxy *r)
+{
+  // special init receiver, we can handle this right here
+  faust_ui_manager_restore_default(r->owner);
 }

@@ -27,6 +27,18 @@
 #define FAUSTGEN_VERSION_STR "0.1.2.1"
 #define MAXFAUSTSTRING 4096
 
+// ag: GUI update interval for the passive controls (msec). A zero value will
+// force updates for each dsp cycle, which should be avoided to reduce cpu
+// usage. The default of 40 msecs will give you 25 frames per second which
+// should look smooth enough, while keeping cpu usage to a reasonable level.
+// The actual cpu usage may vary with different Pd flavors, the number of
+// passive controls, and your hardware, though. You may want to try values of
+// 100 and even more if the GUI update slows down your system too much. Note
+// that in any case this value only affects the generated GUIs, MIDI output is
+// still generated for each dsp cycle whenever the corresponding controls
+// change their values.
+const double gui_update_time = 40;
+
 typedef struct _faustgen_tilde
 {
     t_object            f_obj;
@@ -56,6 +68,7 @@ typedef struct _faustgen_tilde
     t_symbol*           f_midirecv;
     t_symbol*           f_instance_name;
     t_symbol*           f_unique_name;
+    double              f_next_tick;
 } t_faustgen_tilde;
 
 static t_class *faustgen_tilde_class;
@@ -126,6 +139,10 @@ static void faustgen_tilde_compile(t_faustgen_tilde *x)
             
             x->f_dsp_factory  = factory;
             x->f_dsp_instance = instance;
+            if (x->f_unique_name && x->f_instance_name)
+              // recreate the Pd GUI
+              faust_ui_manager_gui(x->f_ui_manager,
+                                   x->f_unique_name, x->f_instance_name);
             canvas_resume_dsp(dspstate);
             return;
         }
@@ -346,6 +363,14 @@ static void faustgen_tilde_defaults(t_faustgen_tilde *x)
   }
 }
 
+static void faustgen_tilde_gui(t_faustgen_tilde *x)
+{
+  if(x->f_dsp_instance) {
+    faust_ui_manager_gui(x->f_ui_manager,
+			 x->f_unique_name, x->f_instance_name);
+  }
+}
+
 static void faustgen_tilde_midiout(t_faustgen_tilde *x, t_symbol* s, int argc, t_atom* argv)
 {
   if (argc <= 0)
@@ -503,6 +528,11 @@ static t_int *faustgen_tilde_perform_single(t_int *w)
       t_outlet *out = x->f_midiout?faust_io_manager_get_extra_output(x->f_io_manager):NULL;
       faust_ui_manager_midiout(x->f_ui_manager, x->f_midichan, x->f_midirecv, out);
     }
+    if (clock_getsystime() >= x->f_next_tick) {
+      if (x->f_instance_name && x->f_instance_name->s_thing)
+	faust_ui_manager_gui_update(x->f_ui_manager);
+      x->f_next_tick = clock_getsystimeafter(gui_update_time);
+    }
     return (w+9);
 }
 
@@ -535,6 +565,11 @@ static t_int *faustgen_tilde_perform_double(t_int *w)
     if (x->f_midiout || x->f_midirecv) {
       t_outlet *out = x->f_midiout?faust_io_manager_get_extra_output(x->f_io_manager):NULL;
       faust_ui_manager_midiout(x->f_ui_manager, x->f_midichan, x->f_midirecv, out);
+    }
+    if (clock_getsystime() >= x->f_next_tick) {
+      if (x->f_instance_name && x->f_instance_name->s_thing)
+	faust_ui_manager_gui_update(x->f_ui_manager);
+      x->f_next_tick = clock_getsystimeafter(gui_update_time);
     }
     return (w+9);
 }
@@ -720,7 +755,7 @@ static void *faustgen_tilde_new(t_symbol* s, int argc, t_atom* argv)
         x->f_clock          = clock_new(x, (t_method)faustgen_tilde_autocompile_tick);
         x->f_midiout = false;
         x->f_midichan = -1;
-        x->f_instance_name = x->f_midirecv = NULL;
+        x->f_unique_name = x->f_instance_name = x->f_midirecv = NULL;
         x->f_activesym = gensym("active");
         x->f_active = true;
         // parse the remaining creation arguments
@@ -783,7 +818,13 @@ static void *faustgen_tilde_new(t_symbol* s, int argc, t_atom* argv)
 	  // dsp-name:instance-name
 	  pd_bind(&x->f_obj.ob_pd,
 		  make_instance_name(x->f_dsp_name, x->f_instance_name));
+	  // create the Pd GUI
+	  faust_ui_manager_gui(x->f_ui_manager,
+			       x->f_unique_name, x->f_instance_name);
 	}
+	// ag: kick off GUI updates every gui_update_time msecs (we do this
+	// even if the GUI wasn't created yet, in case it may created later)
+	x->f_next_tick = clock_getsystimeafter(gui_update_time);
     }
     return x;
 }
@@ -813,6 +854,7 @@ void faustgen_tilde_setup(void)
         class_addmethod(c,  (t_method)faustgen_tilde_print,             gensym("print"),            A_NULL, 0);
         class_addmethod(c,  (t_method)faustgen_tilde_dump,              gensym("dump"),             A_NULL, 0);
         class_addmethod(c,  (t_method)faustgen_tilde_defaults,          gensym("defaults"),         A_NULL, 0);
+        class_addmethod(c,  (t_method)faustgen_tilde_gui,               gensym("gui"),              A_NULL, 0);
         class_addmethod(c,  (t_method)faustgen_tilde_midiout,           gensym("midiout"),          A_GIMME, 0);
         class_addmethod(c,  (t_method)faustgen_tilde_midichan,          gensym("midichan"),         A_GIMME, 0);
 #if 0
@@ -842,5 +884,6 @@ void faustgen_tilde_setup(void)
     nw_gui_vmess = dlsym(RTLD_DEFAULT, "gui_vmess");
 #endif
     if (nw_gui_vmess) logpost(NULL, 3, "faustgen~: using JavaScript interface (Pd-l2ork nw.js version)");
+    faust_ui_receive_setup();
 }
 

@@ -39,4 +39,11 @@ int faust_ui_manager_dump(t_faust_ui_manager const *x, t_symbol *s, t_outlet *ou
 void faust_ui_manager_midiout(t_faust_ui_manager const *x, int midichan,
 			      t_symbol *midirecv, t_outlet *out);
 
+void faust_ui_manager_gui_update(t_faust_ui_manager const *x);
+
+void faust_ui_manager_gui(t_faust_ui_manager *x,
+			  t_symbol *unique_name, t_symbol *instance_name);
+
+void faust_ui_receive_setup(void);
+
 #endif
