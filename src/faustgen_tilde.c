@@ -679,13 +679,15 @@ static t_symbol *make_unique_name(t_symbol *dsp_name)
 
 static void faustgen_tilde_free(t_faustgen_tilde *x)
 {
-    pd_unbind(&x->f_obj.ob_pd, gensym("faustgen~"));
-    pd_unbind(&x->f_obj.ob_pd, x->f_dsp_name);
-    pd_unbind(&x->f_obj.ob_pd, x->f_unique_name);
-    if (x->f_instance_name) {
-      pd_unbind(&x->f_obj.ob_pd, x->f_instance_name);
-      pd_unbind(&x->f_obj.ob_pd,
-		make_instance_name(x->f_dsp_name, x->f_instance_name));
+    if (x->f_unique_name) {
+      pd_unbind(&x->f_obj.ob_pd, gensym("faustgen~"));
+      pd_unbind(&x->f_obj.ob_pd, x->f_dsp_name);
+      pd_unbind(&x->f_obj.ob_pd, x->f_unique_name);
+      if (x->f_instance_name) {
+        pd_unbind(&x->f_obj.ob_pd, x->f_instance_name);
+        pd_unbind(&x->f_obj.ob_pd,
+                  make_instance_name(x->f_dsp_name, x->f_instance_name));
+      }
     }
     faustgen_tilde_delete_instance(x);
     faustgen_tilde_delete_factory(x);
