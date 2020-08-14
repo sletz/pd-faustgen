@@ -1089,6 +1089,8 @@ int faust_ui_manager_get_midi(t_faust_ui_manager *x, t_symbol const *s, int argc
 	chan--;
 	// match against the object's channel if any
 	if (midichan >= 0 && chan != midichan) return i;
+	// filter out the the GM drumkit channel in GM mode
+	if (midichan < -1 && chan == 9) return i;
       } else
 	chan = -1;
     }
@@ -1342,8 +1344,7 @@ void faust_ui_manager_midiout(t_faust_ui_manager const *x, int midichan,
 	  if (midi_argc[i] < argc) {
 	    // voice message, add channel (either the object's default MIDI
 	    // channel, or 0 by default)
-	    if (chan < 0) chan = midichan;
-	    if (chan < 0) chan = 0;
+	    if (chan < 0) chan = midichan>=0?midichan:0;
 	    // Pd MIDI channels are 1-based
 	    SETFLOAT(argv+(argc-1), chan+1);
 	  }

@@ -387,10 +387,11 @@ static void faustgen_tilde_midiout(t_faustgen_tilde *x, t_symbol* s, int argc, t
 static void faustgen_tilde_midichan(t_faustgen_tilde *x, t_symbol* s, int argc, t_atom* argv)
 {
   if (argc <= 0)
-    // disable MIDI channel
+    // omni mode
     x->f_midichan = -1;
-  else if (argv->a_type == A_FLOAT && argv->a_w.w_float >= 0)
-    // set MIDI channel (0 means omni)
+  else if (argv->a_type == A_FLOAT)
+    // set MIDI channel (0 means omni, negative is "GM mode" which blocks
+    // channel 10)
     x->f_midichan = argv->a_w.w_float-1;
 }
 
@@ -761,9 +762,9 @@ static void *faustgen_tilde_new(t_symbol* s, int argc, t_atom* argv)
         // parse the remaining creation arguments
         if (argc > 0 && argv) {
           while (argv++, --argc > 0) {
-            if (argv->a_type == A_FLOAT &&
-                argv->a_w.w_float >= 0) {
-              // float value gives (1-based) MIDI channel, 0 means omni
+            if (argv->a_type == A_FLOAT) {
+              // float value gives (1-based) MIDI channel, 0 means omni,
+              // negative means "GM mode" (see below)
               x->f_midichan = argv->a_w.w_float-1;
             } else if (argv->a_type == A_SYMBOL &&
                      argv->a_w.w_symbol &&
@@ -786,6 +787,13 @@ static void *faustgen_tilde_new(t_symbol* s, int argc, t_atom* argv)
                   x->f_midiout = num != 0;
                 else
                   x->f_midirecv = gensym(arg);
+              } else if (strcmp(argv->a_w.w_symbol->s_name, "omni") == 0) {
+		// synonym for omni mode
+		x->f_midichan = -1;
+              } else if (strcmp(argv->a_w.w_symbol->s_name, "gm") == 0) {
+		// "GM" mode, like "omni" but blocks channel 10 (the drumkit
+		// channel in GM)
+		x->f_midichan = -10;
               } else {
                 // the instance name is used as an additional identifier of
                 // the dsp in the receivers (see below); the plan is to also
