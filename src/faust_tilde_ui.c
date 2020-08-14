@@ -27,12 +27,21 @@ enum {
   N_MIDI
 };
 
+// new-style freq/gain/gate voice meta data (you saw it here first ;-)
+enum {
+  VOICE_NONE, VOICE_FREQ, VOICE_GAIN, VOICE_GATE, N_VOICE
+};
+
 // Special keys used on the Faust side to identify the different message types
 // in Faust UI meta data such as "[midi:ctrl 7]".
 static const char *midi_key[N_MIDI] = {
   "none", "ctrl", "keyon", "keyoff", "key",
   "keypress", "pgm", "chanpress", "pitchwheel",
   "start", "stop", "clock"
+};
+
+static const char *voice_key[N_VOICE] = {
+  "none", "freq", "gain", "gate"
 };
 
 // Encoding of MIDI messages in SMMF (https://bitbucket.org/agraef/pd-smmf).
@@ -83,6 +92,7 @@ typedef struct {
 #define N_MIDI_UI 256
 static struct {
   FAUSTFLOAT* zone;
+  int voice;
   size_t n_midi;
   t_faust_midi_ui midi[N_MIDI_UI];
 } last_meta;
@@ -145,10 +155,18 @@ typedef struct _faust_ui
     char                p_kept;
     size_t              p_index;
     FAUSTFLOAT          p_tempv;
+    int                 p_voice;
     size_t              p_nmidi;
     t_faust_midi_ui*    p_midi;
     struct _faust_ui*   p_next;
 }t_faust_ui;
+
+// keep track of voice controls
+typedef struct _faust_voice {
+  int num; // current note playing, if any
+  struct _faust_ui *freq_c, *gain_c, *gate_c;
+  struct _faust_voice *next_free, *next_used;
+} t_faust_voice;
 
 typedef struct _faust_ui_manager
 {
@@ -160,8 +178,90 @@ typedef struct _faust_ui_manager
     size_t      f_nnames;
     MetaGlue    f_meta_glue;
     int         f_nvoices;
+    t_faust_voice *f_voices, *f_free, *f_used;
     t_faust_ui_proxy *f_init_recv, *f_active_recv;
 }t_faust_ui_manager;
+
+static void faust_free_voices(t_faust_ui_manager *x)
+{
+  if (x->f_voices) {
+    freebytes(x->f_voices, x->f_nvoices*sizeof(t_faust_voice));
+    x->f_voices = x->f_free = x->f_used = NULL;
+    x->f_nvoices = 0;
+  }
+}
+
+static void faust_new_voices(t_faust_ui_manager *x)
+{
+  // make sure not to leak any memory on these
+  if (x->f_voices) faust_free_voices(x);
+  // iterate over all voice controls, to make sure that we have a consistent
+  // number of freq, gain, gate controls
+  int n_freq = 0, n_gain = 0, n_gate = 0;
+  t_faust_ui *c = x->f_uis;
+  while (c) {
+    switch (c->p_voice) {
+    case VOICE_FREQ:
+      n_freq++;
+      break;
+    case VOICE_GAIN:
+      n_gain++;
+      break;
+    case VOICE_GATE:
+      n_gate++;
+      break;
+    default:
+      break;
+    }
+    c = c->p_next;
+  }
+  int n_voices = n_freq?n_freq:n_gain?n_gain:n_gate;
+  if (n_voices) {
+    if ((n_freq && n_freq != n_voices) ||
+	(n_gain && n_gain != n_voices) ||
+	(n_gate && n_gate != n_voices)) {
+      pd_error(x->f_owner, "faustgen~: inconsistent number of voice controls");
+      return;
+    }
+    x->f_voices = getzbytes(n_voices*sizeof(t_faust_voice));
+    if (!x->f_voices) {
+      pd_error(x->f_owner, "faustgen~: memory allocation failed - voice controls");
+      return;
+    }
+    logpost(x->f_owner, 3, "             ** polyphonic dsp with %d voices", n_voices);
+    // Run through the voice controls again and populate the f_voices table.
+    n_freq = 0; n_gain = 0; n_gate = 0;
+    c = x->f_uis;
+    while (c) {
+      switch (c->p_voice) {
+      case VOICE_FREQ:
+	x->f_voices[n_freq++].freq_c = c;
+	break;
+      case VOICE_GAIN:
+	x->f_voices[n_gain++].gain_c = c;
+	break;
+      case VOICE_GATE:
+	x->f_voices[n_gate++].gate_c = c;
+	break;
+      default:
+	break;
+      }
+      c = c->p_next;
+    }
+    x->f_nvoices = n_voices;
+    // Initialize the free and used lists.
+    x->f_free = x->f_voices;
+    x->f_used = NULL;
+    for (int i = 0; i < n_voices; i++) {
+      if (i+1 < n_voices)
+	x->f_voices[i].next_free = x->f_voices+i+1;
+      else
+	x->f_voices[i].next_free = NULL;
+      x->f_voices[i].next_used = NULL;
+    }
+    x->f_used = NULL;
+  }
+}
 
 static void faust_ui_free(t_faust_ui *c)
 {
@@ -181,6 +281,7 @@ static void faust_ui_manager_free_uis(t_faust_ui_manager *x)
         freebytes(c, sizeof(*c));
         c = x->f_uis;
     }
+    faust_free_voices(x);
 }
 
 static t_faust_ui* faust_ui_manager_get(t_faust_ui_manager const *x, t_symbol const *name)
@@ -200,6 +301,7 @@ static t_faust_ui* faust_ui_manager_get(t_faust_ui_manager const *x, t_symbol co
 static void faust_ui_manager_prepare_changes(t_faust_ui_manager *x)
 {
     t_faust_ui *c = x->f_uis;
+    faust_ui_manager_all_notes_off(x);
     while(c)
     {
         c->p_kept  = 0;
@@ -207,7 +309,9 @@ static void faust_ui_manager_prepare_changes(t_faust_ui_manager *x)
         c = c->p_next;
     }
     x->f_nuis = 0;
+    faust_free_voices(x);
     last_meta.n_midi = 0;
+    last_meta.voice = VOICE_NONE;
 }
 
 static int cmpui(const void *p1, const void *p2)
@@ -274,6 +378,7 @@ static void faust_ui_manager_finish_changes(t_faust_ui_manager *x)
             freebytes(c, sizeof(*c));
         }
 	faust_ui_manager_sort(x);
+	faust_new_voices(x);
     }
 }
 
@@ -410,40 +515,55 @@ static void faust_ui_manager_add_param(t_faust_ui_manager *x, const char* label,
     c->p_index     = x->f_nuis++;
     c->p_midi      = NULL;
     c->p_nmidi     = 0;
+    c->p_voice     = VOICE_NONE;
     *(c->p_zone)   = current;
-    if (last_meta.zone == zone && last_meta.n_midi) {
-      size_t i;
-      c->p_midi = getbytes(last_meta.n_midi*sizeof(t_faust_midi_ui));
-      if (c->p_midi) {
-	c->p_nmidi = last_meta.n_midi;
-	for (i = 0; i < last_meta.n_midi; i++) {
-	  if (last_meta.midi[i].chan >= 0) {
-	    if (midi_argc[last_meta.midi[i].msg] > 1)
-	      logpost(x->f_owner, 3, "             %s: midi:%s %d %d", label,
-		      midi_key[last_meta.midi[i].msg], last_meta.midi[i].num,
-		      last_meta.midi[i].chan);
-	    else
-	      logpost(x->f_owner, 3, "             %s: midi:%s %d", label,
-		      midi_key[last_meta.midi[i].msg], last_meta.midi[i].chan);
-	  } else {
-	    if (midi_argc[last_meta.midi[i].msg] > 1)
-	      logpost(x->f_owner, 3, "             %s: midi:%s %d", label,
-		      midi_key[last_meta.midi[i].msg], last_meta.midi[i].num);
-	    else
-	      logpost(x->f_owner, 3, "             %s: midi:%s", label,
-		      midi_key[last_meta.midi[i].msg]);
-	  }
-	  c->p_midi[i].msg  = last_meta.midi[i].msg;
-	  c->p_midi[i].num  = last_meta.midi[i].num;
-	  c->p_midi[i].chan = last_meta.midi[i].chan;
-	  c->p_midi[i].val  = midi_defaultval(init, min, max, type,
-					      c->p_midi[i].msg);
+    if (last_meta.zone == zone) {
+      if (last_meta.voice) {
+	if (c->p_type != FAUST_UI_TYPE_BARGRAPH) {
+	  c->p_voice = last_meta.voice;
+#if 0
+	  logpost(x->f_owner, 3, "             %s: voice:%s", name->s_name,
+		  voice_key[last_meta.voice]);
+#endif
+	} else {
+	  // voice controls can't be passive
+	  pd_error(x->f_owner, "faustgen~: '%s' can't be used as voice control", name->s_name);
 	}
-      } else {
-	pd_error(x->f_owner, "faustgen~: memory allocation failed - ui midi");
+      }
+      if (last_meta.n_midi) {
+	c->p_midi = getbytes(last_meta.n_midi*sizeof(t_faust_midi_ui));
+	if (c->p_midi) {
+	  c->p_nmidi = last_meta.n_midi;
+	  for (size_t i = 0; i < last_meta.n_midi; i++) {
+	    if (last_meta.midi[i].chan >= 0) {
+	      if (midi_argc[last_meta.midi[i].msg] > 1)
+		logpost(x->f_owner, 3, "             %s: midi:%s %d %d", name->s_name,
+			midi_key[last_meta.midi[i].msg], last_meta.midi[i].num,
+			last_meta.midi[i].chan);
+	      else
+		logpost(x->f_owner, 3, "             %s: midi:%s %d", name->s_name,
+			midi_key[last_meta.midi[i].msg], last_meta.midi[i].chan);
+	    } else {
+	      if (midi_argc[last_meta.midi[i].msg] > 1)
+		logpost(x->f_owner, 3, "             %s: midi:%s %d", name->s_name,
+			midi_key[last_meta.midi[i].msg], last_meta.midi[i].num);
+	      else
+		logpost(x->f_owner, 3, "             %s: midi:%s", name->s_name,
+			midi_key[last_meta.midi[i].msg]);
+	    }
+	    c->p_midi[i].msg  = last_meta.midi[i].msg;
+	    c->p_midi[i].num  = last_meta.midi[i].num;
+	    c->p_midi[i].chan = last_meta.midi[i].chan;
+	    c->p_midi[i].val  = midi_defaultval(init, min, max, type,
+						c->p_midi[i].msg);
+	  }
+	} else {
+	  pd_error(x->f_owner, "faustgen~: memory allocation failed - ui midi");
+	}
       }
     }
     last_meta.n_midi = 0;
+    last_meta.voice = VOICE_NONE;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -554,7 +674,18 @@ static void faust_ui_manager_ui_declare(t_faust_ui_manager* x, FAUSTFLOAT* zone,
 {
   if (zone && value && *value) {
     //logpost(x->f_owner, 3, "             %s: %s (%p)", key, value, zone);
-    if (strcmp(key, "midi") == 0) {
+    if (strcmp(key, "voice") == 0) {
+      if (strcmp(value, "freq") == 0) {
+	last_meta.zone = zone;
+	last_meta.voice = VOICE_FREQ;
+      } else if (strcmp(value, "gain") == 0) {
+	last_meta.zone = zone;
+	last_meta.voice = VOICE_GAIN;
+      } else if (strcmp(value, "gate") == 0) {
+	last_meta.zone = zone;
+	last_meta.voice = VOICE_GATE;
+      }
+    } else if (strcmp(key, "midi") == 0) {
       unsigned num, chan;
       int count;
       size_t i = last_meta.n_midi;
@@ -706,6 +837,7 @@ t_faust_ui_manager* faust_ui_manager_new(t_object* owner)
         ui_manager->f_names     = NULL;
         ui_manager->f_nnames    = 0;
         ui_manager->f_nvoices   = 0;
+        ui_manager->f_voices = ui_manager->f_free = ui_manager->f_used = NULL;
         ui_manager->f_init_recv = NULL;
         ui_manager->f_active_recv = NULL;
         
@@ -830,7 +962,100 @@ static void faust_ui_midi_init(void)
   }
 }
 
-int faust_ui_manager_get_midi(t_faust_ui_manager const *x, t_symbol const *s, int argc, t_atom* argv, int midichan)
+// aggraef's homegrown voice allocation algorithm. Note that we simply ignore
+// the channel data for now, as faustgen~ isn't multitimbral (yet). This might
+// cause issues with some multi-channel MIDI data sounding slightly off
+// depending on the synthesis method being used, but should normally work
+// ok. (If all else fails, you can always run separate instances of the dsp for
+// different MIDI channels.)
+
+// comment this to disable voice stealing
+#define VOICE_STEALING 1
+
+static void voices_noteon(t_faust_ui_manager *x, int num, int val, int chan)
+{
+  // XXXTODO: do proper monophonic allocation if there's just a single voice
+  // available, like ye good old-fashioned mono synths do!
+#if VOICE_STEALING
+  if (!x->f_free) {
+    // no more voices, let's "borrow" one (we can just grab it from the
+    // beginning of the used list, that's the longest sounding note)
+    t_faust_voice *u = x->f_used;
+    if (!u) return; // this can't happen
+    x->f_used = u->next_used;
+    x->f_free = u;
+    u->next_used = u->next_free = NULL;
+  }
+#endif
+  if (x->f_free) {
+    // Move this voice to the end of the used list and update the voice
+    // controls to kick off the new voice.
+    t_faust_voice *v = x->f_free;
+    x->f_free = x->f_free->next_free;
+    v->next_free = v->next_used = NULL;
+    if (x->f_used) {
+      t_faust_voice *u = x->f_used;
+      while (u->next_used) u = u->next_used;
+      u->next_used = v;
+    } else {
+      x->f_used = v;
+    }
+    v->num = num;
+    // We simply bypass all checking of control ranges and steps at present.
+    // We might want to do that some time. Also, having MTS support would be
+    // nice. :) Here we simply use Pd's own mtof() function to translate MIDI
+    // note numbers to frequencies (cps).
+    if (v->freq_c) *v->freq_c->p_zone = mtof(num);
+    if (v->gain_c) *v->gain_c->p_zone = ((double)val)/127.0;
+    if (v->gate_c) *v->gate_c->p_zone = 1.0;
+  }
+}
+
+static void voices_noteoff(t_faust_ui_manager *x, int num, int chan)
+{
+  t_faust_voice *u = x->f_used, *v = NULL;
+  while (u && u->num != num) {
+    v = u;
+    u = u->next_used;
+  }
+  if (u) {
+    if (v)
+      v->next_used = u->next_used;
+    else
+      x->f_used = u->next_used;
+    u->next_free = u->next_used = NULL;
+    // Move this voice to the end of the free list and update the gate
+    // control to release the voice.
+    if (x->f_free) {
+      v = x->f_free;
+      while (v->next_free) v = v->next_free;
+      v->next_free = u;
+    } else {
+      x->f_free = u;
+    }
+    if (u->gate_c) *u->gate_c->p_zone = 0.0;
+  }
+}
+
+void faust_ui_manager_all_notes_off(t_faust_ui_manager *x)
+{
+  for (t_faust_voice *u = x->f_used; u; u = u->next_free) {
+    if (u->gate_c) *u->gate_c->p_zone = 0.0;
+    u->next_free = u->next_used;
+    u->next_used = NULL;
+  }
+  // Move all used voices to the end of the free list.
+  if (x->f_free) {
+    t_faust_voice *v = x->f_free;
+    while (v->next_free) v = v->next_free;
+    v->next_free = x->f_used;
+  } else {
+    x->f_free = x->f_used;
+  }
+  x->f_used = NULL;
+}
+
+int faust_ui_manager_get_midi(t_faust_ui_manager *x, t_symbol const *s, int argc, t_atom* argv, int midichan)
 {
   int i;
   faust_ui_midi_init();
@@ -871,6 +1096,15 @@ int faust_ui_manager_get_midi(t_faust_ui_manager const *x, t_symbol const *s, in
     if (i == MIDI_KEY || i == MIDI_KEYON || i == MIDI_KEYOFF) {
       int temp = num;
       num = val; val = temp;
+    }
+    // In a polyphonic dsp, process note messages. Note that we only deal with
+    // SMMF note messages here, the other variants are only bound by
+    // corresponding midi:keyon/off meta data and are handled below.
+    if (x->f_voices && i == MIDI_KEY) {
+      if (val)
+	voices_noteon(x, num, val, chan);
+      else
+	voices_noteoff(x, num, chan);
     }
     // Run through all the active UI elements with MIDI bindings and update
     // the elements that match.
@@ -954,6 +1188,7 @@ void faust_ui_manager_restore_states(t_faust_ui_manager *x)
 void faust_ui_manager_restore_default(t_faust_ui_manager *x)
 {
     t_faust_ui *c = x->f_uis;
+    faust_ui_manager_all_notes_off(x);
     while(c)
     {
         set_zone(c->p_zone, c->p_default, c->p_uirecv);
@@ -1166,12 +1401,12 @@ void faust_ui_manager_gui(t_faust_ui_manager *x,
   // GUI font sizes. fn1 sets the font size of the slider labels, fn2 that of
   // the number boxes. Common font sizes are 10 and 12.
   const int fn1 = 10, fn2 = 10;
-  // Run through all UI elements. First determine the width and height of the
-  // GOP area.
+  // Run through all UI elements which aren't voice controls. First determine
+  // the width and height of the GOP area.
   int wd = 10+hslider_x+nentry_x, ht = hslider_y, y = 0;
   t_faust_ui *c = x->f_uis;
   while (c) {
-    ht += hslider_y;
+    if (!c->p_voice) ht += hslider_y;
     c = c->p_next;
   }
   // Initialize the subpatch and create the GOP area.
@@ -1193,6 +1428,11 @@ void faust_ui_manager_gui(t_faust_ui_manager *x,
   // contents of the GUI patch.
   c = x->f_uis;
   while (c) {
+    if (c->p_voice) {
+      // skip voice controls
+      c = c->p_next;
+      continue;
+    }
     t_symbol *s = make_sym(unique_name, c->p_longname);
     c->p_uisym = s;
     if (c->p_uirecv) {
