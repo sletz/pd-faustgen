@@ -308,33 +308,43 @@ static void faustgen_tilde_print(t_faustgen_tilde *x)
     }
 }
 
-static void faustgen_tilde_dump(t_faustgen_tilde *x)
+static void out_anything(t_symbol *outsym, t_outlet *out, t_symbol *s, int argc, t_atom *argv)
 {
+  if (outsym)
+    typedmess(outsym->s_thing, s, argc, argv);
+  else
+    outlet_anything(out, s, argc, argv);
+}
+
+static void faustgen_tilde_dump(t_faustgen_tilde *x, t_symbol *outsym)
+{
+    if (outsym && !*outsym->s_name) outsym = NULL;
+    if (outsym && !outsym->s_thing) return;
     if(x->f_dsp_factory) {
       t_outlet *out = faust_io_manager_get_extra_output(x->f_io_manager);
       t_atom argv[1];
       int numparams;
       SETSYMBOL(argv, x->f_dsp_name);
-      outlet_anything(out, gensym("name"), 1, argv);
+      out_anything(outsym, out, gensym("name"), 1, argv);
       SETSYMBOL(argv, x->f_unique_name);
-      outlet_anything(out, gensym("unique-name"), 1, argv);
+      out_anything(outsym, out, gensym("unique-name"), 1, argv);
       if (x->f_instance_name) {
 	SETSYMBOL(argv, x->f_instance_name);
-	outlet_anything(out, gensym("instance-name"), 1, argv);
+	out_anything(outsym, out, gensym("instance-name"), 1, argv);
       }
       SETSYMBOL(argv, gensym(faust_opt_manager_get_full_path(x->f_opt_manager, x->f_dsp_name->s_name)));
-      outlet_anything(out, gensym("path"), 1, argv);
+      out_anything(outsym, out, gensym("path"), 1, argv);
       SETFLOAT(argv, faust_io_manager_get_ninputs(x->f_io_manager));
-      outlet_anything(out, gensym("numinputs"), 1, argv);
+      out_anything(outsym, out, gensym("numinputs"), 1, argv);
       SETFLOAT(argv, faust_io_manager_get_noutputs(x->f_io_manager));
-      outlet_anything(out, gensym("numoutputs"), 1, argv);
+      out_anything(outsym, out, gensym("numoutputs"), 1, argv);
       if(x->f_dsp_factory) {
 	char* text = NULL;
 	text = getCTarget(x->f_dsp_factory);
 	if(text) {
 	  if(strnlen(text, 1) > 0) {
 	    SETSYMBOL(argv, gensym(text));
-	    outlet_anything(out, gensym("target"), 1, argv);
+	    out_anything(outsym, out, gensym("target"), 1, argv);
 	  }
 	  free(text);
 	}
@@ -342,14 +352,14 @@ static void faustgen_tilde_dump(t_faustgen_tilde *x)
 	if(text) {
 	  if(strnlen(text, 1) > 0) {
 	    SETSYMBOL(argv, gensym(text));
-	    outlet_anything(out, gensym("options"), 1, argv);
+	    out_anything(outsym, out, gensym("options"), 1, argv);
 	  }
 	  free(text);
 	}
       }
-      numparams = faust_ui_manager_dump(x->f_ui_manager, gensym("param"), out);
+      numparams = faust_ui_manager_dump(x->f_ui_manager, gensym("param"), out, outsym);
       SETFLOAT(argv, numparams);
-      outlet_anything(out, gensym("numparams"), 1, argv);
+      out_anything(outsym, out, gensym("numparams"), 1, argv);
     } else {
       pd_error(x, "faustgen~: no FAUST DSP file defined");
     }
@@ -860,7 +870,7 @@ void faustgen_tilde_setup(void)
         class_addmethod(c,  (t_method)faustgen_tilde_compile_options,   gensym("compileoptions"),   A_GIMME, 0);
         class_addmethod(c,  (t_method)faustgen_tilde_autocompile,       gensym("autocompile"),      A_GIMME, 0);
         class_addmethod(c,  (t_method)faustgen_tilde_print,             gensym("print"),            A_NULL, 0);
-        class_addmethod(c,  (t_method)faustgen_tilde_dump,              gensym("dump"),             A_NULL, 0);
+        class_addmethod(c,  (t_method)faustgen_tilde_dump,              gensym("dump"),             A_DEFSYM, 0);
         class_addmethod(c,  (t_method)faustgen_tilde_defaults,          gensym("defaults"),         A_NULL, 0);
         class_addmethod(c,  (t_method)faustgen_tilde_gui,               gensym("gui"),              A_NULL, 0);
         class_addmethod(c,  (t_method)faustgen_tilde_midiout,           gensym("midiout"),          A_GIMME, 0);

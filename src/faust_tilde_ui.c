@@ -1215,31 +1215,39 @@ void faust_ui_manager_print(t_faust_ui_manager const *x, char const log)
     t_faust_ui *c = x->f_uis;
     while(c)
     {
+      if (!c->p_voice) {
         logpost(x->f_owner, 2+log, "             parameter: %s [path:%s - type:%s - init:%g - min:%g - max:%g - current:%g]",
                 c->p_name->s_name, c->p_longname->s_name,
                 faust_ui_manager_get_parameter_char(c->p_type),
                 c->p_default, c->p_min, c->p_max, *c->p_zone);
-        c = c->p_next;
+      }
+      c = c->p_next;
     }
 }
 
-int faust_ui_manager_dump(t_faust_ui_manager const *x, t_symbol *s, t_outlet *out)
+int faust_ui_manager_dump(t_faust_ui_manager const *x, t_symbol *s, t_outlet *out, t_symbol *outsym)
 {
     t_faust_ui *c = x->f_uis;
     t_atom argv[7];
     int n = 0;
+    if (outsym && !outsym->s_thing) return 0;
     while(c)
     {
-      SETSYMBOL(argv+0, c->p_name);
-      SETSYMBOL(argv+1, c->p_longname);
-      SETSYMBOL(argv+2, gensym(faust_ui_manager_get_parameter_char(c->p_type)));
-      SETFLOAT(argv+3, c->p_default);
-      SETFLOAT(argv+4, c->p_min);
-      SETFLOAT(argv+5, c->p_max);
-      SETFLOAT(argv+6, *c->p_zone);
-      outlet_anything(out, s, 7, argv);
+      if (!c->p_voice) {
+	SETSYMBOL(argv+0, c->p_name);
+	SETSYMBOL(argv+1, c->p_longname);
+	SETSYMBOL(argv+2, gensym(faust_ui_manager_get_parameter_char(c->p_type)));
+	SETFLOAT(argv+3, c->p_default);
+	SETFLOAT(argv+4, c->p_min);
+	SETFLOAT(argv+5, c->p_max);
+	SETFLOAT(argv+6, *c->p_zone);
+	if (outsym)
+	  typedmess(outsym->s_thing, s, 7, argv);
+	else
+	  outlet_anything(out, s, 7, argv);
+	++n;
+      }
       c = c->p_next;
-      ++n;
     }
     return n;
 }
