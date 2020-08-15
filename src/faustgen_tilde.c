@@ -684,7 +684,8 @@ static void faustgen_tilde_free(t_faustgen_tilde *x)
       pd_unbind(&x->f_obj.ob_pd, x->f_dsp_name);
       pd_unbind(&x->f_obj.ob_pd, x->f_unique_name);
       if (x->f_instance_name) {
-        pd_unbind(&x->f_obj.ob_pd, x->f_instance_name);
+	if (x->f_instance_name != x->f_dsp_name)
+	  pd_unbind(&x->f_obj.ob_pd, x->f_instance_name);
         pd_unbind(&x->f_obj.ob_pd,
                   make_instance_name(x->f_dsp_name, x->f_instance_name));
       }
