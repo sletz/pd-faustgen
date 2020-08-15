@@ -1308,36 +1308,77 @@ void faust_ui_manager_print(t_faust_ui_manager const *x, char const log)
     while(c)
     {
       if (!c->p_voice) {
+        const t_symbol *name = c->p_name, *lname = c->p_longname;
         logpost(x->f_owner, 2+log, "             parameter: %s [path:%s - type:%s - init:%g - min:%g - max:%g - current:%g]",
-                c->p_name->s_name, c->p_longname->s_name,
+                name->s_name, lname->s_name,
                 faust_ui_manager_get_parameter_char(c->p_type),
                 c->p_default, c->p_min, c->p_max, *c->p_zone);
+        if (c->p_midi) {
+          for (size_t i = 0; i < c->p_nmidi; i++) {
+            if (c->p_midi[i].chan >= 0) {
+              if (midi_argc[c->p_midi[i].msg] > 1)
+                logpost(x->f_owner, 3, "             parameter: %s [midi:%s %d %d]", name->s_name,
+                        midi_key[c->p_midi[i].msg], c->p_midi[i].num,
+                        c->p_midi[i].chan);
+              else
+                logpost(x->f_owner, 3, "             parameter: %s [midi:%s %d]", name->s_name,
+                        midi_key[c->p_midi[i].msg], c->p_midi[i].chan);
+            } else {
+              if (midi_argc[c->p_midi[i].msg] > 1)
+                logpost(x->f_owner, 3, "             parameter: %s [midi:%s %d]", name->s_name,
+                        midi_key[c->p_midi[i].msg], c->p_midi[i].num);
+              else
+                logpost(x->f_owner, 3, "             parameter: %s [midi:%s]", name->s_name,
+                        midi_key[c->p_midi[i].msg]);
+            }
+          }
+        }
       }
       c = c->p_next;
     }
 }
 
+#define DUMP_MAX_ARGS 100
+
 int faust_ui_manager_dump(t_faust_ui_manager const *x, t_symbol *s, t_outlet *out, t_symbol *outsym)
 {
     t_faust_ui *c = x->f_uis;
-    t_atom argv[7];
-    int n = 0;
+    t_atom argv[DUMP_MAX_ARGS];
+    int argc = 0, n = 0;
     if (outsym && !outsym->s_thing) return 0;
     while(c)
     {
       if (!c->p_voice) {
-	SETSYMBOL(argv+0, c->p_name);
-	SETSYMBOL(argv+1, c->p_longname);
-	SETSYMBOL(argv+2, gensym(faust_ui_manager_get_parameter_char(c->p_type)));
-	SETFLOAT(argv+3, c->p_default);
-	SETFLOAT(argv+4, c->p_min);
-	SETFLOAT(argv+5, c->p_max);
-	SETFLOAT(argv+6, *c->p_zone);
+	SETSYMBOL(argv+argc, c->p_name); argc++;
+	SETSYMBOL(argv+argc, c->p_longname); argc++;
+	SETSYMBOL(argv+argc, gensym(faust_ui_manager_get_parameter_char(c->p_type))); argc++;
+	SETFLOAT(argv+argc, c->p_default); argc++;
+	SETFLOAT(argv+argc, c->p_min); argc++;
+	SETFLOAT(argv+argc, c->p_max); argc++;
+	SETFLOAT(argv+argc, *c->p_zone); argc++;
+	if (c->p_midi) {
+	  for (size_t i = 0; i < c->p_nmidi && argc+3 < DUMP_MAX_ARGS; i++) {
+	    char buf[MAXPDSTRING];
+	    snprintf(buf, MAXPDSTRING, "midi:%s",
+		     midi_key[c->p_midi[i].msg]);
+	    SETSYMBOL(argv+argc, gensym(buf)); argc++;
+	    if (c->p_midi[i].chan >= 0) {
+	      if (midi_argc[c->p_midi[i].msg] > 1) {
+		SETFLOAT(argv+argc, c->p_midi[i].num); argc++;
+		SETFLOAT(argv+argc, c->p_midi[i].chan); argc++;
+	      } else {
+		SETFLOAT(argv+argc, c->p_midi[i].chan); argc++;
+	      }
+	    } else if (midi_argc[c->p_midi[i].msg] > 1) {
+	      SETFLOAT(argv+argc, c->p_midi[i].num); argc++;
+	    }
+	  }
+	}
 	if (outsym)
-	  typedmess(outsym->s_thing, s, 7, argv);
+	  typedmess(outsym->s_thing, s, argc, argv);
 	else
-	  outlet_anything(out, s, 7, argv);
-	++n;
+	  outlet_anything(out, s, argc, argv);
+	++n; argc = 0;
       }
       c = c->p_next;
     }
