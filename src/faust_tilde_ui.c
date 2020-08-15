@@ -180,6 +180,7 @@ typedef struct _faust_ui_manager
     int         f_nvoices;
     t_faust_voice *f_voices, *f_free, *f_used;
     t_faust_ui_proxy *f_init_recv, *f_active_recv;
+    t_float *f_tuning;
 }t_faust_ui_manager;
 
 static void faust_free_voices(t_faust_ui_manager *x)
@@ -840,6 +841,7 @@ t_faust_ui_manager* faust_ui_manager_new(t_object* owner)
         ui_manager->f_voices = ui_manager->f_free = ui_manager->f_used = NULL;
         ui_manager->f_init_recv = NULL;
         ui_manager->f_active_recv = NULL;
+        ui_manager->f_tuning = NULL;
         
         ui_manager->f_meta_glue.metaInterface = ui_manager;
         ui_manager->f_meta_glue.declare       = (metaDeclareFun)faust_ui_manager_meta_declare;
@@ -866,6 +868,7 @@ void faust_ui_manager_clear(t_faust_ui_manager *x)
 {
     if (x->f_init_recv) faust_ui_receive_free(x->f_init_recv);
     if (x->f_active_recv) faust_ui_receive_free(x->f_active_recv);
+    if (x->f_tuning) freebytes(x->f_tuning, 12*sizeof(t_float));
     faust_ui_manager_free_uis(x);
     faust_ui_manager_free_names(x);
 }
@@ -962,6 +965,16 @@ static void faust_ui_midi_init(void)
   }
 }
 
+// simple MTS-like tuning facility (octave-based tunings only for now)
+static t_float note2cps(t_faust_ui_manager *x, int num)
+{
+  t_float f = num;
+  // tuning offset in cents
+  if (x->f_tuning) f += x->f_tuning[num%12]/100.0;
+  // Pd's mtof() function does the rest
+  return mtof(f);
+}
+
 // aggraef's homegrown voice allocation algorithm. Note that we simply ignore
 // the channel data for now, as faustgen~ isn't multitimbral (yet). This might
 // cause issues with some multi-channel MIDI data sounding slightly off
@@ -1001,11 +1014,10 @@ static void voices_noteon(t_faust_ui_manager *x, int num, int val, int chan)
       x->f_used = v;
     }
     v->num = num;
-    // We simply bypass all checking of control ranges and steps at present.
-    // We might want to do that some time. Also, having MTS support would be
-    // nice. :) Here we simply use Pd's own mtof() function to translate MIDI
-    // note numbers to frequencies (cps).
-    if (v->freq_c) *v->freq_c->p_zone = mtof(num);
+    // Simply bypass all checking of control ranges and steps for now. We
+    // might want to do something more comprehensive later. Also, having MTS
+    // support would be nice. :)
+    if (v->freq_c) *v->freq_c->p_zone = note2cps(x, num);
     if (v->gain_c) *v->gain_c->p_zone = ((double)val)/127.0;
     if (v->gate_c) *v->gate_c->p_zone = 1.0;
   }
@@ -1250,6 +1262,31 @@ int faust_ui_manager_dump(t_faust_ui_manager const *x, t_symbol *s, t_outlet *ou
       c = c->p_next;
     }
     return n;
+}
+
+void faust_ui_manager_set_tuning(t_faust_ui_manager *x, t_float tuning[12])
+{
+  if (!x->f_tuning)
+    x->f_tuning = getbytes(12*sizeof(t_float));
+  if (x->f_tuning) {
+    for (int i = 0; i < 12; i++)
+      x->f_tuning[i] = tuning[i];
+  } else {
+    pd_error(x->f_owner, "faustgen~: memory allocation failed - tuning");
+  }
+}
+
+t_float *faust_ui_manager_get_tuning(const t_faust_ui_manager *x)
+{
+  return x->f_tuning;
+}
+
+void faust_ui_manager_clear_tuning(t_faust_ui_manager *x)
+{
+  if (x->f_tuning) {
+    freebytes(x->f_tuning, 12*sizeof(t_float));
+    x->f_tuning = NULL;
+  }
 }
 
 static int rtranslate(FAUSTFLOAT z, FAUSTFLOAT p_min, FAUSTFLOAT p_max,

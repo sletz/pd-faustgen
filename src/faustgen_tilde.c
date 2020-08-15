@@ -6,6 +6,7 @@
 
 #include <m_pd.h>
 #include <string.h>
+#include <ctype.h>
 #include <float.h>
 #include <math.h>
 #include <stdlib.h>
@@ -365,6 +366,161 @@ static void faustgen_tilde_dump(t_faustgen_tilde *x, t_symbol *outsym)
     }
 }
 
+static bool is_blank(const char *s)
+{
+  while (isblank(*s)) s++;
+  return *s == 0;
+}
+
+static void faustgen_tilde_tuning(t_faustgen_tilde *x, t_symbol* s, int argc, t_atom* argv)
+{
+  if (argc <= 0) {
+    // output the current tuning on the control outlet
+    int ac;
+    t_atom av[12];
+    t_float *tuning = faust_ui_manager_get_tuning(x->f_ui_manager);
+    t_outlet *out = faust_io_manager_get_extra_output(x->f_io_manager);
+    if (tuning) {
+      ac = 12;
+      for (int i = 0; i < ac; i++)
+	SETFLOAT(av+i, tuning[i]);
+    } else {
+      ac = 1;
+      // indicates the default (12-tet)
+      SETSYMBOL(av, gensym("default"));
+    }
+    outlet_anything(out, s, ac, av);
+    return;
+  } else if (argv[0].a_type == A_SYMBOL &&
+	     (argc == 1 || argc == 2 && argv[1].a_type == A_FLOAT)) {
+    const char *name = argv[0].a_w.w_symbol->s_name, *ext = strrchr(name, '.');
+    int base = argc>1?argv[1].a_w.w_float:0;
+    if (ext && !strchr(ext, '/'))
+      // extension already supplied, no default extension
+      ext = "";
+    else
+      ext = ".scl";
+    if (base < 0 || base > 11) {
+      pd_error(x, "faustgen~: wrong 2nd argument to Scala tuning (expected reference tone 0..11)");
+      return;
+    }
+    if (strcmp(name, "default") == 0)
+      // reset to the default (12-tet)
+      faust_ui_manager_clear_tuning(x->f_ui_manager);
+    else {
+      // load tuning from a Scala file
+      // (http://www.huygens-fokker.org/scala/scl_format.html)
+      char path[MAXFAUSTSTRING], realdir[MAXPDSTRING], *realname = NULL;
+      int fd = canvas_open(canvas_getcurrent(), name, ext, realdir,
+			   &realname, MAXPDSTRING, 0);
+      if (fd < 0) {
+	pd_error(x, "faustgen~: can't find %s.scl", name);
+	return;
+      }
+      FILE *fp = fdopen(fd, "r");
+      if (!fp) {
+	pd_error(x, "faustgen~: can't open %s", realname);
+	return;
+      }
+      size_t lines = 0, state = 0;
+      char buf[MAXPDSTRING];
+      int n, p, q, pos;
+      t_float tuning[12];
+      float c;
+      while (state < 3 && fgets(buf, MAXPDSTRING, fp)) {
+	lines++;
+	// remove the trailing newline
+	size_t l = strlen(buf);
+	if (buf[l-1] == '\n') buf[l-1] = 0;
+	// ignore empty and comment lines (comments begin with '!')
+	if (*buf && *buf != '!') {
+	  switch (state) {
+	  case 0:
+	    // description
+	    logpost(x, 3, "%s", buf);
+	    state++;
+	    break;
+	  case 1:
+	    // scale size, we expect 12 for an octave-based tuning
+	    if (sscanf(buf, "%d", &n) != 1) {
+	      pd_error(x, "faustgen~: %s:%lu: expected scale size", realname, lines);
+	      return;
+	    } else if (n != 12) {
+	      pd_error(x, "faustgen~: %s:%lu: not an octave-based tuning", realname, lines);
+	      return;
+	    }
+	    n = 0;
+	    tuning[0] = 0.0; // implicit
+	    state++;
+	    break;
+	  case 2:
+	    // parsing the scale
+	    ++n;
+	    if (sscanf(buf, "%d/%d%n", &p, &q, &pos) == 2 &&
+		       is_blank(buf+pos)) {
+	      // ratio, convert to cent
+	      if (p > 0 && q > 0) {
+	        c = 1200.0*log((t_float)p/(t_float)q)/log(2.0);
+	      } else {
+		pd_error(x, "faustgen~: %s:%lu: invalid ratio", realname, lines);
+		return;
+	      }
+	    } else if (sscanf(buf, "%g%n", &c, &pos) == 1 && is_blank(buf+pos)) {
+	      // According to the Scala format, the value we read must contain
+	      // a period, otherwise it is to be interpreted as a ratio with
+	      // denominator 1.
+	      // cf. http://www.huygens-fokker.org/scala/scl_format.html
+	      if (!strchr(buf, '.')) {
+	        c = 1200.0*log(c)/log(2.0);
+	      }
+	    } else {
+	      pd_error(x, "faustgen~: %s:%lu: expected ratio or cent value", realname, lines);
+	      return;
+	    }
+	    c -= n*100.0;
+	    if (// check for tuning offsets which are wildly out of range
+		c < -100.0 || c > 100.0 ||
+		// also, the 12th scale point (which isn't part of the tuning
+		// table) should be a reasonably exact octave
+		(n == 12 && fabs(c) > 1e-8)) {
+	      pd_error(x, "faustgen~: %s:%lu: tuning offset out of range", realname, lines);
+	      return;
+	    }
+	    if (n < 12)
+	      tuning[n] = c;
+	    else
+	      // we're done, bail out, ignore any trailing junk for now
+	      state++;
+	    break;
+	  }
+	}
+      }
+      fclose(fp);
+      if (base) {
+	// shift the scale so that the reference tone is at 0 cent
+	t_float r = tuning[base];
+	for (int i = 0; i < 12; i++)
+	  tuning[i] -= r;
+      }
+      faust_ui_manager_set_tuning(x->f_ui_manager, tuning);
+    }
+    return;
+  } else if (argc == 12) {
+    // expect 12 tuning offset values in cents
+    bool ok = true;
+    t_float tuning[12];
+    for (int i = 0; i < argc && ok; i++) {
+      if ((ok = (argv[i].a_type == A_FLOAT))) {
+	tuning[i] = argv[i].a_w.w_float;
+      }
+    }
+    if (ok) {
+      faust_ui_manager_set_tuning(x->f_ui_manager, tuning);
+      return;
+    }
+  }
+  pd_error(x, "faustgen~: wrong arguments to tuning (expected Scala filename or 12 tuning offsets in cent)");
+}
 
 static void faustgen_tilde_defaults(t_faustgen_tilde *x)
 {
@@ -831,8 +987,9 @@ static void *faustgen_tilde_new(t_symbol* s, int argc, t_atom* argv)
 	x->f_unique_name = make_unique_name(x->f_dsp_name);
 	pd_bind(&x->f_obj.ob_pd, x->f_unique_name);
 	if (x->f_instance_name) {
-	  // instance name
-	  pd_bind(&x->f_obj.ob_pd, x->f_instance_name);
+	  // instance name (if different from the above)
+	  if (x->f_instance_name != x->f_dsp_name)
+	    pd_bind(&x->f_obj.ob_pd, x->f_instance_name);
 	  // dsp-name:instance-name
 	  pd_bind(&x->f_obj.ob_pd,
 		  make_instance_name(x->f_dsp_name, x->f_instance_name));
@@ -871,6 +1028,7 @@ void faustgen_tilde_setup(void)
         class_addmethod(c,  (t_method)faustgen_tilde_autocompile,       gensym("autocompile"),      A_GIMME, 0);
         class_addmethod(c,  (t_method)faustgen_tilde_print,             gensym("print"),            A_NULL, 0);
         class_addmethod(c,  (t_method)faustgen_tilde_dump,              gensym("dump"),             A_DEFSYM, 0);
+        class_addmethod(c,  (t_method)faustgen_tilde_tuning,            gensym("tuning"),           A_GIMME, 0);
         class_addmethod(c,  (t_method)faustgen_tilde_defaults,          gensym("defaults"),         A_NULL, 0);
         class_addmethod(c,  (t_method)faustgen_tilde_gui,               gensym("gui"),              A_NULL, 0);
         class_addmethod(c,  (t_method)faustgen_tilde_midiout,           gensym("midiout"),          A_GIMME, 0);

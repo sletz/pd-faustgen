@@ -38,6 +38,10 @@ void faust_ui_manager_print(t_faust_ui_manager const *x, char const log);
 
 int faust_ui_manager_dump(t_faust_ui_manager const *x, t_symbol *s, t_outlet *out, t_symbol *outsym);
 
+void faust_ui_manager_set_tuning(t_faust_ui_manager *x, t_float tuning[12]);
+t_float *faust_ui_manager_get_tuning(t_faust_ui_manager const *x);
+void faust_ui_manager_clear_tuning(t_faust_ui_manager *x);
+
 void faust_ui_manager_midiout(t_faust_ui_manager const *x, int midichan,
 			      t_symbol *midirecv, t_outlet *out);
 
