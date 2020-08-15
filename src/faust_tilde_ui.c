@@ -168,6 +168,11 @@ typedef struct _faust_voice {
   struct _faust_voice *next_free, *next_used;
 } t_faust_voice;
 
+typedef struct _faust_key {
+  int num;
+  struct _faust_key *next;
+} t_faust_key;
+
 typedef struct _faust_ui_manager
 {
     UIGlue      f_glue;
@@ -179,6 +184,7 @@ typedef struct _faust_ui_manager
     MetaGlue    f_meta_glue;
     int         f_nvoices;
     t_faust_voice *f_voices, *f_free, *f_used;
+    t_faust_key *f_keys;
     t_faust_ui_proxy *f_init_recv, *f_active_recv;
     t_float *f_tuning;
 }t_faust_ui_manager;
@@ -187,6 +193,11 @@ static void faust_free_voices(t_faust_ui_manager *x)
 {
   if (x->f_voices) {
     freebytes(x->f_voices, x->f_nvoices*sizeof(t_faust_voice));
+    while (x->f_keys) {
+      t_faust_key *next = x->f_keys->next;
+      freebytes(x->f_keys, sizeof(t_faust_key));
+      x->f_keys = next;
+    }
     x->f_voices = x->f_free = x->f_used = NULL;
     x->f_nvoices = 0;
   }
@@ -224,6 +235,7 @@ static void faust_new_voices(t_faust_ui_manager *x)
       pd_error(x->f_owner, "faustgen~: inconsistent number of voice controls");
       return;
     }
+    x->f_keys = NULL;
     x->f_voices = getzbytes(n_voices*sizeof(t_faust_voice));
     if (!x->f_voices) {
       pd_error(x->f_owner, "faustgen~: memory allocation failed - voice controls");
@@ -838,6 +850,7 @@ t_faust_ui_manager* faust_ui_manager_new(t_object* owner)
         ui_manager->f_names     = NULL;
         ui_manager->f_nnames    = 0;
         ui_manager->f_nvoices   = 0;
+        ui_manager->f_keys = NULL;
         ui_manager->f_voices = ui_manager->f_free = ui_manager->f_used = NULL;
         ui_manager->f_init_recv = NULL;
         ui_manager->f_active_recv = NULL;
@@ -985,10 +998,32 @@ static t_float note2cps(t_faust_ui_manager *x, int num)
 // comment this to disable voice stealing
 #define VOICE_STEALING 1
 
+// comment this to disable monophonic/legato mode
+// https://ask.audio/articles/understanding-mono-legato-mode-in-synth-sample-vis
+#define MONOPHONIC 1
+
 static void voices_noteon(t_faust_ui_manager *x, int num, int val, int chan)
 {
-  // XXXTODO: do proper monophonic allocation if there's just a single voice
-  // available, like ye good old-fashioned mono synths do!
+#if MONOPHONIC
+  if (x->f_nvoices == 1) {
+    // monophonic/legato mode, like ye synths of old. Here we simply ignore
+    // the free and used lists and keep track of which keys are pressed at any
+    // one time.
+    t_faust_key *n = getbytes(sizeof(t_faust_key));
+    if (n) {
+      n->num = num;
+      n->next = x->f_keys;
+      x->f_keys = n;
+    } else {
+      pd_error(x->f_owner, "faustgen~: memory allocation failed - monophony");
+    }
+    t_faust_voice *v = x->f_voices;
+    if (v->freq_c) *v->freq_c->p_zone = note2cps(x, num);
+    if (v->gain_c) *v->gain_c->p_zone = ((double)val)/127.0;
+    if (v->gate_c) *v->gate_c->p_zone = 1.0;
+    return;
+  }
+#endif
 #if VOICE_STEALING
   if (!x->f_free) {
     // no more voices, let's "borrow" one (we can just grab it from the
@@ -1025,6 +1060,39 @@ static void voices_noteon(t_faust_ui_manager *x, int num, int val, int chan)
 
 static void voices_noteoff(t_faust_ui_manager *x, int num, int chan)
 {
+#if MONOPHONIC
+  if (x->f_nvoices == 1) {
+    if (x->f_keys) {
+      t_faust_key *n = x->f_keys, *p = NULL;
+      while (n && n->num != num) {
+	p = n;
+	n = n->next;
+      }
+      if (n) {
+	if (p) {
+	  // not the currently sounding note; simply remove it
+	  p->next = n->next;
+	  freebytes(n, sizeof(t_faust_key));
+	} else {
+	  // currently sounding note, change to the previous one (if any)
+	  t_faust_voice *v = x->f_voices;
+	  p = n->next;
+	  freebytes(n, sizeof(t_faust_key));
+	  if (p) {
+	    // legato (change to the previous frequency); note that if you
+	    // want portamento, you'll have to do this in the Faust source
+	    if (v->freq_c) *v->freq_c->p_zone = note2cps(x, p->num);
+	  } else {
+	    // note off
+	    if (v->gate_c) *v->gate_c->p_zone = 0.0;
+	  }
+	  x->f_keys = p;
+	}
+      }
+    }
+    return;
+  }
+#endif
   t_faust_voice *u = x->f_used, *v = NULL;
   while (u && u->num != num) {
     v = u;
@@ -1051,6 +1119,18 @@ static void voices_noteoff(t_faust_ui_manager *x, int num, int chan)
 
 void faust_ui_manager_all_notes_off(t_faust_ui_manager *x)
 {
+#if MONOPHONIC
+  if (x->f_nvoices == 1) {
+    t_faust_voice *v = x->f_voices;
+    if (v->gate_c) *v->gate_c->p_zone = 0.0;
+    while (x->f_keys) {
+      t_faust_key *next = x->f_keys->next;
+      freebytes(x->f_keys, sizeof(t_faust_key));
+      x->f_keys = next;
+    }
+    return;
+  }
+#endif
   for (t_faust_voice *u = x->f_used; u; u = u->next_free) {
     if (u->gate_c) *u->gate_c->p_zone = 0.0;
     u->next_free = u->next_used;
