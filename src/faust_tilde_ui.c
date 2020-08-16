@@ -103,6 +103,7 @@ typedef struct {
   struct _faust_ui_manager *owner;
   t_symbol *uisym; // the symbol to bind to
   t_symbol *lname; // the actual long name of the symbol
+  int type; // 0 is an ordinary gui element, 1 = active, 2 = init, 3 = panic
   // recursive means that we're currently sending a message which might
   // trigger an update, so we don't want to receive messages in that case.
   bool recursive;
@@ -110,13 +111,14 @@ typedef struct {
 
 static t_class *faust_ui_proxy_class;
 
-static t_faust_ui_proxy *faust_ui_receive_new(t_faust_ui_manager *owner, t_symbol *uisym, t_symbol *lname)
+static t_faust_ui_proxy *faust_ui_receive_new(t_faust_ui_manager *owner, t_symbol *uisym, t_symbol *lname, int type)
 {
   t_faust_ui_proxy *r = getbytes(sizeof(t_faust_ui_proxy));
   r->pd = faust_ui_proxy_class;
   r->owner = owner;
   r->uisym = uisym;
   r->lname = lname;
+  r->type = type;
   r->recursive = false;
   pd_bind(&r->pd, r->uisym);
   return r;
@@ -185,7 +187,7 @@ typedef struct _faust_ui_manager
     int         f_nvoices;
     t_faust_voice *f_voices, *f_free, *f_used;
     t_faust_key *f_keys;
-    t_faust_ui_proxy *f_init_recv, *f_active_recv;
+    t_faust_ui_proxy *f_panic_recv, *f_init_recv, *f_active_recv;
     t_float *f_tuning;
 }t_faust_ui_manager;
 
@@ -852,6 +854,7 @@ t_faust_ui_manager* faust_ui_manager_new(t_object* owner)
         ui_manager->f_nvoices   = 0;
         ui_manager->f_keys = NULL;
         ui_manager->f_voices = ui_manager->f_free = ui_manager->f_used = NULL;
+        ui_manager->f_panic_recv = NULL;
         ui_manager->f_init_recv = NULL;
         ui_manager->f_active_recv = NULL;
         ui_manager->f_tuning = NULL;
@@ -879,6 +882,7 @@ void faust_ui_manager_init(t_faust_ui_manager *x, void* dspinstance)
 
 void faust_ui_manager_clear(t_faust_ui_manager *x)
 {
+    if (x->f_panic_recv) faust_ui_receive_free(x->f_panic_recv);
     if (x->f_init_recv) faust_ui_receive_free(x->f_init_recv);
     if (x->f_active_recv) faust_ui_receive_free(x->f_active_recv);
     if (x->f_tuning) freebytes(x->f_tuning, 12*sizeof(t_float));
@@ -1614,7 +1618,7 @@ void faust_ui_manager_gui(t_faust_ui_manager *x,
       c->p_uirecv->uisym = s;
       c->p_uirecv->lname = c->p_longname;
     } else
-      c->p_uirecv = faust_ui_receive_new(x, s, c->p_longname);
+      c->p_uirecv = faust_ui_receive_new(x, s, c->p_longname, 0);
     y += hslider_y;
     switch (c->p_type) {
     case FAUST_UI_TYPE_BUTTON:
@@ -1713,8 +1717,36 @@ void faust_ui_manager_gui(t_faust_ui_manager *x,
     }
     c = c->p_next;
   }
-  // Add the special init and active controls.
-  t_symbol *s = make_sym(unique_name, gensym("init"));
+  // Add the special panic, init and active controls.
+  t_symbol *s;
+  if (x->f_voices) {
+    s = make_sym(unique_name, gensym("panic"));
+    SETFLOAT(argv+argc, wd-58); argc++;
+    SETFLOAT(argv+argc, 3); argc++;
+    SETSYMBOL(argv+argc, gensym("bng")); argc++;
+    SETFLOAT(argv+argc, 15); argc++;
+    SETFLOAT(argv+argc, 250); argc++;
+    SETFLOAT(argv+argc, 50); argc++;
+    SETFLOAT(argv+argc, 1); argc++;
+    SETSYMBOL(argv+argc, s); argc++;
+    SETSYMBOL(argv+argc, s); argc++;
+    SETSYMBOL(argv+argc, gensym("empty")); argc++;
+    SETFLOAT(argv+argc, 0); argc++;
+    SETFLOAT(argv+argc, -6); argc++;
+    SETFLOAT(argv+argc, 0); argc++;
+    SETFLOAT(argv+argc, fn1); argc++;
+    SETFLOAT(argv+argc, gray); argc++;
+    SETFLOAT(argv+argc, black); argc++;
+    SETFLOAT(argv+argc, black); argc++;
+    typedmess(ui->s_thing, gensym("obj"), argc, argv);
+    argc = 0;
+    if (x->f_panic_recv) {
+      x->f_panic_recv->uisym = s;
+      x->f_panic_recv->lname = NULL;
+    } else
+      x->f_panic_recv = faust_ui_receive_new(x, s, NULL, 3);
+  }
+  s = make_sym(unique_name, gensym("init"));
   SETFLOAT(argv+argc, wd-38); argc++;
   SETFLOAT(argv+argc, 3); argc++;
   SETSYMBOL(argv+argc, gensym("bng")); argc++;
@@ -1738,7 +1770,7 @@ void faust_ui_manager_gui(t_faust_ui_manager *x,
     x->f_init_recv->uisym = s;
     x->f_init_recv->lname = NULL;
   } else
-    x->f_init_recv = faust_ui_receive_new(x, s, NULL);
+    x->f_init_recv = faust_ui_receive_new(x, s, NULL, 2);
   s = make_sym(unique_name, gensym("active"));
   SETFLOAT(argv+argc, wd-18); argc++;
   SETFLOAT(argv+argc, 3); argc++;
@@ -1763,13 +1795,13 @@ void faust_ui_manager_gui(t_faust_ui_manager *x,
     x->f_active_recv->uisym = s;
     x->f_active_recv->lname = NULL;
   } else
-    x->f_active_recv = faust_ui_receive_new(x, s, NULL);
+    x->f_active_recv = faust_ui_receive_new(x, s, NULL, 1);
 }
 
 // Receive a value from the GUI.
 static void faust_ui_receive(t_faust_ui_proxy *r, t_floatarg v)
 {
-  if (!r->lname) {
+  if (r->type) {
     // Special active receiver, we need to pass this on to our grandparent
     // faustgen~ object.
     t_object *ob = r->owner->f_owner;
@@ -1781,7 +1813,7 @@ static void faust_ui_receive(t_faust_ui_proxy *r, t_floatarg v)
     } else {
       pd_error(r->owner->f_owner, "faustgen~: parent not found - gui");
     }
-  } else if (!r->recursive) {
+  } else if (r->type == 0 && !r->recursive) {
     t_faust_ui* c = faust_ui_manager_get(r->owner, r->lname);
     if (c) {
       //logpost(r->owner->f_owner, 3, "%s = %g", r->uisym->s_name, v);
@@ -1792,6 +1824,9 @@ static void faust_ui_receive(t_faust_ui_proxy *r, t_floatarg v)
 
 static void faust_bang_receive(t_faust_ui_proxy *r)
 {
-  // special init receiver, we can handle this right here
-  faust_ui_manager_restore_default(r->owner);
+  // special init or panic receiver, we can handle this right here
+  if (r->type == 2)
+    faust_ui_manager_restore_default(r->owner);
+  else if (r->type == 3)
+    faust_ui_manager_all_notes_off(r->owner);
 }

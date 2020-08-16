@@ -523,6 +523,13 @@ static void faustgen_tilde_tuning(t_faustgen_tilde *x, t_symbol* s, int argc, t_
   pd_error(x, "faustgen~: wrong arguments to tuning (expected Scala filename or 12 tuning offsets in cent)");
 }
 
+static void faustgen_tilde_allnotesoff(t_faustgen_tilde *x)
+{
+  if(x->f_dsp_instance) {
+    faust_ui_manager_all_notes_off(x->f_ui_manager);
+  }
+}
+
 static void faustgen_tilde_defaults(t_faustgen_tilde *x)
 {
   if(x->f_dsp_instance) {
@@ -1078,6 +1085,7 @@ void faustgen_tilde_setup(void)
         class_addmethod(c,  (t_method)faustgen_tilde_menu_open,         gensym("menu-open"),        A_NULL, 0);
         
         //class_addmethod(c,      (t_method)faustgen_tilde_read,             gensym("read"),           A_SYMBOL);
+        class_addbang(c, (t_method)faustgen_tilde_allnotesoff);
         class_addanything(c, (t_method)faustgen_tilde_anything);
 
         logpost(NULL, 3, "Faust website: faust.grame.fr");
