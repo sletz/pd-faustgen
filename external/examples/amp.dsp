@@ -5,7 +5,7 @@
 declare name "amp";
 declare description "stereo amplifier stage";
 declare author "Albert Graef";
-declare version "1.0";
+declare version "2.0";
 
 import("stdfaust.lib");
 
@@ -23,8 +23,8 @@ smooth = si.smooth(0.99);
 /* Bass and treble gain controls in dB. The range of +/-20 corresponds to a
    boost/cut factor of 10. */
 
-bass_gain	= nentry("[1] bass [midi:ctrl 1] [unit:dB]", 0, -20, 20, 0.1);
-treble_gain	= nentry("[2] treble [midi:ctrl 2] [unit:dB]", 0, -20, 20, 0.1);
+bass_gain	= nentry("[1] bass [midi:ctrl 16] [unit:dB]", 0, -20, 20, 0.1);
+treble_gain	= nentry("[2] treble [midi:ctrl 17] [unit:dB]", 0, -20, 20, 0.1);
 
 /* Gain and balance controls. */
 
@@ -111,8 +111,8 @@ sqr(x)		= x*x;
 
 /* The dB meters for left and right channel. These are passive controls. */
 
-left_meter(x)	= attach(x, env(x) : hbargraph("left [midi:ctrl 1] [unit:dB]", -60, 10));
-right_meter(x)	= attach(x, env(x) : hbargraph("right [midi:ctrl 2] [unit:dB]", -60, 10));
+left_meter(x)	= attach(x, env(x) : hbargraph("left [midi:ctrl 18] [unit:dB]", -60, 10));
+right_meter(x)	= attach(x, env(x) : hbargraph("right [midi:ctrl 19] [unit:dB]", -60, 10));
 
 /* The main program. */
 
