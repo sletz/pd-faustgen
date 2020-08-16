@@ -11,6 +11,13 @@
 
 struct _faust_ui_manager;
 typedef struct _faust_ui_manager t_faust_ui_manager;
+// ag: The MIDI channel mask is a 64 bit integer which allows for 64 different
+// MIDI channels for now. Pd can potentially have arbitrarily large channel
+// numbers depending on the number of MIDI devices it uses, so we might want
+// to do something more comprehensive here later. But for the time being, 64
+// MIDI channels ought to be enough for anybody. ;-)
+typedef uint64_t t_channelmask;
+#define ALL_CHANNELS ((t_channelmask)(-1UL))
 
 t_faust_ui_manager* faust_ui_manager_new(t_object* owner);
 
@@ -24,7 +31,7 @@ char faust_ui_manager_set_value(t_faust_ui_manager *x, t_symbol const *name, t_f
 
 char faust_ui_manager_get_value(t_faust_ui_manager const *x, t_symbol const *name, t_float* f);
 
-int faust_ui_manager_get_midi(t_faust_ui_manager *x, t_symbol const *s, int argc, t_atom* argv, int midichan);
+int faust_ui_manager_get_midi(t_faust_ui_manager *x, t_symbol const *s, int argc, t_atom* argv, t_channelmask midichanmsk);
 
 void faust_ui_manager_all_notes_off(t_faust_ui_manager *x);
 

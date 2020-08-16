@@ -66,6 +66,7 @@ typedef struct _faustgen_tilde
 
     bool                f_midiout;
     int                 f_midichan;
+    t_channelmask       f_midichanmsk;
     t_symbol*           f_midirecv;
     t_symbol*           f_instance_name;
     t_symbol*           f_unique_name;
@@ -550,15 +551,60 @@ static void faustgen_tilde_midiout(t_faustgen_tilde *x, t_symbol* s, int argc, t
     x->f_midirecv = argv->a_w.w_symbol;
 }
 
+static void add_midichan(t_faustgen_tilde *x, int idx, int c)
+{
+  if (c == 0) {
+    // reset to omni
+    x->f_midichanmsk = ALL_CHANNELS;
+  } else if (c < 0) {
+    if (idx == 0) x->f_midichanmsk = ALL_CHANNELS;
+    // block that channel
+    if (-c <= 64) x->f_midichanmsk &= ~(1UL << (-c-1));
+  } else if (c <= 64) {
+    if (idx == 0) x->f_midichanmsk = 0;
+    // accept that channel
+    x->f_midichanmsk |= 1UL << (c-1);
+    // also set the default output channel if it hasn't been set yet
+    if (x->f_midichan < 0) x->f_midichan = c-1;
+  }
+}
+
 static void faustgen_tilde_midichan(t_faustgen_tilde *x, t_symbol* s, int argc, t_atom* argv)
 {
-  if (argc <= 0)
-    // omni mode
+  if (argc <= 0) {
+    // output the current status
+    int ac = 0;
+    t_atom av[64];
+    t_outlet *out = faust_io_manager_get_extra_output(x->f_io_manager);
+    // Make sure that the default channel comes first, if any
+    if (x->f_midichan >= 0 && x->f_midichan < 64) {
+      SETFLOAT(av+ac, x->f_midichan+1); ac++;
+    }
+    for (int chan = 0; chan < 64; chan++)
+      if (chan != x->f_midichan && ((1UL<<chan) & x->f_midichanmsk) != 0UL) {
+	SETFLOAT(av+ac, chan+1); ac++;
+      }
+    outlet_anything(out, s, ac, av);
+  } else {
+    t_channelmask oldmsk = x->f_midichanmsk;
+    // reset the default channel
     x->f_midichan = -1;
-  else if (argv->a_type == A_FLOAT)
-    // set MIDI channel (0 means omni, negative is "GM mode" which blocks
-    // channel 10)
-    x->f_midichan = argv->a_w.w_float-1;
+    // default to omni
+    x->f_midichanmsk = ALL_CHANNELS;
+    for (int i = 0; i < argc; i++) {
+      if (argv[i].a_type == A_FLOAT) {
+	// set MIDI channel (0 means omni, negative blocks that channel)
+	add_midichan(x, i, argv[i].a_w.w_float);
+      } else {
+	char buf[MAXPDSTRING];
+	atom_string(&argv[i], buf, MAXPDSTRING);
+	pd_error(x, "faustgen~: bad midi channel number '%s'", buf);
+      }
+    }
+    if (x->f_midichanmsk != oldmsk)
+      // prevent hanging notes after change
+      faust_ui_manager_all_notes_off(x->f_ui_manager);
+  }
 }
 
 
@@ -570,7 +616,7 @@ static void faustgen_tilde_anything(t_faustgen_tilde *x, t_symbol* s, int argc, 
 {
     if(x->f_dsp_instance)
     {
-        int msg = faust_ui_manager_get_midi(x->f_ui_manager, s, argc, argv, x->f_midichan);
+        int msg = faust_ui_manager_get_midi(x->f_ui_manager, s, argc, argv, x->f_midichanmsk);
         if(msg) {
             return;
         }
@@ -922,25 +968,24 @@ static void *faustgen_tilde_new(t_symbol* s, int argc, t_atom* argv)
         x->f_clock          = clock_new(x, (t_method)faustgen_tilde_autocompile_tick);
         x->f_midiout = false;
         x->f_midichan = -1;
+        x->f_midichanmsk = ALL_CHANNELS;
         x->f_unique_name = x->f_instance_name = x->f_midirecv = NULL;
         x->f_activesym = gensym("active");
         x->f_active = true;
         // parse the remaining creation arguments
         if (argc > 0 && argv) {
+	  int n_num = 0;
           while (argv++, --argc > 0) {
             if (argv->a_type == A_FLOAT) {
               // float value gives (1-based) MIDI channel, 0 means omni,
-              // negative means "GM mode" (see below)
-              x->f_midichan = argv->a_w.w_float-1;
+              // negative means to block that channel
+              add_midichan(x, n_num++, argv->a_w.w_float);
             } else if (argv->a_type == A_SYMBOL &&
                      argv->a_w.w_symbol &&
                      // check that it's not a (compiler) option
                      argv->a_w.w_symbol->s_name[0] != '-')  {
-              if (strcmp(argv->a_w.w_symbol->s_name, "midiout") == 0)
-                // turn on MIDI output
-                x->f_midiout = true;
-              else if (strncmp(argv->a_w.w_symbol->s_name, "midiout=",
-                               strlen("midiout=")) == 0) {
+              if (strncmp(argv->a_w.w_symbol->s_name, "midiout=",
+			  strlen("midiout=")) == 0) {
                 // midiout flag; this can be empty (turning on MIDI output),
                 // an integer (turning MIDI output off or on, depending on
                 // whether the value is zero or not), or a symbol to be used
@@ -953,13 +998,6 @@ static void *faustgen_tilde_new(t_symbol* s, int argc, t_atom* argv)
                   x->f_midiout = num != 0;
                 else
                   x->f_midirecv = gensym(arg);
-              } else if (strcmp(argv->a_w.w_symbol->s_name, "omni") == 0) {
-		// synonym for omni mode
-		x->f_midichan = -1;
-              } else if (strcmp(argv->a_w.w_symbol->s_name, "gm") == 0) {
-		// "GM" mode, like "omni" but blocks channel 10 (the drumkit
-		// channel in GM)
-		x->f_midichan = -10;
               } else {
                 // the instance name is used as an additional identifier of
                 // the dsp in the receivers (see below); the plan is to also

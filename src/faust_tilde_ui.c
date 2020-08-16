@@ -1147,7 +1147,15 @@ void faust_ui_manager_all_notes_off(t_faust_ui_manager *x)
   x->f_used = NULL;
 }
 
-int faust_ui_manager_get_midi(t_faust_ui_manager *x, t_symbol const *s, int argc, t_atom* argv, int midichan)
+static bool midichan_check(t_channelmask msk, int chan)
+{
+  if (chan >= 0 && chan < 64)
+    return ((1UL<<chan) & msk) != 0UL;
+  else
+    return false;
+}
+
+int faust_ui_manager_get_midi(t_faust_ui_manager *x, t_symbol const *s, int argc, t_atom* argv, t_channelmask midichanmsk)
 {
   int i;
   faust_ui_midi_init();
@@ -1179,10 +1187,8 @@ int faust_ui_manager_get_midi(t_faust_ui_manager *x, t_symbol const *s, int argc
 	// channels. Thus 0..15 will denote the channels of the first MIDI
 	// device, 16..31 the channels of the second one, etc.
 	chan--;
-	// match against the object's channel if any
-	if (midichan >= 0 && chan != midichan) return i;
-	// filter out the the GM drumkit channel in GM mode
-	if (midichan < -1 && chan == 9) return i;
+	// match against the object's channel mask
+	if (!midichan_check(midichanmsk, chan)) return i;
       } else
 	chan = -1;
     }
