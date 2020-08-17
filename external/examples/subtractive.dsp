@@ -20,16 +20,17 @@ with {
 };
 
 // control variables
-attack	= hslider("[1] attack", 0.01, 0, 1, 0.001);
-decay	= hslider("[2] decay", 0.3, 0, 1, 0.001);
-sustain = hslider("[3] sustain", 0.5, 0, 1, 0.01);
-release = hslider("[4] release", 0.2, 0, 1, 0.001);
 
-res	= hslider("[5] resonance (dB) [midi:ctrl 75]", 3, 0, 20, 0.1);
-cutoff	= hslider("[6] cutoff (harmonic) [midi:ctrl 74]", 6, 1, 20, 0.1);
+vol	= hslider("[1] vol [midi:ctrl 2]", 0.3, 0, 1, 0.01);
+pan	= hslider("[2] pan [midi:ctrl 10]", 0.5, 0, 1, 0.01);
 
-vol	= hslider("[7] vol [midi:ctrl 2]", 0.3, 0, 1, 0.01);
-pan	= hslider("[8] pan [midi:ctrl 10]", 0.5, 0, 1, 0.01);
+attack	= hslider("[3] attack", 0.01, 0, 1, 0.001);
+decay	= hslider("[4] decay", 0.3, 0, 1, 0.001);
+sustain = hslider("[5] sustain", 0.5, 0, 1, 0.01);
+release = hslider("[6] release", 0.2, 0, 1, 0.001);
+
+res	= hslider("[7] resonance (dB) [midi:ctrl 75]", 3, 0, 20, 0.1);
+cutoff	= hslider("[8] cutoff (harmonic) [midi:ctrl 74]", 6, 1, 20, 0.1);
 
 // voice controls
 freq(i)	= nentry("freq%i[voice:freq]", 440, 20, 20000, 1);

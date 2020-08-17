@@ -11,10 +11,16 @@ vol = hslider("/v:[1]/vol [midi:ctrl 2]", 0.3, 0, 1, 0.01);
 pan = hslider("/v:[1]/pan [midi:ctrl 10]", 0.5, 0, 1, 0.01);
 
 // ADSR envelop
-attack	= hslider("/v:[3]/[1] attack", 0.01, 0, 1, 0.001);
-decay	= hslider("/v:[3]/[2] decay", 0.3, 0, 1, 0.001);
-sustain = hslider("/v:[3]/[3] sustain", 0.5, 0, 1, 0.01);
-release = hslider("/v:[3]/[4] release", 0.2, 0, 1, 0.001);
+attack	= hslider("/v:[2]/[1] attack", 0.01, 0, 1, 0.001);
+decay	= hslider("/v:[2]/[2] decay", 0.3, 0, 1, 0.001);
+sustain = hslider("/v:[2]/[3] sustain", 0.5, 0, 1, 0.01);
+release = hslider("/v:[2]/[4] release", 0.2, 0, 1, 0.001);
+
+// modulation index
+modindex = hslider("/v:[3]/modulation index [midi:ctrl 1]", 0.5, 0, 1, 0.01);
+
+// pitch bend (2 semitones up and down, in cent increments)
+bend = hslider("/v:[4]/bend[midi:pitchbend]", 0, -2, 2, 0.01);
 
 // voice parameters
 freq(i)	= nentry("/freq%i[voice:freq]", 440, 20, 20000, 1);
@@ -40,9 +46,10 @@ with {
 
 // phase modulation synth (sine modulated by another sine)
 
-voice(i) = tblosc(1<<16, sin, freq(i), mod) * env * gain(i) with {
+voice(i) = tblosc(1<<16, sin, f, mod)*env*gain(i) with {
+  f = freq(i)*pow(2,bend/12);
   env = gate(i) : en.adsr(attack, decay, sustain, release);
-  mod = 2*ma.PI*tblosc(1<<16, sin, freq(i), 0)*env;
+  mod = 2*ma.PI*tblosc(1<<16, sin, f, 0)*env*modindex;
 };
 
 n = 8;

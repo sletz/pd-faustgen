@@ -1,4 +1,4 @@
-#N canvas 404 129 844 638 12;
+#N canvas 404 130 844 639 12;
 #N canvas 0 0 450 300 (subpatch) 0;
 #X array scope-l 1000 float 0 black black;
 #X array scope-r 1000 float 1 black black;
@@ -34,9 +34,9 @@
 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
 #X coords 0 1 999 -1 200 140 1;
 #X restore 25 23 graph;
-#X obj 464 345 tgl 15 1 empty empty empty 17 7 0 10 #fcfcfc #000000
+#X obj 464 365 tgl 15 1 empty empty empty 17 7 0 10 #fcfcfc #000000
 #000000 1 1;
-#X msg 464 368 \; pd dsp \$1;
+#X msg 464 388 \; pd dsp \$1;
 #N canvas 860 399 450 300 dac 0;
 #X obj 23 64 metro 100;
 #X obj 48 127 dac~;
@@ -116,12 +116,12 @@ in SMMF format.;
 #X connect 20 0 23 0;
 #X connect 21 0 23 0;
 #X connect 22 0 23 0;
-#X restore 323 442 pd midi-input;
-#X msg 463 448 compile;
-#X msg 463 424 defaults;
-#X obj 463 529 s faustgen~;
+#X restore 323 462 pd midi-input;
+#X msg 463 468 compile;
+#X msg 463 444 defaults;
+#X obj 463 549 s faustgen~;
 #X obj 26 413 print amp;
-#X msg 463 473 dump;
+#X msg 463 493 dump;
 #N canvas 0 0 450 300 amp 0;
 #X obj 10 30 hsl 128 15 -20 20 0 0 examples/amp-0/amp/bass examples/amp-0/amp/bass
 bass -2 -6 0 10 #fcfcfc #000000 #000000 6350 1;
@@ -153,7 +153,7 @@ empty 0 -6 0 10 #fcfcfc #000000 #000000;
 0 -6 0 10 #fcfcfc #000000 #000000 1 1;
 #X coords 0 -1 1 1 235 210 1 0 0;
 #X restore 592 334 pd amp;
-#X msg 463 500 print;
+#X msg 463 520 print;
 #X msg 23 470 tuning;
 #X msg 23 499 tuning default;
 #X msg 23 557 tuning 10.2647 -13.6863 3.42157 20.5294 -3.42158 13.6863
@@ -172,47 +172,51 @@ empty 0 -6 0 10 #fcfcfc #000000 #000000 0.5 256 0;
 vol -2 -6 0 10 #fcfcfc #000000 #000000 3810 1;
 #X obj 160 60 nbx 5 14 0 1 0 0 examples/organ-0/organ/vol examples/organ-0/organ/vol
 empty 0 -6 0 10 #fcfcfc #000000 #000000 0.3 256 0;
-#X obj 10 90 hsl 128 15 0 3 0 0 examples/organ-0/organ/amp1 examples/organ-0/organ/amp1
-amp1 -2 -6 0 10 #fcfcfc #000000 #000000 4233 1;
-#X obj 160 90 nbx 5 14 0 3 0 0 examples/organ-0/organ/amp1 examples/organ-0/organ/amp1
-empty 0 -6 0 10 #fcfcfc #000000 #000000 1 256 0;
-#X obj 10 120 hsl 128 15 0 3 0 0 examples/organ-0/organ/amp2 examples/organ-0/organ/amp2
-amp2 -2 -6 0 10 #fcfcfc #000000 #000000 2117 1;
-#X obj 160 120 nbx 5 14 0 3 0 0 examples/organ-0/organ/amp2 examples/organ-0/organ/amp2
-empty 0 -6 0 10 #fcfcfc #000000 #000000 0.5 256 0;
-#X obj 10 150 hsl 128 15 0 3 0 0 examples/organ-0/organ/amp3 examples/organ-0/organ/amp3
-amp3 -2 -6 0 10 #fcfcfc #000000 #000000 1411 1;
-#X obj 160 150 nbx 5 14 0 3 0 0 examples/organ-0/organ/amp3 examples/organ-0/organ/amp3
-empty 0 -6 0 10 #fcfcfc #000000 #000000 0.333333 256 0;
-#X obj 10 180 hsl 128 15 0 1 0 0 examples/organ-0/organ/attack examples/organ-0/organ/attack
+#X obj 10 90 hsl 128 15 0 1 0 0 examples/organ-0/organ/attack examples/organ-0/organ/attack
 attack -2 -6 0 10 #fcfcfc #000000 #000000 127 1;
-#X obj 160 180 nbx 5 14 0 1 0 0 examples/organ-0/organ/attack examples/organ-0/organ/attack
+#X obj 160 90 nbx 5 14 0 1 0 0 examples/organ-0/organ/attack examples/organ-0/organ/attack
 empty 0 -6 0 10 #fcfcfc #000000 #000000 0.01 256 0;
-#X obj 10 210 hsl 128 15 0 1 0 0 examples/organ-0/organ/decay examples/organ-0/organ/decay
+#X obj 10 120 hsl 128 15 0 1 0 0 examples/organ-0/organ/decay examples/organ-0/organ/decay
 decay -2 -6 0 10 #fcfcfc #000000 #000000 3810 1;
-#X obj 160 210 nbx 5 14 0 1 0 0 examples/organ-0/organ/decay examples/organ-0/organ/decay
+#X obj 160 120 nbx 5 14 0 1 0 0 examples/organ-0/organ/decay examples/organ-0/organ/decay
 empty 0 -6 0 10 #fcfcfc #000000 #000000 0.3 256 0;
-#X obj 10 240 hsl 128 15 0 1 0 0 examples/organ-0/organ/sustain examples/organ-0/organ/sustain
+#X obj 10 150 hsl 128 15 0 1 0 0 examples/organ-0/organ/sustain examples/organ-0/organ/sustain
 sustain -2 -6 0 10 #fcfcfc #000000 #000000 6350 1;
-#X obj 160 240 nbx 5 14 0 1 0 0 examples/organ-0/organ/sustain examples/organ-0/organ/sustain
+#X obj 160 150 nbx 5 14 0 1 0 0 examples/organ-0/organ/sustain examples/organ-0/organ/sustain
 empty 0 -6 0 10 #fcfcfc #000000 #000000 0.5 256 0;
-#X obj 10 270 hsl 128 15 0 1 0 0 examples/organ-0/organ/release examples/organ-0/organ/release
+#X obj 10 180 hsl 128 15 0 1 0 0 examples/organ-0/organ/release examples/organ-0/organ/release
 release -2 -6 0 10 #fcfcfc #000000 #000000 2540 1;
-#X obj 160 270 nbx 5 14 0 1 0 0 examples/organ-0/organ/release examples/organ-0/organ/release
+#X obj 160 180 nbx 5 14 0 1 0 0 examples/organ-0/organ/release examples/organ-0/organ/release
 empty 0 -6 0 10 #fcfcfc #000000 #000000 0.2 256 0;
+#X obj 10 210 hsl 128 15 0 3 0 0 examples/organ-0/organ/amp1 examples/organ-0/organ/amp1
+amp1 -2 -6 0 10 #fcfcfc #000000 #000000 4233 1;
+#X obj 160 210 nbx 5 14 0 3 0 0 examples/organ-0/organ/amp1 examples/organ-0/organ/amp1
+empty 0 -6 0 10 #fcfcfc #000000 #000000 1 256 0;
+#X obj 10 240 hsl 128 15 0 3 0 0 examples/organ-0/organ/amp2 examples/organ-0/organ/amp2
+amp2 -2 -6 0 10 #fcfcfc #000000 #000000 2117 1;
+#X obj 160 240 nbx 5 14 0 3 0 0 examples/organ-0/organ/amp2 examples/organ-0/organ/amp2
+empty 0 -6 0 10 #fcfcfc #000000 #000000 0.5 256 0;
+#X obj 10 270 hsl 128 15 0 3 0 0 examples/organ-0/organ/amp3 examples/organ-0/organ/amp3
+amp3 -2 -6 0 10 #fcfcfc #000000 #000000 1411 1;
+#X obj 160 270 nbx 5 14 0 3 0 0 examples/organ-0/organ/amp3 examples/organ-0/organ/amp3
+empty 0 -6 0 10 #fcfcfc #000000 #000000 0.333333 256 0;
+#X obj 10 300 hsl 128 15 -2 2 0 0 examples/organ-0/organ/bend examples/organ-0/organ/bend
+bend -2 -6 0 10 #fcfcfc #000000 #000000 6350 1;
+#X obj 160 300 nbx 5 14 -2 2 0 0 examples/organ-0/organ/bend examples/organ-0/organ/bend
+empty 0 -6 0 10 #fcfcfc #000000 #000000 0 256 0;
 #X obj 177 3 bng 15 250 50 1 examples/organ-0/panic examples/organ-0/panic
 empty 0 -6 0 10 #e0e0e0 #000000 #000000;
 #X obj 197 3 bng 15 250 50 1 examples/organ-0/init examples/organ-0/init
 empty 0 -6 0 10 #fcfcfc #000000 #000000;
 #X obj 217 3 tgl 15 1 examples/organ-0/active examples/organ-0/active
 empty 0 -6 0 10 #fcfcfc #000000 #000000 1 1;
-#X coords 0 -1 1 1 235 300 1 0 0;
+#X coords 0 -1 1 1 235 330 1 0 0;
 #X restore 324 18 pd synth;
 #X obj 23 602 s synth;
 #X obj 26 229 print synth;
-#X obj 324 368 ctlin 123;
-#X text 324 344 all notes off;
-#X obj 323 471 s faustgen~;
+#X obj 324 388 ctlin 123;
+#X text 324 364 all notes off;
+#X obj 323 491 s faustgen~;
 #N canvas 0 0 450 300 fx1 0;
 #X obj 10 30 hsl 128 15 0 0.2 0 0 examples/chorus-0/chorus/delay examples/chorus-0/chorus/delay
 delay -2 -6 0 10 #fcfcfc #000000 #000000 1587 1;
@@ -265,7 +269,7 @@ empty 0 -6 0 10 #fcfcfc #000000 #000000 1 1;
 #X restore 592 176 pd fx2;
 #X obj 26 293 print fx1;
 #X obj 26 353 print fx2;
-#X msg 324 397 \; synth bang;
+#X msg 324 417 \; synth bang;
 #X obj 26 200 faustgen~ examples/organ synth -10;
 #X obj 26 264 faustgen~ examples/chorus fx1, f 34;
 #X obj 26 324 faustgen~ examples/freeverb fx2, f 34;

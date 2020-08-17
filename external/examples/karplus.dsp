@@ -13,7 +13,8 @@ pan	= hslider("/v:[1]/pan [midi:ctrl 10]", 0.5, 0, 1, 0.01);
 // modulation (excitator and resonator parameters)
 size	= hslider("/v:[2]/samples", 512, 1, 1024, 1); // #samples
 dtime	= hslider("/v:[2]/decay time", 4, 0, 10, 0.01); // -60db decay time
-bend	= hslider("/v:[3]/pitch bend[midi:pitchbend]", 0, -2, 2, 0.01); // pitch bend/semitones
+// pitch bend (2 semitones up and down, in cent increments)
+bend	= hslider("/v:[3]/bend[midi:pitchbend]", 0, -2, 2, 0.01);
 
 // voice parameters
 freq(i)	= nentry("/freq%i[voice:freq]", 440, 20, 20000, 1);
