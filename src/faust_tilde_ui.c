@@ -940,6 +940,12 @@ char faust_ui_manager_get_value(t_faust_ui_manager const *x, t_symbol const *nam
     return 1;
 }
 
+static double round_near(double x, double x0, double min, double max)
+{
+  if (fabs(x-x0) < FLT_EPSILON*(max - min)) x = x0;
+  return x;
+}
+
 static FAUSTFLOAT translate(int val, int min, int max, int p_type,
 			    FAUSTFLOAT p_min, FAUSTFLOAT p_max,
 			    FAUSTFLOAT p_step)
@@ -956,19 +962,27 @@ static FAUSTFLOAT translate(int val, int min, int max, int p_type,
   if (p_type == FAUST_UI_TYPE_BUTTON || p_type == FAUST_UI_TYPE_TOGGLE) {
     return val>min?1.0:0.0;
   } else {
+    // We go to some lengths here to avoid rounding issues around the min, max
+    // and center values.
     double v = (double)(val-min)/(double)(max-min);
     if (p_min > p_max) {
       FAUSTFLOAT temp = p_min;
       p_min = p_max; p_max = temp; p_step = -p_step;
     }
-    if (p_step != 0.0) {
-      v *= (p_max - p_min);
-      v = p_step*round(v/p_step);
-      return p_min + v;
-    } else {
-      // no rounding
-      return p_min + v * (p_max - p_min);
-    }
+    v *= (p_max - p_min);
+    // round near center value
+    v = round_near(v, (p_max-p_min)/2.0, p_min, p_max);
+    // round near min and max
+    v += p_min;
+    v = round_near(v, p_min, p_min, p_max);
+    v = round_near(v, p_max, p_min, p_max);
+    // Round to the nearest step. This needs to be done last, to avoid
+    // rounding issues near the center value.
+    if (p_step > FLT_EPSILON) v = p_step*round(v/p_step);
+    // clamp the result, to be on the safe side
+    if (v < p_min) v = p_min;
+    if (v > p_max) v = p_max;
+    return v;
   }
 }
 
