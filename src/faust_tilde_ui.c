@@ -184,6 +184,7 @@ typedef struct _faust_ui_manager
     t_symbol**  f_names;
     size_t      f_nnames;
     MetaGlue    f_meta_glue;
+    bool        f_midi, f_osc;
     int         f_nvoices;
     t_faust_voice *f_voices, *f_free, *f_used;
     t_faust_key *f_keys;
@@ -324,6 +325,7 @@ static void faust_ui_manager_prepare_changes(t_faust_ui_manager *x)
         c = c->p_next;
     }
     x->f_nuis = 0;
+    x->f_midi = x->f_osc = true;
     faust_free_voices(x);
     last_meta.n_midi = 0;
     last_meta.voice = VOICE_NONE;
@@ -819,6 +821,44 @@ static void faust_ui_manager_meta_declare(t_faust_ui_manager* x, const char* key
       pd_error(x->f_owner, "faustgen~: warning: nvoices declaration not implemented");
     }
 #endif
+    if (strcmp(key, "options") == 0 && value) {
+      // Currently we recognize the standard Faust options 'midi' and 'osc',
+      // which are both enabled by default, but you can disable them by
+      // specifying an 'off' value.
+      const char *s = value;
+      char k[128], v[128];
+      int n;
+      while (isspace(*s)) ++s;
+      while (sscanf(s, "[%127[^]:]:%127[^]]]%n", k, v, &n) == 2) {
+	if (strcmp(k, "midi") == 0) {
+	  if (strcmp(v, "on") == 0) {
+	    x->f_midi = true;
+	    logpost(x->f_owner, 3, "             [%s:%s]", k, v);
+	  } else if (strcmp(v, "off") == 0) {
+	    x->f_midi = false;
+	    logpost(x->f_owner, 3, "             [%s:%s]", k, v);
+	  } else {
+	    pd_error(x->f_owner, "faustgen~: error parsing option %s:%s", k, v);
+	  }
+	} else if (strcmp(k, "osc") == 0) {
+	  if (strcmp(v, "on") == 0) {
+	    x->f_osc = true;
+	    logpost(x->f_owner, 3, "             [%s:%s]", k, v);
+	  } else if (strcmp(v, "off") == 0) {
+	    x->f_osc = false;
+	    logpost(x->f_owner, 3, "             [%s:%s]", k, v);
+	  } else {
+	    pd_error(x->f_owner, "faustgen~: error parsing option %s:%s", k, v);
+	  }
+	}
+	s += n;
+	while (isspace(*s)) ++s;
+      }
+      while (isspace(*s)) ++s;
+      if (*s) {
+	pd_error(x->f_owner, "faustgen~: error parsing option %s", s);
+      }
+    }
 }
 
 
@@ -853,6 +893,7 @@ t_faust_ui_manager* faust_ui_manager_new(t_object* owner)
         ui_manager->f_nuis      = 0;
         ui_manager->f_names     = NULL;
         ui_manager->f_nnames    = 0;
+        ui_manager->f_midi = ui_manager->f_osc = true;
         ui_manager->f_nvoices   = 0;
         ui_manager->f_keys = NULL;
         ui_manager->f_voices = ui_manager->f_free = ui_manager->f_used = NULL;
@@ -1196,6 +1237,9 @@ int faust_ui_manager_get_midi(t_faust_ui_manager *x, t_symbol const *s, int argc
       if (argv[1].a_type != A_FLOAT) return MIDI_NONE;
       num = (int)argv[1].a_w.w_float;
     }
+    // Now that we parsed the MIDI message, check whether MIDI processing is
+    // actually on. If it is off, we just silently ignore it.
+    if (!x->f_midi) return i;
     if (argc > midi_argc[i] && argv[midi_argc[i]].a_type == A_FLOAT) {
       // channel argument
       chan = (int)argv[midi_argc[i]].a_w.w_float;
@@ -1477,7 +1521,7 @@ void faust_ui_manager_midiout(t_faust_ui_manager const *x, int midichan,
 			      t_symbol *midirecv, t_outlet *out)
 {
   faust_ui_midi_init();
-  if (!midirecv && !out) return; // nothing to do
+  if (!x->f_midi || (!midirecv && !out)) return; // nothing to do
   // Run through all the passive UI elements with MIDI bindings.
   t_faust_ui *c = x->f_uis;
   while (c) {
