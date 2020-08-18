@@ -132,7 +132,7 @@ static void faustgen_tilde_compile(t_faustgen_tilde *x)
         {
             const int ninputs = getNumInputsCDSPInstance(instance);
             const int noutputs = getNumOutputsCDSPInstance(instance);
-            logpost(x, 3, "\nfaustgen~: compilation from source '%s' succeeded", x->f_dsp_name->s_name);
+            logpost(x, 3, "faustgen~ %s (%d/%d)", x->f_dsp_name->s_name, ninputs, noutputs);
             faust_ui_manager_init(x->f_ui_manager, instance);
             faust_io_manager_init(x->f_io_manager, ninputs, noutputs);
             
@@ -276,9 +276,9 @@ static void faustgen_tilde_print(t_faustgen_tilde *x)
     if(x->f_dsp_factory)
     {
         post("faustgen~: %s", faust_opt_manager_get_full_path(x->f_opt_manager, x->f_dsp_name->s_name));
-        post("             unique name: %s", x->f_unique_name->s_name);
+        post("unique name: %s", x->f_unique_name->s_name);
         if (x->f_instance_name)
-          post("             instance name: %s", x->f_instance_name->s_name);
+          post("instance name: %s", x->f_instance_name->s_name);
         faust_io_manager_print(x->f_io_manager, 0);
         if(x->f_dsp_factory)
         {
@@ -288,7 +288,7 @@ static void faustgen_tilde_print(t_faustgen_tilde *x)
             {
                 if(strnlen(text, 1) > 0)
                 {
-                    post("             target: %s", text);
+                    post("target: %s", text);
                 }
                 free(text);
             }
@@ -297,7 +297,7 @@ static void faustgen_tilde_print(t_faustgen_tilde *x)
             {
                 if(strnlen(text, 1) > 0)
                 {
-                    post("             options: %s", text);
+                    post("options: %s", text);
                 }
                 free(text);
             }
@@ -1087,16 +1087,20 @@ void faustgen_tilde_setup(void)
         //class_addmethod(c,      (t_method)faustgen_tilde_read,             gensym("read"),           A_SYMBOL);
         class_addbang(c, (t_method)faustgen_tilde_allnotesoff);
         class_addanything(c, (t_method)faustgen_tilde_anything);
-
+#if 0
         logpost(NULL, 3, "Faust website: faust.grame.fr");
         logpost(NULL, 3, "Faust development: GRAME");
-        
-        logpost(NULL, 3, "faustgen~ version: %s", FAUSTGEN_VERSION_STR);
-        logpost(NULL, 3, "faustgen~ compiler version: %s", getCLibFaustVersion());
+#endif
+        logpost(NULL, 3, "faustgen~ version: %s, https://github.com/agraef/pd-faustgen", FAUSTGEN_VERSION_STR);
+        logpost(NULL, 3, "Copyright (c) 2018 Pierre Guillot, (c) 2020 Albert Gräf");
+        logpost(NULL, 3, "Faust version: %s, https://faust.grame.fr", getCLibFaustVersion());
+        logpost(NULL, 3, "Copyright (c) 2002-2020 GRAME et al");
         logpost(NULL, 3, "faustgen~ default include directory: %s", class_gethelpdir(c));
+#if 0
         logpost(NULL, 3, "faustgen~ institutions: CICM - ANR MUSICOLL");
         logpost(NULL, 3, "faustgen~ external author: Pierre Guillot");
         logpost(NULL, 3, "faustgen~ website: github.com/CICM/pd-faustgen");
+#endif
     }
     
     faustgen_tilde_class = c;

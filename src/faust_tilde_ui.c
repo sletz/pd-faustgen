@@ -243,7 +243,7 @@ static void faust_new_voices(t_faust_ui_manager *x)
       pd_error(x->f_owner, "faustgen~: memory allocation failed - voice controls");
       return;
     }
-    logpost(x->f_owner, 3, "             ** polyphonic dsp with %d voices", n_voices);
+    logpost(x->f_owner, 3, "             [%d voice polyphony]", n_voices);
     // Run through the voice controls again and populate the f_voices table.
     n_freq = 0; n_gain = 0; n_gate = 0;
     c = x->f_uis;
@@ -813,10 +813,12 @@ static void faust_ui_manager_ui_declare(t_faust_ui_manager* x, FAUSTFLOAT* zone,
 
 static void faust_ui_manager_meta_declare(t_faust_ui_manager* x, const char* key, const char* value)
 {
+#if 0
     logpost(x->f_owner, 3, "             %s: %s", key, value);
     if (strcmp(key, "nvoices") == 0) {
       pd_error(x->f_owner, "faustgen~: warning: nvoices declaration not implemented");
     }
+#endif
 }
 
 
@@ -1333,7 +1335,7 @@ void faust_ui_manager_print(t_faust_ui_manager const *x, char const log)
     {
       if (!c->p_voice) {
         const t_symbol *name = c->p_name, *lname = c->p_longname;
-        logpost(x->f_owner, 2+log, "             parameter: %s [path:%s - type:%s - init:%g - min:%g - max:%g - current:%g]",
+        logpost(x->f_owner, 2+log, "parameter: %s [path:%s - type:%s - init:%g - min:%g - max:%g - current:%g]",
                 name->s_name, lname->s_name,
                 faust_ui_manager_get_parameter_char(c->p_type),
                 c->p_default, c->p_min, c->p_max, *c->p_zone);
@@ -1341,18 +1343,18 @@ void faust_ui_manager_print(t_faust_ui_manager const *x, char const log)
           for (size_t i = 0; i < c->p_nmidi; i++) {
             if (c->p_midi[i].chan >= 0) {
               if (midi_argc[c->p_midi[i].msg] > 1)
-                logpost(x->f_owner, 3, "             parameter: %s [midi:%s %d %d]", name->s_name,
+                logpost(x->f_owner, 3, "parameter: %s [midi:%s %d %d]", name->s_name,
                         midi_key[c->p_midi[i].msg], c->p_midi[i].num,
                         c->p_midi[i].chan);
               else
-                logpost(x->f_owner, 3, "             parameter: %s [midi:%s %d]", name->s_name,
+                logpost(x->f_owner, 3, "parameter: %s [midi:%s %d]", name->s_name,
                         midi_key[c->p_midi[i].msg], c->p_midi[i].chan);
             } else {
               if (midi_argc[c->p_midi[i].msg] > 1)
-                logpost(x->f_owner, 3, "             parameter: %s [midi:%s %d]", name->s_name,
+                logpost(x->f_owner, 3, "parameter: %s [midi:%s %d]", name->s_name,
                         midi_key[c->p_midi[i].msg], c->p_midi[i].num);
               else
-                logpost(x->f_owner, 3, "             parameter: %s [midi:%s]", name->s_name,
+                logpost(x->f_owner, 3, "parameter: %s [midi:%s]", name->s_name,
                         midi_key[c->p_midi[i].msg]);
             }
           }

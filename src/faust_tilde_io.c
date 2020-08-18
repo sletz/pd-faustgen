@@ -290,6 +290,5 @@ t_sample** faust_io_manager_get_output_signals(t_faust_io_manager *x)
 
 void faust_io_manager_print(t_faust_io_manager const* x, char const log)
 {
-    logpost(x->f_owner, 2+log, "             number of inputs: %i", (int)faust_io_manager_get_ninputs(x));
-    logpost(x->f_owner, 2+log, "             number of outputs: %i", (int)faust_io_manager_get_noutputs(x));
+    logpost(x->f_owner, 2+log, "%i inputs, %i outputs", (int)faust_io_manager_get_ninputs(x), (int)faust_io_manager_get_noutputs(x));
 }
