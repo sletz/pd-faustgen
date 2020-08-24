@@ -68,6 +68,8 @@ typedef struct _faustgen_tilde
     int                 f_midichan;
     t_channelmask       f_midichanmsk;
     t_symbol*           f_midirecv;
+    bool                f_oscout;
+    t_symbol*           f_oscrecv;
     t_symbol*           f_instance_name;
     t_symbol*           f_unique_name;
     double              f_next_tick;
@@ -545,6 +547,19 @@ static void faustgen_tilde_gui(t_faustgen_tilde *x)
   }
 }
 
+static void faustgen_tilde_oscout(t_faustgen_tilde *x, t_symbol* s, int argc, t_atom* argv)
+{
+  if (argc <= 0)
+    // disable OSC receiver
+    x->f_oscrecv = NULL;
+  else if (argv->a_type == A_FLOAT)
+    // toggle OSC output via control outlet
+    x->f_oscout = argv->a_w.w_float != 0;
+  else if (argv->a_type == A_SYMBOL)
+    // enable OSC receiver
+    x->f_oscrecv = argv->a_w.w_symbol;
+}
+
 static void faustgen_tilde_midiout(t_faustgen_tilde *x, t_symbol* s, int argc, t_atom* argv)
 {
   if (argc <= 0)
@@ -623,10 +638,12 @@ static void faustgen_tilde_anything(t_faustgen_tilde *x, t_symbol* s, int argc, 
 {
     if(x->f_dsp_instance)
     {
+        const t_symbol *msg_s = faust_ui_manager_get_osc(x->f_ui_manager, s, argc, argv);
+        if(msg_s) return;
+
         int msg = faust_ui_manager_get_midi(x->f_ui_manager, s, argc, argv, x->f_midichanmsk);
-        if(msg) {
-            return;
-        }
+        if(msg) return;
+
         if(!argc)
         {
             t_float value;
@@ -748,6 +765,10 @@ static t_int *faustgen_tilde_perform_single(t_int *w)
       t_outlet *out = x->f_midiout?faust_io_manager_get_extra_output(x->f_io_manager):NULL;
       faust_ui_manager_midiout(x->f_ui_manager, x->f_midichan, x->f_midirecv, out);
     }
+    if (x->f_oscout || x->f_oscrecv) {
+      t_outlet *out = x->f_oscout?faust_io_manager_get_extra_output(x->f_io_manager):NULL;
+      faust_ui_manager_oscout(x->f_ui_manager, x->f_oscrecv, out);
+    }
     if (clock_getsystime() >= x->f_next_tick) {
       if (x->f_instance_name && x->f_instance_name->s_thing)
 	faust_ui_manager_gui_update(x->f_ui_manager);
@@ -785,6 +806,10 @@ static t_int *faustgen_tilde_perform_double(t_int *w)
     if (x->f_midiout || x->f_midirecv) {
       t_outlet *out = x->f_midiout?faust_io_manager_get_extra_output(x->f_io_manager):NULL;
       faust_ui_manager_midiout(x->f_ui_manager, x->f_midichan, x->f_midirecv, out);
+    }
+    if (x->f_oscout || x->f_oscrecv) {
+      t_outlet *out = x->f_oscout?faust_io_manager_get_extra_output(x->f_io_manager):NULL;
+      faust_ui_manager_oscout(x->f_ui_manager, x->f_oscrecv, out);
     }
     if (clock_getsystime() >= x->f_next_tick) {
       if (x->f_instance_name && x->f_instance_name->s_thing)
@@ -973,10 +998,11 @@ static void *faustgen_tilde_new(t_symbol* s, int argc, t_atom* argv)
         x->f_opt_manager    = faust_opt_manager_new((t_object *)x, canvas_getcurrent());
         x->f_dsp_name       = argc ? atom_getsymbolarg(0, argc, argv) : gensym(default_file);
         x->f_clock          = clock_new(x, (t_method)faustgen_tilde_autocompile_tick);
-        x->f_midiout = false;
+        x->f_midiout = x->f_oscout = false;
         x->f_midichan = -1;
         x->f_midichanmsk = ALL_CHANNELS;
-        x->f_unique_name = x->f_instance_name = x->f_midirecv = NULL;
+	x->f_midirecv = x->f_oscrecv = NULL;
+        x->f_unique_name = x->f_instance_name = NULL;
         x->f_activesym = gensym("active");
         x->f_active = true;
         // parse the remaining creation arguments
@@ -1005,6 +1031,20 @@ static void *faustgen_tilde_new(t_symbol* s, int argc, t_atom* argv)
                   x->f_midiout = num != 0;
                 else
                   x->f_midirecv = gensym(arg);
+              } else if (strncmp(argv->a_w.w_symbol->s_name, "oscout=",
+				 strlen("oscout=")) == 0) {
+                // oscout flag; this can be empty (turning on OSC output),
+                // an integer (turning OSC output off or on, depending on
+                // whether the value is zero or not), or a symbol to be used
+                // as a receiver for outgoing OSC messages
+                const char *arg = argv->a_w.w_symbol->s_name+strlen("oscout=");
+                unsigned num;
+                if (!*arg)
+                  x->f_oscout = true;
+                else if (sscanf(arg, "%u", &num) == 1)
+                  x->f_oscout = num != 0;
+                else
+                  x->f_oscrecv = gensym(arg);
               } else {
                 // the instance name is used as an additional identifier of
                 // the dsp in the receivers (see below); the plan is to also
@@ -1076,6 +1116,7 @@ void faustgen_tilde_setup(void)
         class_addmethod(c,  (t_method)faustgen_tilde_tuning,            gensym("tuning"),           A_GIMME, 0);
         class_addmethod(c,  (t_method)faustgen_tilde_defaults,          gensym("defaults"),         A_NULL, 0);
         class_addmethod(c,  (t_method)faustgen_tilde_gui,               gensym("gui"),              A_NULL, 0);
+        class_addmethod(c,  (t_method)faustgen_tilde_oscout,            gensym("oscout"),           A_GIMME, 0);
         class_addmethod(c,  (t_method)faustgen_tilde_midiout,           gensym("midiout"),          A_GIMME, 0);
         class_addmethod(c,  (t_method)faustgen_tilde_midichan,          gensym("midichan"),         A_GIMME, 0);
 #if 0

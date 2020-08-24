@@ -32,6 +32,7 @@ char faust_ui_manager_set_value(t_faust_ui_manager *x, t_symbol const *name, t_f
 char faust_ui_manager_get_value(t_faust_ui_manager const *x, t_symbol const *name, t_float* f);
 
 int faust_ui_manager_get_midi(t_faust_ui_manager *x, t_symbol const *s, int argc, t_atom* argv, t_channelmask midichanmsk);
+const t_symbol *faust_ui_manager_get_osc(t_faust_ui_manager *x, t_symbol const *s, int argc, t_atom* argv);
 
 void faust_ui_manager_all_notes_off(t_faust_ui_manager *x);
 
@@ -51,6 +52,8 @@ void faust_ui_manager_clear_tuning(t_faust_ui_manager *x);
 
 void faust_ui_manager_midiout(t_faust_ui_manager const *x, int midichan,
 			      t_symbol *midirecv, t_outlet *out);
+void faust_ui_manager_oscout(t_faust_ui_manager const *x,
+			     t_symbol *oscrecv, t_outlet *out);
 
 void faust_ui_manager_gui_update(t_faust_ui_manager const *x);
 

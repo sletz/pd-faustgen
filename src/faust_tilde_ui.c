@@ -84,17 +84,26 @@ typedef struct {
   int val;  // last output value (passive controls only)
 } t_faust_midi_ui;
 
+typedef struct {
+  t_symbol *msg; // message selector
+  double a, b;   // target range (both zero if none)
+  int val;       // last output value (passive controls only)
+} t_faust_osc_ui;
+
 // Temporary storage for ui meta data. The ui meta callback is always invoked
 // before the callback which creates the ui element itself, so we need to keep
 // the meta data somewhere until it can be processed. This is only used for
-// midi data at present, but we might use it for other kinds of UI-related
-// meta data in the future, such as the style of UI elements.
+// midi and osc data at present, but we might use it for other kinds of
+// UI-related meta data in the future, such as the style of UI elements.
 #define N_MIDI_UI 256
+#define N_OSC_UI 256
 static struct {
   FAUSTFLOAT* zone;
   int voice;
   size_t n_midi;
   t_faust_midi_ui midi[N_MIDI_UI];
+  size_t n_osc;
+  t_faust_osc_ui osc[N_OSC_UI];
 } last_meta;
 
 // A simple proxy object to receive parameter updates from the GUI.
@@ -160,6 +169,8 @@ typedef struct _faust_ui
     int                 p_voice;
     size_t              p_nmidi;
     t_faust_midi_ui*    p_midi;
+    size_t              p_nosc;
+    t_faust_osc_ui*     p_osc;
     struct _faust_ui*   p_next;
 }t_faust_ui;
 
@@ -283,6 +294,8 @@ static void faust_ui_free(t_faust_ui *c)
 {
   if (c->p_midi)
     freebytes(c->p_midi, c->p_nmidi*sizeof(t_faust_midi_ui));
+  if (c->p_osc)
+    freebytes(c->p_osc, c->p_nosc*sizeof(t_faust_osc_ui));
   if (c->p_uirecv)
     faust_ui_receive_free(c->p_uirecv);
 }
@@ -329,6 +342,7 @@ static void faust_ui_manager_prepare_changes(t_faust_ui_manager *x)
     faust_free_voices(x);
     last_meta.n_midi = 0;
     last_meta.voice = VOICE_NONE;
+    last_meta.n_osc = 0;
 }
 
 static int cmpui(const void *p1, const void *p2)
@@ -490,6 +504,8 @@ static t_symbol* faust_ui_manager_get_name(t_faust_ui_manager *x, const char* la
 
 static int midi_defaultval(FAUSTFLOAT z, FAUSTFLOAT p_min, FAUSTFLOAT p_max,
 			   int p_type, int msg);
+static int osc_defaultval(FAUSTFLOAT z, FAUSTFLOAT p_min, FAUSTFLOAT p_max,
+			  int p_type, double a, double b);
 
 static void faust_ui_manager_add_param(t_faust_ui_manager *x, const char* label, int const type, FAUSTFLOAT* zone,
                                         FAUSTFLOAT init, FAUSTFLOAT min, FAUSTFLOAT max, FAUSTFLOAT step)
@@ -530,6 +546,8 @@ static void faust_ui_manager_add_param(t_faust_ui_manager *x, const char* label,
     c->p_saved     = saved;
     c->p_kept      = 1;
     c->p_index     = x->f_nuis++;
+    c->p_osc       = NULL;
+    c->p_nosc      = 0;
     c->p_midi      = NULL;
     c->p_nmidi     = 0;
     c->p_voice     = VOICE_NONE;
@@ -578,8 +596,30 @@ static void faust_ui_manager_add_param(t_faust_ui_manager *x, const char* label,
 	  pd_error(x->f_owner, "faustgen~: memory allocation failed - ui midi");
 	}
       }
+      if (last_meta.n_osc) {
+	c->p_osc = getbytes(last_meta.n_osc*sizeof(t_faust_osc_ui));
+	if (c->p_osc) {
+	  c->p_nosc = last_meta.n_osc;
+	  for (size_t i = 0; i < last_meta.n_osc; i++) {
+	    if (last_meta.osc[i].a != 0.0 || last_meta.osc[i].a != 1.0)
+	      logpost(x->f_owner, 3, "             %s: osc:%s %g %g", name->s_name,
+		      last_meta.osc[i].msg->s_name, last_meta.osc[i].a, last_meta.osc[i].b);
+	    else
+	      logpost(x->f_owner, 3, "             %s: osc:%s", name->s_name,
+		      last_meta.osc[i].msg->s_name);
+	    c->p_osc[i].msg = last_meta.osc[i].msg;
+	    c->p_osc[i].a   = last_meta.osc[i].a;
+	    c->p_osc[i].b   = last_meta.osc[i].b;
+	    c->p_osc[i].val = osc_defaultval(init, min, max, type,
+					     c->p_osc[i].a,
+					     c->p_osc[i].b);
+	  }
+	} else {
+	  pd_error(x->f_owner, "faustgen~: memory allocation failed - ui osc");
+	}
+      }
     }
-    last_meta.n_midi = 0;
+    last_meta.n_osc = last_meta.n_midi = 0;
     last_meta.voice = VOICE_NONE;
 }
 
@@ -806,6 +846,26 @@ static void faust_ui_manager_ui_declare(t_faust_ui_manager* x, FAUSTFLOAT* zone,
 	last_meta.midi[i].val = -1;
 	last_meta.n_midi++;
       }
+    } else if (strcmp(key, "osc") == 0) {
+      char s[1024];
+      double a, b;
+      size_t i = last_meta.n_osc;
+      // We only support up to N_OSC_UI different entries per element.
+      if (i >= N_OSC_UI) return;
+      if (sscanf(value, "%1023s %lg %lg", s, &a, &b) == 3) {
+	last_meta.zone = zone;
+	last_meta.osc[i].msg = gensym(s);
+	last_meta.osc[i].a = a;
+	last_meta.osc[i].b = b;
+	last_meta.n_osc++;
+      } else if (sscanf(value, "%1023s", s) == 1) {
+	last_meta.zone = zone;
+	last_meta.osc[i].msg = gensym(s);
+	// range defaults to 0.0 - 1.0 (the default OSC range)
+	last_meta.osc[i].a = 0.0;
+	last_meta.osc[i].b = 1.0;
+	last_meta.n_osc++;
+      }
     }
   }
 }
@@ -989,9 +1049,9 @@ static double round_near(double x, double x0, double min, double max)
   return x;
 }
 
-static FAUSTFLOAT translate(int val, int min, int max, int p_type,
-			    FAUSTFLOAT p_min, FAUSTFLOAT p_max,
-			    FAUSTFLOAT p_step)
+static FAUSTFLOAT translate_from_midi(int val, int min, int max, int p_type,
+				      FAUSTFLOAT p_min, FAUSTFLOAT p_max,
+				      FAUSTFLOAT p_step)
 {
   // clamp val in the prescribed range
   if (val < min) val = min;
@@ -1281,12 +1341,14 @@ int faust_ui_manager_get_midi(t_faust_ui_manager *x, t_symbol const *s, int argc
 	  bool log = true;
 	  switch (i) {
 	  case MIDI_START:
-	    *c->p_zone = translate(1, 0, 1,
-				   c->p_type, c->p_min, c->p_max, c->p_step);
+	    *c->p_zone =
+	      translate_from_midi(1, 0, 1,
+				  c->p_type, c->p_min, c->p_max, c->p_step);
 	    break;
 	  case MIDI_STOP:
-	    *c->p_zone = translate(0, 0, 1,
-				   c->p_type, c->p_min, c->p_max, c->p_step);
+	    *c->p_zone =
+	      translate_from_midi(0, 0, 1,
+				  c->p_type, c->p_min, c->p_max, c->p_step);
 	    break;
 	  case MIDI_CLOCK:
 	    // square signal which toggles at each clock
@@ -1295,22 +1357,26 @@ int faust_ui_manager_get_midi(t_faust_ui_manager *x, t_symbol const *s, int argc
 	      val = *c->p_zone == 0.0;
 	    else
 	      val = *c->p_zone == c->p_min;
-	    *c->p_zone = translate(val, 0, 1,
-				   c->p_type, c->p_min, c->p_max, c->p_step);
+	    *c->p_zone =
+	      translate_from_midi(val, 0, 1,
+				  c->p_type, c->p_min, c->p_max, c->p_step);
 	    break;
 	  case MIDI_PITCHWHEEL:
-	    *c->p_zone = translate(val, 0, 16384,
-				   c->p_type, c->p_min, c->p_max, c->p_step);
+	    *c->p_zone =
+	      translate_from_midi(val, 0, 16384,
+				  c->p_type, c->p_min, c->p_max, c->p_step);
 	    break;
 	  default:
 	    if (midi_argc[i] == 1) {
 	      // Pd counts program changes starting at 1
 	      if (i == MIDI_PGM) val--;
-	      *c->p_zone = translate(val, 0, 128,
-				     c->p_type, c->p_min, c->p_max, c->p_step);
+	      *c->p_zone =
+		translate_from_midi(val, 0, 128,
+				    c->p_type, c->p_min, c->p_max, c->p_step);
 	    } else if (c->p_midi[j].num == num) {
-	      *c->p_zone = translate(val, 0, 128,
-				     c->p_type, c->p_min, c->p_max, c->p_step);
+	      *c->p_zone =
+		translate_from_midi(val, 0, 128,
+				    c->p_type, c->p_min, c->p_max, c->p_step);
 	    } else {
 	      log = false;
 	    }
@@ -1327,6 +1393,105 @@ int faust_ui_manager_get_midi(t_faust_ui_manager *x, t_symbol const *s, int argc
     return i;
   }
   return MIDI_NONE;
+}
+
+static FAUSTFLOAT translate_from_osc(double val, double min, double max,
+				     int p_type,
+				     FAUSTFLOAT p_min, FAUSTFLOAT p_max,
+				     FAUSTFLOAT p_step)
+{
+  double sign = max>min ? 1.0 : max<min ? -1.0 : 0.0;
+  if (sign < 0) {
+    double temp = max;
+    max = min;
+    min = temp;
+  }
+  // Clamp the value.
+  if (val < min) val = min;
+  if (val > max) val = max;
+  if (p_type == FAUST_UI_TYPE_BUTTON || p_type == FAUST_UI_TYPE_TOGGLE) {
+    return val>min?1.0:0.0;
+  } else if (sign == 0.0) {
+    // In the degenerate case (max == min) we just return the target min value.
+    return p_min;
+  } else {
+    // We go to some lengths here to avoid rounding issues around the min, max
+    // and center values.
+    double v = sign>0 ? (val-min)/(max-min) : (max-val)/(max-min);
+    if (p_min > p_max) {
+      FAUSTFLOAT temp = p_min;
+      p_min = p_max; p_max = temp; p_step = -p_step;
+    }
+    v *= (p_max - p_min);
+    // round near center value
+    v = round_near(v, (p_max-p_min)/2.0, p_min, p_max);
+    // round near min and max
+    v += p_min;
+    v = round_near(v, p_min, p_min, p_max);
+    v = round_near(v, p_max, p_min, p_max);
+    // Round to the nearest step. This needs to be done last, to avoid
+    // rounding issues near the center value.
+    if (p_step > FLT_EPSILON) v = p_step*round(v/p_step);
+    // clamp the result, to be on the safe side
+    if (v < p_min) v = p_min;
+    if (v > p_max) v = p_max;
+    return v;
+  }
+}
+
+const t_symbol *faust_ui_manager_get_osc(t_faust_ui_manager *x, t_symbol const *s, int argc, t_atom* argv)
+{
+  // The only check here is that the selector looks like a proper OSC message.
+  // Any unrecognized OSC message will be simply ignored.
+  if (*s->s_name != '/') return NULL;
+  // Run through all the active UI elements with OSC bindings and update
+  // the elements that match.
+  t_faust_ui *c = x->f_uis;
+  while (c) {
+    for (size_t j = 0; j < c->p_nosc; j++) {
+      if (c->p_type != FAUST_UI_TYPE_BARGRAPH) {
+	bool log = true;
+	if (argc > 1) {
+	  int k, n;
+	  // Multiple arguments are handled by tacking on /0, /1 etc. to the
+	  // message selector, following the OSC Support section in the Faust
+	  // manual. First check whether the symbol actually matches a proper
+	  // prefix of the current message selector.
+	  size_t l = strlen(s->s_name);
+	  if (strncmp(s->s_name, c->p_osc[j].msg->s_name, l) == 0 &&
+	      c->p_osc[j].msg->s_name[l] == '/' &&
+	      sscanf(c->p_osc[j].msg->s_name+l+1, "%d%n", &k, &n) == 1 &&
+	      c->p_osc[j].msg->s_name[n+l+1] == 0 && k>=0 && k<argc &&
+	      argv[k].a_type == A_FLOAT) {
+	    double val = argv[k].a_w.w_float;
+	    // Translate the value to the target range.
+	    *c->p_zone =
+	      translate_from_osc(val, c->p_osc[j].a, c->p_osc[j].b,
+				 c->p_type, c->p_min, c->p_max, c->p_step);
+	  } else {
+	    log = false;
+	  }
+	} else if (c->p_osc[j].msg == s &&
+		   (argc == 0 || argv[0].a_type == A_FLOAT)) {
+	  // The Faust manual doesn't say how to handle the case of no
+	  // arguments. Here we just assume a default value of b in that case.
+	  double val = argc > 0 ? argv[0].a_w.w_float : c->p_osc[j].b;
+	  // Translate the value to the target range.
+	  *c->p_zone =
+	    translate_from_osc(val, c->p_osc[j].a, c->p_osc[j].b,
+			       c->p_type, c->p_min, c->p_max, c->p_step);
+	} else {
+	  log = false;
+	}
+	if (log) {
+	  //logpost(x->f_owner, 3, "%s = %g", c->p_name->s_name, *c->p_zone);
+	  gui_update(*c->p_zone, c->p_uirecv);
+	}
+      }
+    }
+    c = c->p_next;
+  }
+  return s;
 }
 
 void faust_ui_manager_save_states(t_faust_ui_manager *x)
@@ -1480,8 +1645,8 @@ void faust_ui_manager_clear_tuning(t_faust_ui_manager *x)
   }
 }
 
-static int rtranslate(FAUSTFLOAT z, FAUSTFLOAT p_min, FAUSTFLOAT p_max,
-		      int min, int max)
+static int translate_to_midi(FAUSTFLOAT z, FAUSTFLOAT p_min, FAUSTFLOAT p_max,
+			     int min, int max)
 {
   if (p_min == p_max)
     // assert(z == p_min)
@@ -1491,6 +1656,8 @@ static int rtranslate(FAUSTFLOAT z, FAUSTFLOAT p_min, FAUSTFLOAT p_max,
     z = (z-p_min)/(p_max-p_min)*(max-min);
     // round to integer
     int val = round(z);
+    // min should always be zero here, but to be on the safe side...
+    z += min;
     // clamp val in the prescribed range
     if (val < min) val = min;
     if (val > max-1) val = max-1;
@@ -1509,9 +1676,9 @@ static int midi_defaultval(FAUSTFLOAT z, FAUSTFLOAT p_min, FAUSTFLOAT p_max,
     case MIDI_STOP:
       return 1;
     case MIDI_PITCHWHEEL:
-      return rtranslate(z, p_min, p_max, 0, 16384);
+      return translate_to_midi(z, p_min, p_max, 0, 16384);
     default:
-      return rtranslate(z, p_min, p_max, 0, 128);
+      return translate_to_midi(z, p_min, p_max, 0, 128);
     }
   else
     return -1;
@@ -1548,18 +1715,18 @@ void faust_ui_manager_midiout(t_faust_ui_manager const *x, int midichan,
 	  val = *c->p_zone > c->p_min;
 	  break;
 	case MIDI_PITCHWHEEL:
-	  val = rtranslate(*c->p_zone, c->p_min, c->p_max, 0, 16384);
+	  val = translate_to_midi(*c->p_zone, c->p_min, c->p_max, 0, 16384);
 	  // voice message, add channel
 	  argc++;
 	  chan = c->p_midi[j].chan;
 	  break;
 	default:
 	  if (argc == 1) {
-	    val = rtranslate(*c->p_zone, c->p_min, c->p_max, 0, 128);
+	    val = translate_to_midi(*c->p_zone, c->p_min, c->p_max, 0, 128);
 	    // Pd counts program changes starting at 1
 	    if (i == MIDI_PGM) val++;
 	  } else {
-	    val = rtranslate(*c->p_zone, c->p_min, c->p_max, 0, 128);
+	    val = translate_to_midi(*c->p_zone, c->p_min, c->p_max, 0, 128);
 	    num = c->p_midi[j].num;
 	  }
 	  // voice message, add channel
@@ -1587,6 +1754,75 @@ void faust_ui_manager_midiout(t_faust_ui_manager const *x, int midichan,
 	  if (out) outlet_anything(out, s, argc, argv);
 	  if (midirecv && midirecv->s_thing)
 	    typedmess(midirecv->s_thing, s, argc, argv);
+	}
+      }
+    }
+    c = c->p_next;
+  }
+}
+
+static double translate_to_osc(FAUSTFLOAT z, FAUSTFLOAT p_min, FAUSTFLOAT p_max,
+			       double min, double max)
+{
+  if (fabs(p_min - p_max) < FLT_EPSILON) {
+    // assert(z == p_min)
+    return min;
+  } else {
+    // The zone values we get here might be wildly out of range, so clamp them
+    // first in order to prevent infinities and (subsequently) NaN values
+    // which would completely throw off our mapping computations below.
+    if (p_min < p_max) {
+      if (z < p_min) z = p_min;
+      if (z > p_max) z = p_max;
+    } else {
+      if (z > p_min) z = p_min;
+      if (z < p_max) z = p_max;
+    }
+    // normalize and scale
+    double val = (z-p_min)/(p_max-p_min)*(max-min);
+    val += min;
+    // clamp the result again so that it stays within the target range
+    if (min < max) {
+      if (val < min) val = min;
+      if (val > max) val = max;
+    } else {
+      if (val > min) val = min;
+      if (val < max) val = max;
+    }
+    return val;
+  }
+}
+
+static int osc_defaultval(FAUSTFLOAT z, FAUSTFLOAT p_min, FAUSTFLOAT p_max,
+			  int p_type, double a, double b)
+{
+  if (p_type == FAUST_UI_TYPE_BARGRAPH)
+    return translate_to_osc(z, p_min, p_max, a, b);
+  else
+    return -1;
+}
+
+void faust_ui_manager_oscout(t_faust_ui_manager const *x,
+			     t_symbol *oscrecv, t_outlet *out)
+{
+  if (!x->f_osc || (!oscrecv && !out)) return; // nothing to do
+  // Run through all the passive UI elements with OSC bindings.
+  t_faust_ui *c = x->f_uis;
+  while (c) {
+    if (c->p_type == FAUST_UI_TYPE_BARGRAPH) {
+      for (size_t j = 0; j < c->p_nosc; j++) {
+	t_symbol *s = c->p_osc[j].msg;
+	double val = 0.0, oldval = c->p_osc[j].val;
+	t_atom argv[1];
+	val = translate_to_osc(*c->p_zone, c->p_min, c->p_max,
+			       c->p_osc[j].a, c->p_osc[j].b);
+	// only output changed values
+	if (val != oldval) {
+	  c->p_osc[j].val = val;
+	  SETFLOAT(argv+0, val);
+	  if (out) outlet_anything(out, s, 1, argv);
+	  if (oscrecv && oscrecv->s_thing)
+	    typedmess(oscrecv->s_thing, s, 1, argv);
 	}
       }
     }
