@@ -765,11 +765,11 @@ static t_int *faustgen_tilde_perform_single(t_int *w)
       t_outlet *out = x->f_midiout?faust_io_manager_get_extra_output(x->f_io_manager):NULL;
       faust_ui_manager_midiout(x->f_ui_manager, x->f_midichan, x->f_midirecv, out);
     }
-    if (x->f_oscout || x->f_oscrecv) {
-      t_outlet *out = x->f_oscout?faust_io_manager_get_extra_output(x->f_io_manager):NULL;
-      faust_ui_manager_oscout(x->f_ui_manager, x->f_oscrecv, out);
-    }
     if (clock_getsystime() >= x->f_next_tick) {
+      if (x->f_oscout || x->f_oscrecv) {
+	t_outlet *out = x->f_oscout?faust_io_manager_get_extra_output(x->f_io_manager):NULL;
+	faust_ui_manager_oscout(x->f_ui_manager, x->f_oscrecv, out);
+      }
       if (x->f_instance_name && x->f_instance_name->s_thing)
 	faust_ui_manager_gui_update(x->f_ui_manager);
       x->f_next_tick = clock_getsystimeafter(gui_update_time);
@@ -807,11 +807,11 @@ static t_int *faustgen_tilde_perform_double(t_int *w)
       t_outlet *out = x->f_midiout?faust_io_manager_get_extra_output(x->f_io_manager):NULL;
       faust_ui_manager_midiout(x->f_ui_manager, x->f_midichan, x->f_midirecv, out);
     }
-    if (x->f_oscout || x->f_oscrecv) {
-      t_outlet *out = x->f_oscout?faust_io_manager_get_extra_output(x->f_io_manager):NULL;
-      faust_ui_manager_oscout(x->f_ui_manager, x->f_oscrecv, out);
-    }
     if (clock_getsystime() >= x->f_next_tick) {
+      if (x->f_oscout || x->f_oscrecv) {
+	t_outlet *out = x->f_oscout?faust_io_manager_get_extra_output(x->f_io_manager):NULL;
+	faust_ui_manager_oscout(x->f_ui_manager, x->f_oscrecv, out);
+      }
       if (x->f_instance_name && x->f_instance_name->s_thing)
 	faust_ui_manager_gui_update(x->f_ui_manager);
       x->f_next_tick = clock_getsystimeafter(gui_update_time);

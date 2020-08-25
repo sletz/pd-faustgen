@@ -601,12 +601,9 @@ static void faust_ui_manager_add_param(t_faust_ui_manager *x, const char* label,
 	if (c->p_osc) {
 	  c->p_nosc = last_meta.n_osc;
 	  for (size_t i = 0; i < last_meta.n_osc; i++) {
-	    if (last_meta.osc[i].a != 0.0 || last_meta.osc[i].a != 1.0)
-	      logpost(x->f_owner, 3, "             %s: osc:%s %g %g", name->s_name,
-		      last_meta.osc[i].msg->s_name, last_meta.osc[i].a, last_meta.osc[i].b);
-	    else
-	      logpost(x->f_owner, 3, "             %s: osc:%s", name->s_name,
-		      last_meta.osc[i].msg->s_name);
+	    logpost(x->f_owner, 3, "             %s: osc:%s %g %g",
+		    name->s_name, last_meta.osc[i].msg->s_name,
+		    last_meta.osc[i].a, last_meta.osc[i].b);
 	    c->p_osc[i].msg = last_meta.osc[i].msg;
 	    c->p_osc[i].a   = last_meta.osc[i].a;
 	    c->p_osc[i].b   = last_meta.osc[i].b;
@@ -1448,8 +1445,8 @@ const t_symbol *faust_ui_manager_get_osc(t_faust_ui_manager *x, t_symbol const *
   // the elements that match.
   t_faust_ui *c = x->f_uis;
   while (c) {
-    for (size_t j = 0; j < c->p_nosc; j++) {
-      if (c->p_type != FAUST_UI_TYPE_BARGRAPH) {
+    if (c->p_type != FAUST_UI_TYPE_BARGRAPH) {
+      for (size_t j = 0; j < c->p_nosc; j++) {
 	bool log = true;
 	if (argc > 1) {
 	  int k, n;
@@ -1568,6 +1565,14 @@ void faust_ui_manager_print(t_faust_ui_manager const *x, char const log)
             }
           }
         }
+        if (c->p_osc) {
+          for (size_t i = 0; i < c->p_nosc; i++) {
+	    logpost(x->f_owner, 3, "parameter: %s [osc:%s %lg %lg]",
+		    name->s_name,
+		    c->p_osc[i].msg->s_name, c->p_osc[i].a,
+		    c->p_osc[i].b);
+          }
+        }
       }
       c = c->p_next;
     }
@@ -1607,6 +1612,16 @@ int faust_ui_manager_dump(t_faust_ui_manager const *x, t_symbol *s, t_outlet *ou
 	    } else if (midi_argc[c->p_midi[i].msg] > 1) {
 	      SETFLOAT(argv+argc, c->p_midi[i].num); argc++;
 	    }
+	  }
+	}
+	if (c->p_midi) {
+	  for (size_t i = 0; i < c->p_nosc && argc+3 < DUMP_MAX_ARGS; i++) {
+	    char buf[MAXPDSTRING];
+	    snprintf(buf, MAXPDSTRING, "osc:%s",
+		     c->p_osc[i].msg->s_name);
+	    SETSYMBOL(argv+argc, gensym(buf)); argc++;
+	    SETFLOAT(argv+argc, c->p_osc[i].a); argc++;
+	    SETFLOAT(argv+argc, c->p_osc[i].b); argc++;
 	  }
 	}
 	if (outsym)
