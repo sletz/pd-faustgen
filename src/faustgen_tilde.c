@@ -5,6 +5,7 @@
 */
 
 #include <m_pd.h>
+#include <s_stuff.h> // needed for sys_register_loader()
 #include <string.h>
 #include <ctype.h>
 #include <float.h>
@@ -978,12 +979,28 @@ static void faustgen_tilde_free(t_faustgen_tilde *x)
     faustgen_tilde_free_signals(x);
 }
 
+static t_symbol *real_dsp_name(t_symbol *s)
+{
+  // Remove an optional ~ suffix, which is for cosmetic purposes and to be
+  // ignored for searching the dsp file.
+  const char *name = s->s_name;
+  char buf[MAXPDSTRING];
+  size_t l = strlen(name);
+  const char p = name[l>0 ? l-1 : l];
+  if (p == '~') l--;
+  if (l >= MAXPDSTRING) l = MAXPDSTRING-1;
+  memset(buf, 0, MAXPDSTRING);
+  strncpy(buf, name, l);
+  return gensym(buf);
+}
+
 static void *faustgen_tilde_new(t_symbol* s, int argc, t_atom* argv)
 {
     t_faustgen_tilde* x = (t_faustgen_tilde *)pd_new(faustgen_tilde_class);
     if(x)
     {
         char default_file[MAXPDSTRING];
+        bool is_loader_obj = strcmp(s->s_name, "faustgen~") != 0;
         sprintf(default_file, "%s/.default", class_gethelpdir(faustgen_tilde_class));
         x->f_dsp_factory    = NULL;
         x->f_dsp_instance   = NULL;
@@ -996,7 +1013,8 @@ static void *faustgen_tilde_new(t_symbol* s, int argc, t_atom* argv)
         x->f_ui_manager     = faust_ui_manager_new((t_object *)x);
         x->f_io_manager     = faust_io_manager_new((t_object *)x, canvas_getcurrent());
         x->f_opt_manager    = faust_opt_manager_new((t_object *)x, canvas_getcurrent());
-        x->f_dsp_name       = argc ? atom_getsymbolarg(0, argc, argv) : gensym(default_file);
+        x->f_dsp_name       = is_loader_obj ? real_dsp_name(s) :
+	  argc ? atom_getsymbolarg(0, argc, argv) : gensym(default_file);
         x->f_clock          = clock_new(x, (t_method)faustgen_tilde_autocompile_tick);
         x->f_midiout = x->f_oscout = false;
         x->f_midichan = -1;
@@ -1008,7 +1026,12 @@ static void *faustgen_tilde_new(t_symbol* s, int argc, t_atom* argv)
         // parse the remaining creation arguments
         if (argc > 0 && argv) {
 	  int n_num = 0;
-          while (argv++, --argc > 0) {
+          // We usually begin with second arg here, as the first arg is the
+          // dsp name. That is, unless the object is created from the loader,
+          // in which case the dsp name is in the symbol s and arg processing
+          // commences at the first arg.
+          for (argv = !is_loader_obj?(--argc, argv+1):argv; argc > 0;
+               argv++, argc--) {
             if (argv->a_type == A_FLOAT) {
               // float value gives (1-based) MIDI channel, 0 means omni,
               // negative means to block that channel
@@ -1099,58 +1122,147 @@ static void *faustgen_tilde_new(t_symbol* s, int argc, t_atom* argv)
 #endif
 #endif
 
+// adapted from the pd-lua loader, thanks to Claude and Iohannes!
+
+#ifdef UNUSED
+#elif defined(__GNUC__)
+# define UNUSED(x) UNUSED_ ## x __attribute__((unused))
+#elif defined(__LCLINT__)
+# define UNUSED(x) /*@unused@*/ x
+#else
+# define UNUSED(x) x
+#endif
+
+static int faustgen_loader(t_symbol *name)
+{
+  t_class* c = class_new(name,
+			 (t_newmethod)faustgen_tilde_new,
+			 (t_method)faustgen_tilde_free,
+			 sizeof(t_faustgen_tilde), CLASS_DEFAULT, A_GIMME, 0);
+  if (c) {
+    class_addmethod(c,  (t_method)faustgen_tilde_dsp,               gensym("dsp"),              A_CANT, 0);
+    class_addmethod(c,  (t_method)faustgen_tilde_compile,           gensym("compile"),          A_NULL, 0);
+    class_addmethod(c,  (t_method)faustgen_tilde_compile_options,   gensym("compileoptions"),   A_GIMME, 0);
+    class_addmethod(c,  (t_method)faustgen_tilde_autocompile,       gensym("autocompile"),      A_GIMME, 0);
+    class_addmethod(c,  (t_method)faustgen_tilde_print,             gensym("print"),            A_NULL, 0);
+    class_addmethod(c,  (t_method)faustgen_tilde_dump,              gensym("dump"),             A_DEFSYM, 0);
+    class_addmethod(c,  (t_method)faustgen_tilde_tuning,            gensym("tuning"),           A_GIMME, 0);
+    class_addmethod(c,  (t_method)faustgen_tilde_defaults,          gensym("defaults"),         A_NULL, 0);
+    class_addmethod(c,  (t_method)faustgen_tilde_gui,               gensym("gui"),              A_NULL, 0);
+    class_addmethod(c,  (t_method)faustgen_tilde_oscout,            gensym("oscout"),           A_GIMME, 0);
+    class_addmethod(c,  (t_method)faustgen_tilde_midiout,           gensym("midiout"),          A_GIMME, 0);
+    class_addmethod(c,  (t_method)faustgen_tilde_midichan,          gensym("midichan"),         A_GIMME, 0);
+    class_addmethod(c,  (t_method)faustgen_tilde_menu_open,         gensym("click"),            A_NULL, 0);
+    class_addmethod(c,  (t_method)faustgen_tilde_menu_open,         gensym("menu-open"),        A_NULL, 0);
+    class_addbang(c, (t_method)faustgen_tilde_allnotesoff);
+    class_addanything(c, (t_method)faustgen_tilde_anything);
+  }
+  return c != NULL;
+}
+
+static int faustgen_loader_pathwise
+(
+ t_canvas    *UNUSED(canvas), // Pd canvas to use to find the dsp.
+ const char  *name, // The name of the dsp (without .dsp extension).
+ const char  *path // The directory to search for the dsp.
+)
+{
+  char dirbuf[MAXPDSTRING], *ptr;
+  int fd, result = 0;
+
+  if (!path) {
+    // we already tried all paths, report failure
+    return 0;
+  }
+  // We allow a ~ to be tacked on to the dsp name, so compute the real name of
+  // the dsp file here.
+  t_symbol *s = real_dsp_name(gensym(name));
+  fd = sys_trytoopenone(path, s->s_name, ".dsp",
+			dirbuf, &ptr, MAXPDSTRING, 1);
+  if (fd >= 0) {
+    // the actual loading, compiling etc. is done in the class setup
+    sys_close(fd);
+    result = faustgen_loader(gensym(name));
+  }
+  return result;
+}
+
+static int faustgen_loader_legacy(t_canvas *canvas, char *name)
+{
+  char dirbuf[MAXPDSTRING], *ptr;
+  int fd, result = 0;
+
+  t_symbol *s = real_dsp_name(gensym(name));
+  fd = canvas_open(canvas, s->s_name, ".dsp", dirbuf, &ptr, MAXPDSTRING, 1);
+  if (fd>=0) {
+    sys_close(fd);
+    result = faustgen_loader(gensym(name));
+  }
+  return result;
+}
+
 void faustgen_tilde_setup(void)
 {
-    t_class* c = class_new(gensym("faustgen~"),
-                           (t_newmethod)faustgen_tilde_new, (t_method)faustgen_tilde_free,
-                           sizeof(t_faustgen_tilde), CLASS_DEFAULT, A_GIMME, 0);
+  // register the faustgen~ loader
+  int major = 0, minor = 0, patchlevel = 0;
+  sys_getversion(&major, &minor, &patchlevel);
+  if (major ==0 && minor < 47)
+    // before Pd<0.47, the loaders had to iterate over each path themselves
+    sys_register_loader((loader_t)faustgen_loader_legacy);
+  else
+    // since Pd>=0.47, Pd tries the loaders for each path
+    sys_register_loader((loader_t)faustgen_loader_pathwise);
+  // register the faustgen~ class
+  t_class* c = class_new(gensym("faustgen~"),
+			 (t_newmethod)faustgen_tilde_new,
+			 (t_method)faustgen_tilde_free,
+			 sizeof(t_faustgen_tilde), CLASS_DEFAULT, A_GIMME, 0);
     
-    if(c)
-    {
-        class_addmethod(c,  (t_method)faustgen_tilde_dsp,               gensym("dsp"),              A_CANT, 0);
-        class_addmethod(c,  (t_method)faustgen_tilde_compile,           gensym("compile"),          A_NULL, 0);
-        class_addmethod(c,  (t_method)faustgen_tilde_compile_options,   gensym("compileoptions"),   A_GIMME, 0);
-        class_addmethod(c,  (t_method)faustgen_tilde_autocompile,       gensym("autocompile"),      A_GIMME, 0);
-        class_addmethod(c,  (t_method)faustgen_tilde_print,             gensym("print"),            A_NULL, 0);
-        class_addmethod(c,  (t_method)faustgen_tilde_dump,              gensym("dump"),             A_DEFSYM, 0);
-        class_addmethod(c,  (t_method)faustgen_tilde_tuning,            gensym("tuning"),           A_GIMME, 0);
-        class_addmethod(c,  (t_method)faustgen_tilde_defaults,          gensym("defaults"),         A_NULL, 0);
-        class_addmethod(c,  (t_method)faustgen_tilde_gui,               gensym("gui"),              A_NULL, 0);
-        class_addmethod(c,  (t_method)faustgen_tilde_oscout,            gensym("oscout"),           A_GIMME, 0);
-        class_addmethod(c,  (t_method)faustgen_tilde_midiout,           gensym("midiout"),          A_GIMME, 0);
-        class_addmethod(c,  (t_method)faustgen_tilde_midichan,          gensym("midichan"),         A_GIMME, 0);
+  if (c) {
+    class_addmethod(c,  (t_method)faustgen_tilde_dsp,               gensym("dsp"),              A_CANT, 0);
+    class_addmethod(c,  (t_method)faustgen_tilde_compile,           gensym("compile"),          A_NULL, 0);
+    class_addmethod(c,  (t_method)faustgen_tilde_compile_options,   gensym("compileoptions"),   A_GIMME, 0);
+    class_addmethod(c,  (t_method)faustgen_tilde_autocompile,       gensym("autocompile"),      A_GIMME, 0);
+    class_addmethod(c,  (t_method)faustgen_tilde_print,             gensym("print"),            A_NULL, 0);
+    class_addmethod(c,  (t_method)faustgen_tilde_dump,              gensym("dump"),             A_DEFSYM, 0);
+    class_addmethod(c,  (t_method)faustgen_tilde_tuning,            gensym("tuning"),           A_GIMME, 0);
+    class_addmethod(c,  (t_method)faustgen_tilde_defaults,          gensym("defaults"),         A_NULL, 0);
+    class_addmethod(c,  (t_method)faustgen_tilde_gui,               gensym("gui"),              A_NULL, 0);
+    class_addmethod(c,  (t_method)faustgen_tilde_oscout,            gensym("oscout"),           A_GIMME, 0);
+    class_addmethod(c,  (t_method)faustgen_tilde_midiout,           gensym("midiout"),          A_GIMME, 0);
+    class_addmethod(c,  (t_method)faustgen_tilde_midichan,          gensym("midichan"),         A_GIMME, 0);
 #if 0
-        class_addmethod(c,  (t_method)faustgen_tilde_open_texteditor,   gensym("click"),            A_NULL, 0);
+    class_addmethod(c,  (t_method)faustgen_tilde_open_texteditor,   gensym("click"),            A_NULL, 0);
 #endif
-        class_addmethod(c,  (t_method)faustgen_tilde_menu_open,         gensym("click"),            A_NULL, 0);
-        class_addmethod(c,  (t_method)faustgen_tilde_menu_open,         gensym("menu-open"),        A_NULL, 0);
+    class_addmethod(c,  (t_method)faustgen_tilde_menu_open,         gensym("click"),            A_NULL, 0);
+    class_addmethod(c,  (t_method)faustgen_tilde_menu_open,         gensym("menu-open"),        A_NULL, 0);
         
-        //class_addmethod(c,      (t_method)faustgen_tilde_read,             gensym("read"),           A_SYMBOL);
-        class_addbang(c, (t_method)faustgen_tilde_allnotesoff);
-        class_addanything(c, (t_method)faustgen_tilde_anything);
+    //class_addmethod(c,      (t_method)faustgen_tilde_read,             gensym("read"),           A_SYMBOL);
+    class_addbang(c, (t_method)faustgen_tilde_allnotesoff);
+    class_addanything(c, (t_method)faustgen_tilde_anything);
 #if 0
-        logpost(NULL, 3, "Faust website: faust.grame.fr");
-        logpost(NULL, 3, "Faust development: GRAME");
+    logpost(NULL, 3, "Faust website: faust.grame.fr");
+    logpost(NULL, 3, "Faust development: GRAME");
 #endif
-        logpost(NULL, 3, "faustgen~ version: %s, https://github.com/agraef/pd-faustgen", FAUSTGEN_VERSION_STR);
-        logpost(NULL, 3, "Copyright (c) 2018 Pierre Guillot, (c) 2020 Albert Gräf");
-        logpost(NULL, 3, "Faust version: %s, https://faust.grame.fr", getCLibFaustVersion());
-        logpost(NULL, 3, "Copyright (c) 2002-2020 GRAME et al");
-        logpost(NULL, 3, "faustgen~ default include directory: %s", class_gethelpdir(c));
+    logpost(NULL, 3, "faustgen~ version: %s, https://github.com/agraef/pd-faustgen", FAUSTGEN_VERSION_STR);
+    logpost(NULL, 3, "Copyright (c) 2018 Pierre Guillot, (c) 2020 Albert Gräf");
+    logpost(NULL, 3, "Faust version: %s, https://faust.grame.fr", getCLibFaustVersion());
+    logpost(NULL, 3, "Copyright (c) 2002-2020 GRAME et al");
+    logpost(NULL, 3, "faustgen~ default include directory: %s", class_gethelpdir(c));
 #if 0
-        logpost(NULL, 3, "faustgen~ institutions: CICM - ANR MUSICOLL");
-        logpost(NULL, 3, "faustgen~ external author: Pierre Guillot");
-        logpost(NULL, 3, "faustgen~ website: github.com/CICM/pd-faustgen");
+    logpost(NULL, 3, "faustgen~ institutions: CICM - ANR MUSICOLL");
+    logpost(NULL, 3, "faustgen~ external author: Pierre Guillot");
+    logpost(NULL, 3, "faustgen~ website: github.com/CICM/pd-faustgen");
 #endif
-    }
+  }
     
-    faustgen_tilde_class = c;
+  faustgen_tilde_class = c;
 #ifdef _WIN32
-    nw_gui_vmess = (void*)GetProcAddress(GetModuleHandle("pd.dll"), "gui_vmess");
+  nw_gui_vmess = (void*)GetProcAddress(GetModuleHandle("pd.dll"), "gui_vmess");
 #else
-    nw_gui_vmess = dlsym(RTLD_DEFAULT, "gui_vmess");
+  nw_gui_vmess = dlsym(RTLD_DEFAULT, "gui_vmess");
 #endif
-    if (nw_gui_vmess) logpost(NULL, 3, "faustgen~: using JavaScript interface (Pd-l2ork nw.js version)");
-    faust_ui_receive_setup();
+  if (nw_gui_vmess) logpost(NULL, 3, "faustgen~: using JavaScript interface (Pd-l2ork nw.js version)");
+  faust_ui_receive_setup();
 }
 
