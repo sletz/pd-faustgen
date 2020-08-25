@@ -1,23 +1,43 @@
-#N canvas 833 181 519 568 10;
-#X obj 12 15 cnv 15 380 17 empty empty faustgen~ 2 9 0 14 -233017 -66577
+#N canvas 832 182 520 576 10;
+#X obj 12 15 cnv 15 380 20 empty empty empty 2 9 0 14 -204280 -66577
 0;
-#X obj 336 115 tgl 15 1 empty empty empty 17 7 0 10 -262144 -1 -1 1
-1;
-#X msg 336 135 \; pd dsp \$1;
-#X obj 166 315 dac~ 1 2;
-#X obj 62 172 nbx 5 14 0 1 0 0 empty empty empty 0 -8 0 10 -262144
--1 -1 0 256;
-#X obj 62 129 loadbang;
-#X msg 62 151 0;
-#X text 26 361 FAUST institution: GRAME;
-#X text 26 375 FAUST website: faust.grame.fr;
-#X text 132 390 Yann Orlarey \, Stéphane Letz \, Dominique Fober \,
+#X text 26 401 FAUST institution: GRAME;
+#X text 26 415 FAUST website: faust.grame.fr;
+#X text 132 430 Yann Orlarey \, Stéphane Letz \, Dominique Fober \,
 ...;
-#X text 26 389 FAUST developers:;
-#X text 122 16 the FAUST compiler embedded in a Pd external;
-#X text 125 169 Control the parameters with their names, f 15;
-#X msg 62 191 gain \$1;
-#X obj 166 128 osc~ 220;
+#X text 26 429 FAUST developers:;
+#X text 122 17 the FAUST compiler embedded in a Pd external;
+#X text 26 463 faustgen~ website: github.com/agraef/pd-faustgen;
+#X text 26 499 This object was inspired by faustgen~ for Max developed
+by Martin Di Rollo and Stéphane Letz., f 50;
+#X text 26 449 faustgen~ institutions: CICM - ANR MUSICOLL \, JGU IKM
+- Music-Informatics, f 72;
+#X text 26 477 faustgen~ developers: Pierre Guillot \, Albert Gräf
+;
+#X text 10 39 The faustgen~ external hooks into the Pd loader \, so
+if the external is in the startup libraries \, you can create a Faust
+dsp by simply typing dsp-name (without the .dsp extension) \, or dsp-name~
+(the ~ suffix is for cosmetic purposes only and will be ignored when
+searching for the file). Otherwise type faustgen~ followed by the dsp
+name. The dsp file can be relative to the patch or on the Pd search
+path. Extra arguments can be used to define compilation options \,
+see the FAUST documentation for further information. Use debug level
+3 to display information about the code in the Pd console., f 72;
+#X text 26 529 The latest version by Albert Gräf adds many improvements
+\, most notably OSC and MIDI support \, polyphony \, and automatic
+Pd GUI generation., f 70;
+#X obj 13 16 faustgen~;
+#X obj 336 165 tgl 15 1 empty empty empty 17 7 0 10 -262144 -1 -1 1
+1;
+#X msg 336 185 \; pd dsp \$1;
+#X obj 166 355 dac~ 1 2;
+#X obj 62 212 nbx 5 14 0 1 0 0 empty empty empty 0 -8 0 10 -262144
+-1 -1 0 256;
+#X obj 62 169 loadbang;
+#X msg 62 191 0;
+#X text 125 209 Control the parameters with their names, f 15;
+#X msg 62 231 gain \$1;
+#X obj 143 168 osc~ 220;
 #N canvas 766 136 471 246 options 0;
 #X text 16 50 Change the compile options and recompile;
 #X msg 17 71 compileoptions -vec -vs 64;
@@ -28,15 +48,14 @@
 the redering, f 55;
 #X msg 41 115 print;
 #X text 84 116 Print faustgen~ informations;
-#X obj 17 165 faustgen~ examples/gain -vec -lv 1;
+#X obj 17 165 examples/gain~ -vec -lv 1;
 #X connect 1 0 7 0;
 #X connect 5 0 7 0;
-#X restore 327 272 pd options;
+#X restore 327 312 pd options;
 #N canvas 287 129 410 324 recompilation 0;
 #X obj 17 75 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 0 1
 ;
 #X msg 17 134 autocompile \$1 100;
-#X obj 17 246 faustgen~ examples/dummy;
 #X text 14 11 The automatic compilation can be used during the Faust
 code edition to recompile the code each time the file has been modified.
 ;
@@ -49,26 +68,20 @@ f 37;
 ;
 #X text 59 205 Click on the object to open the code in your default
 text editor \, then recompile to listen to the changes, f 47;
+#X obj 17 246 examples/dummy;
 #X connect 0 0 1 0;
-#X connect 1 0 2 0;
-#X connect 6 0 2 0;
-#X restore 327 298 pd recompilation;
-#X obj 103 315 snapshot~;
-#X obj 103 336 nbx 5 14 -1e+37 1e+37 0 0 empty empty empty 0 -8 0 10
+#X connect 1 0 8 0;
+#X connect 5 0 8 0;
+#X restore 327 338 pd recompilation;
+#X obj 103 355 snapshot~;
+#X obj 103 376 nbx 5 14 -1e+37 1e+37 0 0 empty empty empty 0 -8 0 10
 -262144 -1 -1 0 256;
-#X obj 103 294 metro 100;
-#X obj 103 274 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 0
+#X obj 103 334 metro 100;
+#X obj 103 314 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 0
 1;
-#X obj 31 242 faustgen~ examples/gain;
-#X text 10 39 The first argument is the name of the FAUST DSP file
-to read. The path of the FAUST DSP file can be relative to the patch
-or must be located in the Pd search paths. Extra arguments can be used
-to define compilation options \, see the FAUST documentation for further
-information. Use the debug level 3 to displays information about the
-code in the Pd console., f 72;
-#X text 177 233 Click on the object to open the code in your default
+#X text 177 273 Click on the object to open the code in your default
 text editor, f 22;
-#N canvas 1141 298 618 466 get.parameters.values 0;
+#N canvas 774 304 619 492 get.parameters.values 0;
 #X obj 22 396 nbx 5 14 -1e+37 1e+37 0 0 empty empty empty 0 -8 0 10
 -262144 -1 -1 0 256;
 #X obj 78 396 nbx 5 14 -1e+37 1e+37 0 0 empty empty empty 0 -8 0 10
@@ -77,7 +90,6 @@ text editor, f 22;
 -262144 -1 -1 3 256;
 #X obj 190 396 nbx 5 14 -1e+37 1e+37 0 0 empty empty empty 0 -8 0 10
 -262144 -1 -1 4 256;
-#X obj 22 352 faustgen~ examples/parameters;
 #X text 20 9 You can use the name of the parameters without any arguments
 to output their current values via the extra control outlet.;
 #X msg 189 134 print;
@@ -113,42 +125,42 @@ value, f 23;
 #X msg 272 104 dump;
 #X text 316 99 Dump the information on the control outlet, f 22;
 #X obj 247 396 print dump;
-#X connect 4 0 11 0;
-#X connect 6 0 4 0;
-#X connect 7 0 4 0;
-#X connect 8 0 4 0;
-#X connect 9 0 4 0;
-#X connect 10 0 4 0;
-#X connect 11 0 0 0;
-#X connect 11 1 1 0;
-#X connect 11 2 2 0;
-#X connect 11 3 3 0;
-#X connect 11 4 33 0;
+#X obj 22 352 examples/parameters;
+#X connect 5 0 33 0;
+#X connect 6 0 33 0;
+#X connect 7 0 33 0;
+#X connect 8 0 33 0;
+#X connect 9 0 33 0;
+#X connect 10 0 0 0;
+#X connect 10 1 1 0;
+#X connect 10 2 2 0;
+#X connect 10 3 3 0;
+#X connect 10 4 32 0;
+#X connect 11 0 24 0;
 #X connect 12 0 25 0;
 #X connect 13 0 26 0;
-#X connect 14 0 27 0;
+#X connect 14 0 15 0;
 #X connect 15 0 16 0;
-#X connect 16 0 17 0;
-#X connect 16 1 18 0;
-#X connect 17 0 19 0;
-#X connect 18 0 24 0;
-#X connect 19 0 24 0;
+#X connect 15 1 17 0;
+#X connect 16 0 18 0;
+#X connect 17 0 23 0;
+#X connect 18 0 23 0;
+#X connect 19 0 12 0;
 #X connect 20 0 13 0;
-#X connect 21 0 14 0;
-#X connect 22 0 12 0;
-#X connect 23 0 20 0;
-#X connect 23 0 21 0;
-#X connect 23 0 22 0;
-#X connect 24 0 4 0;
-#X connect 25 0 4 0;
-#X connect 26 0 4 0;
-#X connect 27 0 4 0;
-#X connect 31 0 4 0;
-#X restore 327 219 pd get.parameters.values;
+#X connect 21 0 11 0;
+#X connect 22 0 19 0;
+#X connect 22 0 20 0;
+#X connect 22 0 21 0;
+#X connect 23 0 33 0;
+#X connect 24 0 33 0;
+#X connect 25 0 33 0;
+#X connect 26 0 33 0;
+#X connect 30 0 33 0;
+#X connect 33 0 10 0;
+#X restore 327 259 pd get.parameters.values;
 #N canvas 1161 418 614 360 set.parameters.values 0;
-#X obj 222 252 faustgen~ examples/parameters;
-#X obj 393 84 noise~;
-#X obj 393 303 dac~ 1 2;
+#X obj 335 84 noise~;
+#X obj 333 303 dac~ 1 2;
 #X msg 282 204 print;
 #X obj 162 139 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 1
 1;
@@ -176,32 +188,33 @@ to output their current values via the extra control outlet. In this
 example \, all the parameters are used to control the gain of the output
 signal.;
 #X text 324 198 Print the informations of the FAUST code, f 22;
-#X connect 0 1 2 0;
-#X connect 0 1 2 1;
-#X connect 1 0 0 1;
-#X connect 3 0 0 0;
-#X connect 4 0 5 0;
-#X connect 5 0 0 0;
-#X connect 6 0 7 0;
-#X connect 7 0 0 0;
-#X connect 8 0 15 0;
-#X connect 9 0 11 0;
-#X connect 10 0 0 0;
-#X connect 11 0 12 0;
-#X connect 11 1 13 0;
-#X connect 12 0 14 0;
-#X connect 13 0 10 0;
-#X connect 14 0 10 0;
-#X connect 15 0 0 0;
-#X connect 16 0 6 0;
-#X connect 17 0 8 0;
-#X connect 18 0 4 0;
-#X connect 20 0 16 0;
-#X connect 20 0 17 0;
-#X connect 20 0 18 0;
-#X restore 327 191 pd set.parameters.values;
-#N canvas 1209 201 646 630 set.parameters.lists 0;
-#X obj 195 578 dac~ 1 2;
+#X obj 222 252 examples/parameters;
+#X connect 0 0 22 1;
+#X connect 2 0 22 0;
+#X connect 3 0 4 0;
+#X connect 4 0 22 0;
+#X connect 5 0 6 0;
+#X connect 6 0 22 0;
+#X connect 7 0 14 0;
+#X connect 8 0 10 0;
+#X connect 9 0 22 0;
+#X connect 10 0 11 0;
+#X connect 10 1 12 0;
+#X connect 11 0 13 0;
+#X connect 12 0 9 0;
+#X connect 13 0 9 0;
+#X connect 14 0 22 0;
+#X connect 15 0 5 0;
+#X connect 16 0 7 0;
+#X connect 17 0 3 0;
+#X connect 19 0 15 0;
+#X connect 19 0 16 0;
+#X connect 19 0 17 0;
+#X connect 22 1 1 0;
+#X connect 22 1 1 1;
+#X restore 327 231 pd set.parameters.values;
+#N canvas 694 145 647 656 set.parameters.lists 0;
+#X obj 141 578 dac~ 1 2;
 #X msg 29 195 print;
 #N canvas 0 22 450 278 (subpatch) 0;
 #X array \$0-gains 20 float 3;
@@ -224,10 +237,8 @@ signal.;
 2608.6 2391.2 1086.81;
 #X coords 0 20000 20 0 199 92 1;
 #X restore 397 328 graph;
-#X obj 195 511 noise~;
-#X obj 30 535 faustgen~ examples/resonator;
+#X obj 141 511 noise~;
 #X obj 103 177 list trim;
-#X obj 103 155 list prepend gain 0;
 #X obj 103 133 array get \$0-gains;
 #X obj 103 112 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144
 -1 -1;
@@ -239,7 +250,6 @@ arguments are the list., f 44;
 #X obj 133 228 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144
 -1 -1;
 #X obj 133 249 array get \$0-decays 2 4;
-#X obj 133 271 list prepend decay 2;
 #X text 28 145 Print to display the parameters' information, f 11
 ;
 #X obj 197 321 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144
@@ -263,30 +273,33 @@ the index 2, f 36;
 #X text 193 389 Dynamic approach, f 9;
 #X text 248 399 Index;
 #X text 306 399 Size;
+#X obj 30 535 examples/resonator~;
+#X obj 103 155 list prepend gain 0;
+#X obj 133 271 list prepend decay 2;
 #X obj 197 342 array get \$0-freq 3 1;
-#X connect 1 0 6 0;
-#X connect 5 0 6 1;
-#X connect 6 1 0 0;
-#X connect 6 1 0 1;
-#X connect 7 0 6 0;
+#X connect 1 0 29 0;
+#X connect 5 0 29 1;
+#X connect 6 0 29 0;
+#X connect 7 0 30 0;
 #X connect 8 0 7 0;
-#X connect 9 0 8 0;
-#X connect 10 0 9 0;
-#X connect 12 0 6 0;
-#X connect 13 0 14 0;
-#X connect 14 0 15 0;
-#X connect 15 0 12 0;
-#X connect 17 0 32 0;
-#X connect 18 0 6 0;
-#X connect 23 0 6 0;
-#X connect 24 0 27 0;
-#X connect 25 0 27 1;
-#X connect 25 0 28 1;
-#X connect 26 0 27 2;
-#X connect 27 0 28 0;
-#X connect 28 0 23 0;
-#X connect 32 0 18 0;
-#X restore 327 246 pd set.parameters.lists;
+#X connect 10 0 29 0;
+#X connect 11 0 12 0;
+#X connect 12 0 31 0;
+#X connect 14 0 32 0;
+#X connect 15 0 29 0;
+#X connect 20 0 29 0;
+#X connect 21 0 24 0;
+#X connect 22 0 24 1;
+#X connect 22 0 25 1;
+#X connect 23 0 24 2;
+#X connect 24 0 25 0;
+#X connect 25 0 20 0;
+#X connect 29 1 0 0;
+#X connect 29 1 0 1;
+#X connect 30 0 6 0;
+#X connect 31 0 10 0;
+#X connect 32 0 15 0;
+#X restore 327 286 pd set.parameters.lists;
 #N canvas 793 309 655 466 midi 0;
 #X obj 273 63 tgl 15 1 empty empty empty 17 7 0 10 -262144 -1 -1 1
 1;
@@ -398,8 +411,8 @@ the index 2, f 36;
 #X connect 5 0 1 1;
 #X connect 5 0 2 0;
 #X connect 6 0 0 0;
-#X restore 375 412 pd dac;
-#X obj 375 382 tgl 15 1 empty empty empty 17 7 0 10 -262144 -1 -1 1
+#X restore 321 412 pd dac;
+#X obj 321 382 tgl 15 1 empty empty empty 17 7 0 10 -262144 -1 -1 1
 1;
 #X obj 279 338 print midiout;
 #X text 377 89 mute dsp;
@@ -474,10 +487,7 @@ in SMMF format.;
 #X msg 318 296 compile;
 #X msg 375 145 defaults;
 #X msg 375 296 defaults;
-#X obj 279 314 faustgen~ examples/amp;
-#X obj 273 163 faustgen~ examples/sync;
 #X text 253 202 MIDI input uses SMMF format, f 16;
-#X obj 7 369 faustgen~ examples/amp 1 midiout=midi;
 #X obj 506 228 route 18 19;
 #X text 5 391 Extra creation arguments: one or more numbers denote
 MIDI channels (0 = omni accepts all channels \, <0 blocks a channel)
@@ -489,43 +499,46 @@ Faust manual. Various different types of MIDI messages are available
 \, please see the Faust manual for details., f 38;
 #X text 4 297 set MIDI channel (0 = omni \, <0 = blocked channel \,
 see creation args below), f 16;
+#X obj 273 163 examples/sync~;
+#X obj 279 314 examples/amp~;
+#X obj 7 369 examples/amp~ 1 midiout=midi;
 #X connect 0 0 5 0;
-#X connect 1 0 40 0;
-#X connect 2 0 40 0;
-#X connect 3 0 40 0;
+#X connect 1 0 44 0;
+#X connect 2 0 44 0;
+#X connect 3 0 44 0;
 #X connect 5 0 1 0;
 #X connect 6 0 7 0;
 #X connect 7 0 5 1;
 #X connect 8 0 9 0;
 #X connect 9 0 10 0;
-#X connect 10 0 43 0;
+#X connect 10 0 40 0;
 #X connect 13 0 14 0;
 #X connect 15 0 17 0;
-#X connect 16 0 39 0;
-#X connect 17 0 39 0;
-#X connect 18 0 39 0;
-#X connect 19 0 39 0;
+#X connect 16 0 45 0;
+#X connect 17 0 45 0;
+#X connect 18 0 45 0;
+#X connect 19 0 45 0;
 #X connect 20 0 19 0;
 #X connect 21 0 22 0;
-#X connect 22 0 40 0;
+#X connect 22 0 44 0;
 #X connect 23 0 24 0;
-#X connect 24 0 39 0;
+#X connect 24 0 45 0;
 #X connect 26 0 25 0;
-#X connect 34 0 39 0;
-#X connect 35 0 40 0;
-#X connect 36 0 39 0;
-#X connect 37 0 40 0;
-#X connect 38 0 39 0;
-#X connect 39 0 27 0;
-#X connect 39 1 25 1;
-#X connect 39 2 25 2;
-#X connect 40 1 39 1;
-#X connect 40 1 39 2;
-#X connect 43 0 11 0;
-#X connect 43 1 12 0;
-#X restore 327 324 pd midi;
-#X text 223 169 Reset parameters to their defaults, f 15;
-#X msg 224 150 defaults;
+#X connect 34 0 45 0;
+#X connect 35 0 44 0;
+#X connect 36 0 45 0;
+#X connect 37 0 44 0;
+#X connect 38 0 45 0;
+#X connect 40 0 11 0;
+#X connect 40 1 12 0;
+#X connect 44 1 45 1;
+#X connect 44 1 45 2;
+#X connect 45 0 27 0;
+#X connect 45 1 25 1;
+#X connect 45 2 25 2;
+#X restore 327 364 pd midi;
+#X text 223 209 Reset parameters to their defaults, f 15;
+#X msg 224 190 defaults;
 #N canvas 702 414 463 334 receivers 0;
 #X text 22 19 The faustgen~ receiver can be used to send a message
 to all faustgen~ objects in a patch., f 25;
@@ -536,7 +549,6 @@ dsp..., f 25;
 #X msg 23 282 \; examples/gain-0 print;
 #X text 222 95 You can send a message to the instance name..., f 16
 ;
-#X obj 223 63 faustgen~ examples/gain foo;
 #X msg 302 153 \; examples/gain:foo print;
 #X msg 222 153 \; foo print;
 #X text 23 229 ... or to just a single instance given by its unique
@@ -549,18 +561,19 @@ name:, f 31;
 #X obj 274 300 s faustgen~;
 #X text 272 197 Two useful examples: recompile all faustgen~ objects
 \, and reset their control variables to the defaults., f 27;
-#X connect 12 0 14 0;
-#X connect 13 0 14 0;
-#X restore 327 350 pd receivers;
+#X obj 223 63 examples/gain~ foo;
+#X connect 11 0 13 0;
+#X connect 12 0 13 0;
+#X restore 327 390 pd receivers;
 #N canvas 574 322 453 354 gui 0;
 #N canvas 0 70 450 300 gain 0;
-#X obj 10 30 hsl 128 15 0 1 0 0 examples/gain-3/gain/gain examples/gain-3/gain/gain
+#X obj 10 30 hsl 128 15 0 1 0 0 examples/gain-2/gain/gain examples/gain-2/gain/gain
 gain -2 -6 0 10 -262144 -1 -1 0 1;
-#X obj 160 30 nbx 5 14 0 1 0 0 examples/gain-3/gain/gain examples/gain-3/gain/gain
+#X obj 160 30 nbx 5 14 0 1 0 0 examples/gain-2/gain/gain examples/gain-2/gain/gain
 empty 0 -6 0 10 -262144 -1 -1 0 256;
-#X obj 197 3 bng 15 250 50 1 examples/gain-3/init examples/gain-3/init
+#X obj 197 3 bng 15 250 50 1 examples/gain-2/init examples/gain-2/init
 empty 0 -6 0 10 -262144 -1 -1;
-#X obj 217 3 tgl 15 1 examples/gain-3/active examples/gain-3/active
+#X obj 217 3 tgl 15 1 examples/gain-2/active examples/gain-2/active
 empty 0 -6 0 10 -262144 -1 -1 1 1;
 #X coords 0 -1 1 1 235 60 1 0 0;
 #X restore 201 89 pd gain;
@@ -596,14 +609,13 @@ the dsp, f 33;
 #X connect 6 0 5 0;
 #X connect 7 0 1 1;
 #X connect 8 0 1 0;
-#X restore 413 350 pd gui;
+#X restore 413 390 pd gui;
 #N canvas 488 301 644 358 poly 0;
 #X msg 19 215 tuning;
 #X msg 19 238 tuning default;
 #X text 121 241 1/4 comma meantone;
 #X obj 19 155 print organ;
 #X obj 113 212 dac~;
-#X obj 19 180 faustgen~ examples/chorus chorus;
 #N canvas 0 0 450 300 organ 0;
 #X obj 10 30 hsl 128 15 0 1 0 0 examples/organ-0/organ/pan examples/organ-0/organ/pan
 pan -2 -6 0 10 -262144 -1 -1 6350 1;
@@ -653,7 +665,6 @@ empty 0 -6 0 10 -262144 -1 -1;
 empty 0 -6 0 10 -262144 -1 -1 1 1;
 #X coords 0 -1 1 1 235 330 1 0 0;
 #X restore 388 13 pd organ;
-#X obj 19 130 faustgen~ examples/organ organ, f 32;
 #X obj 19 286 s organ;
 #X msg 19 261 tuning examples/meanquar 9;
 #X obj 240 151 ctlin 123;
@@ -735,30 +746,22 @@ f 22;
 #X text 19 308 synths can be tuned with the tuning message \, giving
 either a Scala file and an optional reference tone in the octave \,
 or 12 tuning offsets in cent as arguments, f 58;
-#X connect 5 1 4 0;
-#X connect 5 2 4 1;
-#X connect 7 0 3 0;
-#X connect 7 1 5 1;
-#X connect 7 2 5 2;
-#X connect 9 0 8 0;
-#X connect 10 0 12 0;
-#X connect 12 0 13 0;
-#X connect 15 0 7 0;
-#X connect 15 0 5 0;
-#X restore 429 324 pd poly;
-#X text 26 423 faustgen~ website: github.com/agraef/pd-faustgen;
-#X text 26 459 This object was inspired by faustgen~ for Max developed
-by Martin Di Rollo and Stéphane Letz., f 50;
-#X text 26 409 faustgen~ institutions: CICM - ANR MUSICOLL \, JGU IKM
-- Music-Informatics, f 72;
-#X text 26 437 faustgen~ developers: Pierre Guillot \, Albert Gräf
-;
-#X text 26 489 The latest version by Albert Gräf adds many improvements
-\, most notably MIDI support \, polyphony \, and automatic Pd GUI generation.
-, f 67;
+#X obj 19 130 examples/organ~ organ, f 22;
+#X obj 19 180 examples/chorus chorus;
+#X connect 7 0 6 0;
+#X connect 8 0 10 0;
+#X connect 10 0 11 0;
+#X connect 13 0 16 0;
+#X connect 13 0 17 0;
+#X connect 16 0 3 0;
+#X connect 16 1 17 1;
+#X connect 16 2 17 2;
+#X connect 17 1 4 0;
+#X connect 17 2 4 1;
+#X restore 429 364 pd poly;
 #N canvas 491 261 770 406 osc 0;
 #X obj 19 155 print organ;
-#X obj 175 212 dac~;
+#X obj 146 207 dac~;
 #N canvas 916 411 450 300 midi-input 0;
 #X obj 14 50 ctlin;
 #X obj 14 71 pack f f f;
@@ -925,8 +928,6 @@ empty 0 -6 0 10 -262144 -1 -1;
 empty 0 -6 0 10 -262144 -1 -1 1 1;
 #X coords 0 -1 1 1 235 330 1 0 0;
 #X restore 525 15 pd organ-1;
-#X obj 19 130 faustgen~ examples/organ organ-1;
-#X obj 19 180 faustgen~ examples/amp amp-1, f 32;
 #X obj 210 377 s osc-in;
 #X obj 113 109 r osc-in;
 #X msg 210 285 oscout osc-out;
@@ -936,42 +937,45 @@ empty 0 -6 0 10 -262144 -1 -1 1 1;
 #X text 398 241 receive OSC output;
 #X obj 325 266 route /left /right;
 #X msg 18 249 /amp 0.5 0 0.25;
-#X connect 2 0 21 0;
-#X connect 2 0 22 0;
+#X obj 19 130 examples/organ~ organ-1;
+#X obj 19 180 examples/amp~ amp-1, f 23;
+#X connect 2 0 30 0;
+#X connect 2 0 31 0;
 #X connect 3 0 5 0;
-#X connect 4 0 23 0;
-#X connect 5 0 23 0;
+#X connect 4 0 21 0;
+#X connect 5 0 21 0;
 #X connect 6 0 8 0;
 #X connect 7 0 9 0;
-#X connect 8 0 28 0;
-#X connect 9 0 28 0;
-#X connect 10 0 28 0;
-#X connect 11 0 28 0;
-#X connect 12 0 28 0;
-#X connect 21 0 0 0;
-#X connect 21 1 22 1;
-#X connect 21 2 22 2;
-#X connect 22 1 1 0;
-#X connect 22 2 1 1;
-#X connect 24 0 21 0;
-#X connect 24 0 22 0;
-#X connect 25 0 23 0;
-#X connect 27 0 30 0;
-#X connect 30 0 17 0;
-#X connect 30 1 18 0;
-#X connect 30 2 26 0;
-#X connect 31 0 28 0;
-#X restore 381 324 pd osc;
-#X connect 1 0 2 0;
-#X connect 4 0 13 0;
-#X connect 5 0 6 0;
-#X connect 6 0 4 0;
-#X connect 13 0 21 0;
-#X connect 14 0 21 1;
+#X connect 8 0 26 0;
+#X connect 9 0 26 0;
+#X connect 10 0 26 0;
+#X connect 11 0 26 0;
+#X connect 12 0 26 0;
+#X connect 22 0 30 0;
+#X connect 22 0 31 0;
+#X connect 23 0 21 0;
+#X connect 25 0 28 0;
+#X connect 28 0 17 0;
+#X connect 28 1 18 0;
+#X connect 28 2 24 0;
+#X connect 29 0 26 0;
+#X connect 30 0 0 0;
+#X connect 30 1 31 1;
+#X connect 30 2 31 2;
+#X connect 31 1 1 0;
+#X connect 31 2 1 1;
+#X restore 381 364 pd osc;
+#X obj 62 282 examples/gain~;
+#X connect 13 0 14 0;
+#X connect 16 0 20 0;
 #X connect 17 0 18 0;
-#X connect 19 0 17 0;
-#X connect 20 0 19 0;
-#X connect 21 1 3 0;
-#X connect 21 1 3 1;
-#X connect 21 1 17 0;
-#X connect 29 0 21 0;
+#X connect 18 0 16 0;
+#X connect 20 0 39 0;
+#X connect 21 0 39 1;
+#X connect 24 0 25 0;
+#X connect 26 0 24 0;
+#X connect 27 0 26 0;
+#X connect 34 0 39 0;
+#X connect 39 1 15 0;
+#X connect 39 1 15 1;
+#X connect 39 1 24 0;
