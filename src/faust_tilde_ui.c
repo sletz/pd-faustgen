@@ -425,12 +425,14 @@ static void faust_ui_manager_free_names(t_faust_ui_manager *x)
 
 /* ag: Pd’s input syntax for symbols is rather restrictive. Whitespace is not
    allowed, and many punctuation characters have a special meaning in Pd.
-   However, any of these are allowed in Faust labels. Therefore group and
-   control labels in the Faust source are mangled into a form which only
-   contains alphanumeric characters and hyphens, so that the control names are
-   always legal Pd symbols. For instance, a Faust control name like "meter #1
-   (dB)" will become "meter-1-dB" which can be input directly as a symbol in
-   Pd without any problems. */
+   These can be escaped in some Pd versions, but not in others, and in any
+   case the rules may not be obvious. Because any of these special characters
+   are allowed in Faust labels, group and control labels in the Faust source
+   are mangled into a form which only contains alphanumeric characters and
+   hyphens, so that the control names are always legal Pd symbols, no matter
+   which Pd version you have. For instance, a Faust control name like "meter
+   #1 (dB)" will become "meter-1-dB" which can be input directly as a symbol
+   in Pd without any problems. */
 
 static t_symbol* mangle(const char* label)
 {

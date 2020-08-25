@@ -691,18 +691,7 @@ static void faustgen_tilde_anything(t_faustgen_tilde *x, t_symbol* s, int argc, 
             start = (int)argv[0].a_w.w_float;
             for(i = 0; i < argc - 1; ++i)
             {
-                if(start+i < 10)
-                {
-                    sprintf(name, "%s  %i", s->s_name, start+i);
-                }
-                else if(start+i < 100)
-                {
-                    sprintf(name, "%s %i", s->s_name, start+i);
-                }
-                else
-                {
-                    sprintf(name, "%s%i", s->s_name, start+i);
-                }
+                snprintf(name, MAXFAUSTSTRING, "%s%i", s->s_name, start+i);
                 if(argv[i+1].a_type != A_FLOAT)
                 {
                     pd_error(x, "faustgen~: active parameter requires a float value");
