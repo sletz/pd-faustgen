@@ -1436,11 +1436,60 @@ static FAUSTFLOAT translate_from_osc(double val, double min, double max,
   }
 }
 
-const t_symbol *faust_ui_manager_get_osc(t_faust_ui_manager *x, t_symbol const *s, int argc, t_atom* argv)
+static double translate_to_osc(FAUSTFLOAT z, FAUSTFLOAT p_min, FAUSTFLOAT p_max,
+			       int p_type, double min, double max);
+
+const t_symbol *faust_ui_manager_get_osc(t_faust_ui_manager *x, t_symbol const *s, int argc, t_atom* argv, t_symbol *oscrecv, t_outlet *out)
 {
   // The only check here is that the selector looks like a proper OSC message.
   // Any unrecognized OSC message will be simply ignored.
   if (*s->s_name != '/') return NULL;
+  // /dump [retsym] gives a quick way to inspect the current values and OSC
+  // ranges of all OSC-enabled UI elements.
+  if (strcmp(s->s_name, "/dump") == 0) {
+    // The optional reply symbol is used as the message selector if given,
+    // otherwise the OSC messages are simply output as is.
+    t_symbol *r = argc && argv[0].a_type == A_SYMBOL ?
+      argv[0].a_w.w_symbol : NULL;
+    t_faust_ui *c = x->f_uis;
+    while (c) {
+      for (size_t j = 0; j < c->p_nosc; j++) {
+	int ac = 0;
+	t_atom av[4];
+	double val = translate_to_osc(*c->p_zone, c->p_min, c->p_max,
+				      c->p_type, c->p_osc[j].a, c->p_osc[j].b);
+	if (r) {
+	  SETSYMBOL(av+ac, c->p_osc[j].msg); ac++;
+	}
+	SETFLOAT(av+ac, val); ac++;
+	if (r) {
+	  SETFLOAT(av+ac, c->p_osc[j].a); ac++;
+	  SETFLOAT(av+ac, c->p_osc[j].b); ac++;
+	  if (out) outlet_anything(out, r, ac, av);
+	  if (oscrecv && oscrecv->s_thing)
+	    typedmess(oscrecv->s_thing, r, ac, av);
+	} else {
+	  // Ranges are only sent if a reply symbol is given, here we only
+	  // report the current value of an element.
+	  t_symbol *t = c->p_osc[j].msg;
+	  if (out) outlet_anything(out, t, ac, av);
+	  if (oscrecv && oscrecv->s_thing)
+	    typedmess(oscrecv->s_thing, t, ac, av);
+	}
+      }
+      c = c->p_next;
+    }
+    if (r) {
+      // If we got a reply address, also send an "done" message which signals
+      // the end of the reply.
+      t_atom av;
+      SETSYMBOL(&av, gensym("done"));
+      if (out) outlet_anything(out, r, 1, &av);
+      if (oscrecv && oscrecv->s_thing)
+	typedmess(oscrecv->s_thing, r, 1, &av);
+    }
+    return s;
+  }
   // Run through all the active UI elements with OSC bindings and update
   // the elements that match.
   t_faust_ui *c = x->f_uis;
@@ -1777,9 +1826,13 @@ void faust_ui_manager_midiout(t_faust_ui_manager const *x, int midichan,
 }
 
 static double translate_to_osc(FAUSTFLOAT z, FAUSTFLOAT p_min, FAUSTFLOAT p_max,
-			       double min, double max)
+			       int p_type, double min, double max)
 {
-  if (fabs(p_min - p_max) < FLT_EPSILON) {
+  // We must also consider the UI element type here, since this function may
+  // also be called for *active* UI elements when processing /dump messages.
+  if (p_type == FAUST_UI_TYPE_BUTTON || p_type == FAUST_UI_TYPE_TOGGLE) {
+    return z==0.0 ? min : max;
+  } else if (fabs(p_min - p_max) < FLT_EPSILON) {
     // assert(z == p_min)
     return min;
   } else {
@@ -1812,7 +1865,7 @@ static int osc_defaultval(FAUSTFLOAT z, FAUSTFLOAT p_min, FAUSTFLOAT p_max,
 			  int p_type, double a, double b)
 {
   if (p_type == FAUST_UI_TYPE_BARGRAPH)
-    return translate_to_osc(z, p_min, p_max, a, b);
+    return translate_to_osc(z, p_min, p_max, p_type, a, b);
   else
     return -1;
 }
@@ -1830,7 +1883,7 @@ void faust_ui_manager_oscout(t_faust_ui_manager const *x,
 	double val = 0.0, oldval = c->p_osc[j].val;
 	t_atom argv[1];
 	val = translate_to_osc(*c->p_zone, c->p_min, c->p_max,
-			       c->p_osc[j].a, c->p_osc[j].b);
+			       c->p_type, c->p_osc[j].a, c->p_osc[j].b);
 	// only output changed values
 	if (val != oldval) {
 	  c->p_osc[j].val = val;

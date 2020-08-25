@@ -638,7 +638,7 @@ static void faustgen_tilde_anything(t_faustgen_tilde *x, t_symbol* s, int argc, 
 {
     if(x->f_dsp_instance)
     {
-        const t_symbol *msg_s = faust_ui_manager_get_osc(x->f_ui_manager, s, argc, argv);
+        const t_symbol *msg_s = faust_ui_manager_get_osc(x->f_ui_manager, s, argc, argv, x->f_oscrecv, x->f_oscout ? faust_io_manager_get_extra_output(x->f_io_manager) : NULL);
         if(msg_s) return;
 
         int msg = faust_ui_manager_get_midi(x->f_ui_manager, s, argc, argv, x->f_midichanmsk);
