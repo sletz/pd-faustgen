@@ -111,8 +111,8 @@ sqr(x)		= x*x;
 
 /* The dB meters for left and right channel. These are passive controls. */
 
-left_meter(x)	= attach(x, env(x) : hbargraph("left [midi:ctrl 18] [unit:dB]", -60, 10));
-right_meter(x)	= attach(x, env(x) : hbargraph("right [midi:ctrl 19] [unit:dB]", -60, 10));
+left_meter(x)	= attach(x, env(x) : hbargraph("left [midi:ctrl 18] [osc:/left -60 10] [unit:dB]", -60, 10));
+right_meter(x)	= attach(x, env(x) : hbargraph("right [midi:ctrl 19] [osc:/right -60 10] [unit:dB]", -60, 10));
 
 /* The main program. */
 
