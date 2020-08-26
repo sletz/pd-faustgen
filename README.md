@@ -1,93 +1,131 @@
 
 <p align="center">
   <h1 align="center">
-  <img width="50" alt="FaustLogo" img src="https://user-images.githubusercontent.com/1409918/64951909-41544a00-d87f-11e9-87dd-720e0f8e1570.png"/> faustgen~ <img width="40" alt="PdLogo" img src="https://user-images.githubusercontent.com/1409918/64951943-5335ed00-d87f-11e9-9b52-b4b6af47d7ba.png"/>
+  <img width="50" alt="FaustLogo" img src="https://user-images.githubusercontent.com/1409918/64951909-41544a00-d87f-11e9-87dd-720e0f8e1570.png"/> faustgen2~ <img width="40" alt="PdLogo" img src="https://user-images.githubusercontent.com/1409918/64951943-5335ed00-d87f-11e9-9b52-b4b6af47d7ba.png"/>
   </h1>
   <p align="center">
-    The FAUST compiler embedded in a Pd external
-  </p>
-  <p align="center">
-    <a href="https://travis-ci.org/CICM/pd-faustgen/builds"><img src="https://img.shields.io/travis/CICM/pd-faustgen.svg?label=travis" alt="Travis CI"></a>
-    <a href="https://ci.appveyor.com/project/CICM/pd-faustgen/history"><img src="https://img.shields.io/appveyor/ci/CICM/pd-faustgen.svg?label=appveyor" alt="Appveyor CI"></a>
-    <a href="https://app.codacy.com/project/CICM/pd-faustgen/dashboard"><img src="https://api.codacy.com/project/badge/Grade/a89aaf703bf045a383ff4a28d6d4b173"/></a>
+    The Faust compiler in a box
+	<img alt="Screenshot" img src="faustgen2~.png"/>
   </p>
 </p>
 
-## Presentation
+## Introduction
 
-The **faustgen~** object is an external with the [FAUST](http://faust.grame.fr/about/) just-in-time (JIT) compiler embedded that allows to load, compile and play FAUST files within the audio programming environment [Pure Data](http://msp.ucsd.edu/software.html). FAUST (Functional Audio Stream) is a functional programming language specifically designed for real-time signal processing and synthesis developed by the [GRAME](http://www.grame.fr/). The FAUST JIT compiler - built with [LLVM](https://llvm.org/) - brings together the convenience of a standalone interpreted language with the efficiency of a compiled language. The **faustgen~** object is a very first version with elementary features, any help and any contribution are welcome.
+The **faustgen2~** object is a [Faust](https://faust.grame.fr/) external for Pd a.k.a. [Pure Data](http://msp.ucsd.edu/software.html), Miller Puckette's interactive multimedia programming environment. Yann Orlarey's Faust is a functional programming language developed by [Grame](https://www.grame.fr/), which is tailored for real-time signal processing and synthesis.
 
-<p align="center">
-<a href="https://vimeo.com/282672255"><img width="440" alt="video1" src="https://user-images.githubusercontent.com/1409918/44655622-1be76a80-a9f6-11e8-90dc-ce01d6734a28.png"></a> <a href="https://vimeo.com/286662395"><img width="440" alt="video2" src="https://user-images.githubusercontent.com/1409918/44655623-1be76a80-a9f6-11e8-86e0-4519609f2e4c.png"></a>
-</p>
+faustgen2~ was written by Albert Gräf (JGU Mainz, IKM, Music Informatics) based on [faustgen~](https://github.com/CICM/pd-faustgen) by  Pierre Guillot (Paris 8, CICM), which in turn was inspired by Grame's [faustgen~](https://github.com/grame-cncm/faust/tree/master-dev/embedded/faustgen) object for Max/MSP. faustgen2~ is a comprehensive update which offers plenty new features, bringing it up to par with both Grame's faustgen~ and the author's [pd-faust](https://agraef.github.io/pure-docs/pd-faust.html) external.
 
+faustgen2~, like faustgen~, uses Faust's [LLVM](http://llvm.org)-based just-in-time (JIT) compiler to load, compile and play Faust programs on the fly. The Faust JIT compiler brings together the convenience of a standalone interpreted language with the efficiency of a compiled language.
 
-**Dependencies:**
+Binary packages for Mac and Windows containing the ready-to-use external are available at <https://github.com/agraef/pd-faustgen/releases>. Please use these if you can. If you want or need to compile faustgen2~ yourself, see the instructions below.
 
-- [LLVM](http://llvm.org)
-- [FAUST](https://github.com/grame-cncm/faust.git)
-- [Pure Data](https://github.com/pure-data/pure-data.git)
-- [CMake](https://cmake.org/)
-- [pd.build](https://github.com/pierreguillot/pd.build.git)
+## Prerequisites
 
-## Compilation
+To compile faustgen2~ you'll need [LLVM](http://llvm.org), [Faust](https://github.com/grame-cncm/faust.git), [Pd](https://github.com/pure-data/pure-data.git), and [CMake](https://cmake.org/). The sources for Faust and Pd are included, so you don't have to install these beforehand, but of course you'll want to install Pd (or one of its flavors, such as [Purr Data](https://agraef.github.io/purr-data/)) to use faustgen2~. If you already have an installation of the Faust compiler (including libfaust), you can use that version instead of the included Faust source, which will make the installation much easier and faster. Make sure that you have Faust 2.27.2 or later (older versions may or may not work with faustgen2~, use at your own risk), and LLVM 9.0.0 or later.
 
-The FAUST compiler requires LLVM 9.0.0 backend (or higher). Once LLVM is installed on your machine, you can use CMake to generate a project that will compile both the FAUST library and the Pure Data external. Then you can use Deken to release the external.
+If you're running Linux, recent versions of LLVM and cmake should be readily available in your distribution's package repositories. On the Mac, they are available in MacPorts or Homebrew. On Windows, you can get them via Visual Studio, or install them from the corresponding websites.
 
-#### Installing LLVM
+Please also check the [original (faustgen~) README](README-CICM.md), which goes into more detail about installing LLVM and how to upload an external to Deken, Pd's package manager. Up-to-date information on how to install faustgen2~ can be found below.
 
-The fastest solution to install LLVM is to download the precompiled binaries from the [LLVM website](http://releases.llvm.org). For example, on the Travis CI for MacOS, we assume that the binaries are installed in the llvm folder at the root of the project:
+## Getting the Source Code
 
-```
-curl -o ./llvm.tar.xz -L https://releases.llvm.org/9.0.0/clang+llvm-9.0.0-x86_64-darwin-apple.tar.xz
-tar xzf ./llvm.tar.xz && mv clang+llvm-9.0.0-x86_64-darwin-apple llvm
-```
-or a for a linux system
-```
-curl -o ./llvm.tar.gz https://releases.llvm.org/9.0.0/clang+llvm-9.0.0-x86_64-linux-gnu-ubuntu-14.04.tar.xz
-tar xvf ./llvm.tar.gz && mv clang+llvm-9.0.0-x86_64-linux-gnu-ubuntu-14.04 llvm
-```
-You can also use HomeBrew or MacPorts on macOS or APT on Linux the compilation of the sources last around 50 minutes and in this case, you change the LLVM_DIR with the proper location.
+You can install either from a released source tarball available at <https://github.com/agraef/pd-faustgen>, or from the Git sources. The latter can be obtained as follows:
 
-On Windows, you must compile from sources using the static runtime library. Compiling LLVM with the Microsoft Visual Compiler requires to use the static runtime library, for example:
-```
-cd llvm-9.0.0.src && mkdir build && cd build
-cmake .. -G "Visual Studio 16 2019" -DLLVM_USE_CRT_DEBUG=MTd -DLLVM_USE_CRT_RELEASE=MT -DLLVM_BUILD_TESTS=Off -DCMAKE_INSTALL_PREFIX="./llvm" -Thost=x64
-cmake --build . --target ALL_BUILD (--config Debug/Release)
-cmake --build . --target INSTALL (optional)
-```
-You can also use the pre-compiled libraries used on the Appveyor CI.
-
-#### Compiling the FAUST library and the Pd external
-
-```
+~~~shell
+git clone https://github.com/agraef/pd-faustgen.git
 git submodule update --init --recursive
+~~~
+
+Note that the second command above will check out various required sources from other locations which are included in faustgen2~ as git submodules. The distributed tarballs are self-contained and already include all the submodule sources.
+
+## Build
+
+faustgen2~ uses cmake as its build system. Having installed all the dependencies and unpacked the sources, you can build faustgen2~ starting from its source directory as follows:
+
+~~~shell
 mkdir build && cd build
 cmake ..
-cmake --build .
-```
-Useful CMake options:
-- `USE_LLVM_CONFIG` to disable default LLVM location for FAUST (for example: `-DUSE_LLVM_CONFIG=off`).
-- `LLVM_DIR` to define LLVM location for FAUST and the Pd external (for example: `-DLLVM_DIR=./llvm/lib/cmake/llvm`).
+make
+~~~
 
-see also the files `.travis.yml` and `appveyor.yml`.
+This should work at least on Linux and Mac. If your system doesn't have a working make program, you can also try `cmake --build .` instead. (Using MSYS or MSYS2 on Windows, you'll have to add the option `-G "MSYS Makefiles"` when running cmake. Right now, this still requires a fair amount of fiddling with the sources, so you might want to make your life a lot easier by using the precompiled binaries. Compilation with MSVC should work out of the box, though.)
 
-#### Publishing with Deken
+The above will compile the included Faust source and use that to build the external. This may take a while. To use an installed Faust library, you can run cmake as follows:
 
-Once the binaries are compiled or uploaded with Travis and Appveyor to the releases section of GitHub, the external can be published using [Deken](https://github.com/pure-data/deken). First of all, you must have an account on the website https://puredata.info and the [Deken plugin for developers](https://github.com/pure-data/deken/blob/master/developer/README.md) installed. On Windows run the script FaustDeken.bat located in the deken subdirectory with the version of the external, for example: `FaustDeken 0.0.1`. On Unix systems, run the script FaustDeken.sh the deken subdirectory with the version of the external, for example: `FaustDeken.sh 0.0.1`. Once the deken files are prepared, you can upload the files to puredata.info using  `FaustDeken.sh upload 0.0.1`.
+~~~shell
+cmake .. -DINSTALLED_FAUST=ON
+~~~
+
+This will be *much* faster than using the included Faust source. By default, this will link libfaust statically. You can also link against the shared library if you have it, as follows:
+
+~~~shell
+cmake .. -DINSTALLED_FAUST=ON -DSTATIC_FAUST=OFF
+~~~
+
+If you have Faust installed in a custom location, so that cmake fails to find the installed Faust library, you can point cmake to the library file (libfaust.a or libfaust.so on Linux, libfaust.a or libfaust.dylib on the Mac, faust.lib or faust.dll on Windows), e.g., like this:
+
+~~~shell
+cmake .. -DFAUST_LIBRARY=/some/path/to/libfaust.a
+~~~
+
+cmake should then be able to find the other required files (include and dsp library files) on its own. If all else fails, just use the included Faust source, this should always work.
+
+## Install
+
+Once the compilation finishes, you can install the external by running `make install` or `cmake . --install` from the build directory. By default, installation will go into the lib/pd/extra/faustgen2~ directory on Linux, and to just faustgen2~ on Mac and Windows, but this directory can be changed by setting the INSTALL_DIR variable at configuration time (`cmake .. -DINSTALL_DIR=some/path`). In any case, this directory is taken relative to cmake's CMAKE_INSTALL_PREFIX, which has an OS-specific default (e.g., on Linux it is /usr/local), but can be set with the `--prefix` option at installation time when running `cmake . --install`, see below.
+
+### The TL;DR
+
+Follow this cheat sheet and adjust the paths accordingly:
+
+#### Linux
+
+Either just `make install` or `cmake . --install --prefix /usr` (depending on whether you have Pd under /usr/local or /usr) should hopefully do the trick.
+
+#### Mac
+
+Use `cmake . --install --prefix ~/Library/Pd` for personal or `sudo cmake . --install --prefix /Library/Pd` for system-wide installation. That should be the safest option, since your Pd extra directory most likely lives somewhere in the Pd application bundle, which you usually don't want to touch.
+
+#### Windows
+
+Try `cmake . --install --prefix "/Users/Your Name/AppData/Roaming/Pd"` for personal or `cmake . --install --prefix "/Program Files/Pd/extra"` for system-wide installation. The prefix for the latter may vary *a lot* depending on which package you use and how you installed it (e.g., use the "Program Files (x86)" folder if you're running the 32 bit version of Pd). If you installed Pd from a zip package then all bets are off, and you should go look where your extra directory is and adjust the prefix path accordingly.
+
+### Staged Installation
+
+It's also possible (and recommended) to do a "staged install" first. You can do that in a platform-independent way as follows:
+
+~~~shell
+cmake . --install --prefix staging
+~~~
+
+This will leave the installed files in the staging subdirectory of your build directory. On Linux and other Unix-like systems, you can also run:
+
+~~~shell
+make install DESTDIR=staging
+~~~
+
+This has the advantage that it keeps the CMAKE_INSTALL_PREFIX intact, and thus the staging directory will contain the entire directory hierarchy, as `make install` would create it.
+
+The staged installation allows you to see beforehand what exactly gets installed and where. You can then still make up your mind, or just grab the faustgen2~ folder and install it manually wherever you want it to go. To do this, you have to copy the faustgen2~ folder from the staging area to a directory where Pd looks for externals. Please consult your local Pd documentation or check the [Pd FAQ](https://puredata.info/docs/faq/how-do-i-install-externals-and-help-files) for details.
+
+### Faust Loader
+
+After finishing the installation, you also want to add faustgen~ to Pd's startup libraries. This isn't necessary to run the faustgen2~ external under its name, but loading the external at startup enables its included *loader extension* which hooks into Pd's abstraction and external loader. This allows you to create Faust dsps by just typing their names (*without* the faustgen2~ prefix), just as if the dsp files themselves were Pd externals (which effectively they are, although they're loaded through the faustgen2~ object rather than Pd's built-in loader).
+
+## Run
+
+You can try the external without installing it first, by running it directly from the staging area (see "Staged Installation" above), or you can give it a go after finishing installation. The faustgen2~ help patch is a good place to start, as it describes the many features in quite some detail (make sure you explore all of the subpatches to get a good overview). If you installed faustgen2~ in a folder which is searched by Pd for externals, the help patch should also be shown in Pd's help browser.
+
+To start using faustgen2~ in your own projects, you will have to finish the installation as described in the preceding section. Start from an empty patch and a Faust dsp file, both in the same directory. You can then just create an object like `faustgen2~ amp` and connect its inlets and outlets as explained in the help patch.
+
+To avoid having to type `faustgen2~` each time you create an object, you can add `faustgen2~` to your startup libraries in Pd in order to enable its loader extension, as described under "Faust Loader" above. faustgen2~ then lets you type just the dsp name (e.g., `amp~` or `amp`) and be done with it. The trailing tilde is optional (and ignored when searching for the dsp file) but customary to denote dsp objects in Pd, so faustgen2~ supports this notation.
+
+faustgen2~ offers many other possibilities, such as MIDI (including monophonic and polyphonic synths, using the author's [SMMF](https://bitbucket.org/agraef/pd-smmf/) format for representing MIDI messages), communication with OSC (Open Sound Control) devices or applications, and automatic generation of Pd GUIs. These are all explained in the help patch. Running Faust dsps in Pd has never been easier!
+
+## Author
+
+Albert Gräf, Johannes Gutenberg University (JGU) Mainz/Germany, IKM, Music-Informatics department <aggraef at gmail.com>
 
 ## Credits
 
-**FAUST institution**: GRAME  
-**FAUST website**: faust.grame.fr  
-**FAUST developers**: Yann Orlarey, Stéphane Letz, Dominique Fober and others  
-
-**faustgen~ institutions**: CICM - ANR MUSICOLL  
-**faustgen~ website**: github.com/CICM/pd-faustgen  
-**faustgen~ developer**: Pierre Guillot
-
-## Legacy
-
-This **faustgen~** object for Pd is inspired by the **faustgen~** object for Max developed by Martin Di Rollo and Stéphane Letz.
-
-Another **faust~** object has been developed by Albert Graef using the programming language [Pure](https://github.com/agraef/pure-lang).
+Many thanks are due to Pierre Guillot from CICM (Paris 8) for his awesome faustgen~ external which faustgen2~ is based on. Without Pierre's pioneering work the present version simply wouldn't exist. I'd also like to say thanks for his artwork which I shamelessly pilfered for this updated version of the README.
