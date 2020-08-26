@@ -990,7 +990,7 @@ static void *faustgen_tilde_new(t_symbol* s, int argc, t_atom* argv)
     {
         char default_file[MAXPDSTRING];
         bool is_loader_obj = strcmp(s->s_name, "faustgen2~") != 0;
-        sprintf(default_file, "%s/.default", class_gethelpdir(faustgen_tilde_class));
+        sprintf(default_file, "%s/default", class_gethelpdir(faustgen_tilde_class));
         x->f_dsp_factory    = NULL;
         x->f_dsp_instance   = NULL;
         

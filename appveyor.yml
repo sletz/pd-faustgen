@@ -30,7 +30,7 @@ after_build:
   - copy LICENSE external\LICENSE.txt
   - xcopy /S /E /Y /I .\faust\libraries .\external\libs
   - xcopy /S /E /Y /I .\src .\external\sources
-  - attrib +R external\.default.dsp
+  - attrib +R external\default.dsp
   - rename external faustgen2~
   - 7z a "faustgen2_tilde-%release_arch%-sources.zip" faustgen2~
 
