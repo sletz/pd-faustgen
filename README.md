@@ -106,21 +106,37 @@ make install DESTDIR=staging
 
 This has the advantage that it keeps the CMAKE_INSTALL_PREFIX intact, and thus the staging directory will contain the entire directory hierarchy, as `make install` would create it.
 
-The staged installation allows you to see beforehand what exactly gets installed and where. You can then still make up your mind, or just grab the faustgen2~ folder and install it manually wherever you want it to go. To do this, you have to copy the faustgen2~ folder from the staging area to a directory where Pd looks for externals. Please consult your local Pd documentation or check the [Pd FAQ](https://puredata.info/docs/faq/how-do-i-install-externals-and-help-files) for details.
+The staged installation allows you to see beforehand what exactly gets installed and where. You can then still make up your mind, or just grab the faustgen2~ folder and install it manually wherever you want it to go. To do this, you have to copy the faustgen2~ folder from the staging area to a directory where Pd looks for externals. Please consult your local Pd documentation or check the [Pd FAQ](https://puredata.info/docs/faq/how-do-i-install-externals-and-help-files) for some options on different platforms. Alternatively, you can also just place a local copy of the external into any directory containing patches in which it is to be used.
 
 ### Faust Loader
 
 After finishing the installation, you also want to add faustgen~ to Pd's startup libraries. This isn't necessary to run the faustgen2~ external under its name, but loading the external at startup enables its included *loader extension* which hooks into Pd's abstraction and external loader. This allows you to create Faust dsps by just typing their names (*without* the faustgen2~ prefix), just as if the dsp files themselves were Pd externals (which effectively they are, although they're loaded through the faustgen2~ object rather than Pd's built-in loader).
 
+If you do *not* want to add faustgen2~ to the startup libraries for some reason, there are other ways to activate the loader when you need it. The most portable of these is Pd's `declare`. To these ends, place `declare -lib faustgen2~` *first* into each patch which requires the loader. Note that the `-lib` option will search the patch directory first, so it will work if you use a local copy of faustgen2~. If the external has been installed on Pd's search path, then using `-stdlib` in lieu of `-lib` will also do the job.
+
 ## Run
 
 You can try the external without installing it first, by running it directly from the staging area (see "Staged Installation" above), or you can give it a go after finishing installation. The faustgen2~ help patch is a good place to start, as it describes the many features in quite some detail (make sure you explore all of the subpatches to get a good overview). If you installed faustgen2~ in a folder which is searched by Pd for externals, the help patch should also be shown in Pd's help browser.
 
-To start using faustgen2~ in your own projects, you will have to finish the installation as described in the preceding section. Start from an empty patch and a Faust dsp file, both in the same directory. You can then just create an object like `faustgen2~ amp` and connect its inlets and outlets as explained in the help patch.
+To start using faustgen2~ in your own projects, you will have to finish the installation as described in the preceding section. Start from an empty patch and a Faust dsp file, both in the same directory. You can then just create an object like `faustgen2~ amp` and connect its inlets and outlets to some audio sources and sinks such as `osc~`, `adc~`, and `dac~`. If everything has been set up properly, you should be able to hear the output from the dsp.
 
 To avoid having to type `faustgen2~` each time you create an object, you can add `faustgen2~` to your startup libraries in Pd in order to enable its loader extension, as described under "Faust Loader" above. faustgen2~ then lets you type just the dsp name (e.g., `amp~` or `amp`) and be done with it. The trailing tilde is optional (and ignored when searching for the dsp file) but customary to denote dsp objects in Pd, so faustgen2~ supports this notation.
 
-faustgen2~ offers many other possibilities, such as MIDI (including monophonic and polyphonic synths, using the author's [SMMF](https://bitbucket.org/agraef/pd-smmf/) format for representing MIDI messages), communication with OSC (Open Sound Control) devices or applications, and automatic generation of Pd GUIs. These are all explained in the help patch. Running Faust dsps in Pd has never been easier!
+### Getting Started
+
+Let's try a fun little example. Here's the mynoise.dsp program:
+
+~~~faust
+random  = +(12345)~*(1103515245);
+noise   = random/2147483647.0;
+process = noise * hslider("vol", 0.5, 0, 1, 0.01);
+~~~
+
+Create an empty patch in the same directory as mynoise.dsp and add the `declare -lib faustgen2~` object to it, so that the loader extension is activated (or make sure that you have faustgen2~ in your startup libraries, then you don't need this). Next add the `mynoise~` object to the patch. In Pd's console you should see a message like "faustgen2~ mynoise (0/1)" which indicates that the dsp was loaded successfully and that it has zero inputs and one output. The single output will be available as an outlet on the *right* (the leftmost inlet/outlet pair is for control input and output only). Connect that outlet to a `dac~` object, make sure that dsp processing is on, and you should now be able to hear some white noise.
+
+It's as simple as that! But note that the Faust dsp also has a control variable "vol" which we can use to change the output volume. We could change that control by sending messages to mynoise~'s left control inlet, but faustgen2~ makes it even easier than that, because we can just have faustgen2~ create a Pd GUI in the form of a GOP subpatch for us. To these ends, add a new one-off subpatch named "noise" (create a `pd noise` object). Just leave the subpatch empty and close its window. Next edit the `mynoise~` object so that it becomes `mynoise~ noise` (this references the noise subpatch we just created). You should now see the subpatch being populated with a horizontal slider and a number entry, and once you're out of edit mode you can change the volume using either of these. Try it!
+
+faustgen2~ offers many other possibilities, such as MIDI input and output (including monophonic and polyphonic synths, using the author's [SMMF](https://bitbucket.org/agraef/pd-smmf/) format for representing MIDI messages), and communication with OSC (Open Sound Control) devices and applications such as TouchOSC. These are all explained in the help patch. Running Faust dsps in Pd has never been easier!
 
 ## Author
 
