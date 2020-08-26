@@ -7,8 +7,8 @@
 # the submodules.
 
 # Invoke this in the toplevel directory as `./make-dist.sh`. It will leave the
-# tarball as pd-faustgen-<version>.tar.gz in the toplevel directory. Temporary
-# data is written to the pd-faustgen-<version> directory, which is
+# tarball as pd-faustgen2-<version>.tar.gz in the toplevel directory. Temporary
+# data is written to the pd-faustgen2-<version> directory, which is
 # automatically deleted afterwards. The version number is extracted from
 # src/faustgen_tilde.c, so make sure to keep that up-to-date.
 
@@ -20,7 +20,7 @@
 version=$(grep "#define FAUSTGEN_VERSION_STR" src/faustgen_tilde.c | sed 's|^#define *FAUSTGEN_VERSION_STR *"\(.*\)".*|\1|')
 
 # Distribution basename and name of the source tarball.
-dist=pd-faustgen-$version
+dist=pd-faustgen2-$version
 src=$dist.tar.gz
 
 # Make sure that the submodules are initialized.
