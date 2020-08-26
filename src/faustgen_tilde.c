@@ -26,7 +26,7 @@
 #include "faust_tilde_io.h"
 #include "faust_tilde_options.h"
 
-#define FAUSTGEN_VERSION_STR "0.1.2.1"
+#define FAUSTGEN_VERSION_STR "2.0.0"
 #define MAXFAUSTSTRING 4096
 
 // ag: GUI update interval for the passive controls (msec). A zero value will
@@ -122,8 +122,8 @@ static void faustgen_tilde_compile(t_faustgen_tilde *x)
         factory = createCDSPFactoryFromFile(filepath, noptions, options, "", errors, -1);
         if(strnlen(errors, MAXFAUSTSTRING))
         {
-            pd_error(x, "faustgen~: try to load %s", filepath);
-            pd_error(x, "faustgen~: %s", errors);
+            pd_error(x, "faustgen2~: try to load %s", filepath);
+            pd_error(x, "faustgen2~: %s", errors);
             faustgen_tilde_delete_instance(x);
             faustgen_tilde_delete_factory(x);
             canvas_resume_dsp(dspstate);
@@ -135,7 +135,7 @@ static void faustgen_tilde_compile(t_faustgen_tilde *x)
         {
             const int ninputs = getNumInputsCDSPInstance(instance);
             const int noutputs = getNumOutputsCDSPInstance(instance);
-            logpost(x, 3, "faustgen~ %s (%d/%d)", x->f_dsp_name->s_name, ninputs, noutputs);
+            logpost(x, 3, "faustgen2~ %s (%d/%d)", x->f_dsp_name->s_name, ninputs, noutputs);
             faust_ui_manager_init(x->f_ui_manager, instance);
             faust_io_manager_init(x->f_io_manager, ninputs, noutputs);
             
@@ -155,11 +155,11 @@ static void faustgen_tilde_compile(t_faustgen_tilde *x)
         deleteCDSPFactory(factory);
         faustgen_tilde_delete_instance(x);
         faustgen_tilde_delete_factory(x);
-        pd_error(x, "faustgen~: memory allocation failed - instance");
+        pd_error(x, "faustgen2~: memory allocation failed - instance");
         canvas_resume_dsp(dspstate);
         return;
     }
-    pd_error(x, "faustgen~: source file not found %s", x->f_dsp_name->s_name);
+    pd_error(x, "faustgen2~: source file not found %s", x->f_dsp_name->s_name);
     canvas_resume_dsp(dspstate);
 }
 
@@ -187,7 +187,7 @@ static void faustgen_tilde_menu_open(t_faustgen_tilde *x)
     else
       sys_vgui("::pd_menucommands::menu_openfile {%s}\n", pathname);
   } else {
-    pd_error(x, "faustgen~: no FAUST DSP file defined");
+    pd_error(x, "faustgen2~: no FAUST DSP file defined");
   }
 }
 
@@ -224,7 +224,7 @@ static void faustgen_tilde_open_texteditor(t_faustgen_tilde *x)
         return;
 #endif
     }
-    pd_error(x, "faustgen~: no FAUST DSP file defined");
+    pd_error(x, "faustgen2~: no FAUST DSP file defined");
 }
 #endif
 
@@ -278,7 +278,7 @@ static void faustgen_tilde_print(t_faustgen_tilde *x)
 {
     if(x->f_dsp_factory)
     {
-        post("faustgen~: %s", faust_opt_manager_get_full_path(x->f_opt_manager, x->f_dsp_name->s_name));
+        post("faustgen2~: %s", faust_opt_manager_get_full_path(x->f_opt_manager, x->f_dsp_name->s_name));
         post("unique name: %s", x->f_unique_name->s_name);
         if (x->f_instance_name)
           post("instance name: %s", x->f_instance_name->s_name);
@@ -309,7 +309,7 @@ static void faustgen_tilde_print(t_faustgen_tilde *x)
     }
     else
     {
-        pd_error(x, "faustgen~: no FAUST DSP file defined");
+        pd_error(x, "faustgen2~: no FAUST DSP file defined");
     }
 }
 
@@ -366,7 +366,7 @@ static void faustgen_tilde_dump(t_faustgen_tilde *x, t_symbol *outsym)
       SETFLOAT(argv, numparams);
       out_anything(outsym, out, gensym("numparams"), 1, argv);
     } else {
-      pd_error(x, "faustgen~: no FAUST DSP file defined");
+      pd_error(x, "faustgen2~: no FAUST DSP file defined");
     }
 }
 
@@ -405,7 +405,7 @@ static void faustgen_tilde_tuning(t_faustgen_tilde *x, t_symbol* s, int argc, t_
     else
       ext = ".scl";
     if (base < 0 || base > 11) {
-      pd_error(x, "faustgen~: wrong 2nd argument to Scala tuning (expected reference tone 0..11)");
+      pd_error(x, "faustgen2~: wrong 2nd argument to Scala tuning (expected reference tone 0..11)");
       return;
     }
     if (strcmp(name, "default") == 0)
@@ -418,12 +418,12 @@ static void faustgen_tilde_tuning(t_faustgen_tilde *x, t_symbol* s, int argc, t_
       int fd = canvas_open(canvas_getcurrent(), name, ext, realdir,
 			   &realname, MAXPDSTRING, 0);
       if (fd < 0) {
-	pd_error(x, "faustgen~: can't find %s.scl", name);
+	pd_error(x, "faustgen2~: can't find %s.scl", name);
 	return;
       }
       FILE *fp = fdopen(fd, "r");
       if (!fp) {
-	pd_error(x, "faustgen~: can't open %s", realname);
+	pd_error(x, "faustgen2~: can't open %s", realname);
 	return;
       }
       size_t lines = 0, state = 0;
@@ -447,10 +447,10 @@ static void faustgen_tilde_tuning(t_faustgen_tilde *x, t_symbol* s, int argc, t_
 	  case 1:
 	    // scale size, we expect 12 for an octave-based tuning
 	    if (sscanf(buf, "%d", &n) != 1) {
-	      pd_error(x, "faustgen~: %s:%lu: expected scale size", realname, lines);
+	      pd_error(x, "faustgen2~: %s:%lu: expected scale size", realname, lines);
 	      return;
 	    } else if (n != 12) {
-	      pd_error(x, "faustgen~: %s:%lu: not an octave-based tuning", realname, lines);
+	      pd_error(x, "faustgen2~: %s:%lu: not an octave-based tuning", realname, lines);
 	      return;
 	    }
 	    n = 0;
@@ -466,7 +466,7 @@ static void faustgen_tilde_tuning(t_faustgen_tilde *x, t_symbol* s, int argc, t_
 	      if (p > 0 && q > 0) {
 	        c = 1200.0*log((t_float)p/(t_float)q)/log(2.0);
 	      } else {
-		pd_error(x, "faustgen~: %s:%lu: invalid ratio", realname, lines);
+		pd_error(x, "faustgen2~: %s:%lu: invalid ratio", realname, lines);
 		return;
 	      }
 	    } else if (sscanf(buf, "%g%n", &c, &pos) == 1 && is_blank(buf+pos)) {
@@ -478,7 +478,7 @@ static void faustgen_tilde_tuning(t_faustgen_tilde *x, t_symbol* s, int argc, t_
 	        c = 1200.0*log(c)/log(2.0);
 	      }
 	    } else {
-	      pd_error(x, "faustgen~: %s:%lu: expected ratio or cent value", realname, lines);
+	      pd_error(x, "faustgen2~: %s:%lu: expected ratio or cent value", realname, lines);
 	      return;
 	    }
 	    c -= n*100.0;
@@ -487,7 +487,7 @@ static void faustgen_tilde_tuning(t_faustgen_tilde *x, t_symbol* s, int argc, t_
 		// also, the 12th scale point (which isn't part of the tuning
 		// table) should be a reasonably exact octave
 		(n == 12 && fabs(c) > 1e-8)) {
-	      pd_error(x, "faustgen~: %s:%lu: tuning offset out of range", realname, lines);
+	      pd_error(x, "faustgen2~: %s:%lu: tuning offset out of range", realname, lines);
 	      return;
 	    }
 	    if (n < 12)
@@ -523,7 +523,7 @@ static void faustgen_tilde_tuning(t_faustgen_tilde *x, t_symbol* s, int argc, t_
       return;
     }
   }
-  pd_error(x, "faustgen~: wrong arguments to tuning (expected Scala filename or 12 tuning offsets in cent)");
+  pd_error(x, "faustgen2~: wrong arguments to tuning (expected Scala filename or 12 tuning offsets in cent)");
 }
 
 static void faustgen_tilde_allnotesoff(t_faustgen_tilde *x)
@@ -621,7 +621,7 @@ static void faustgen_tilde_midichan(t_faustgen_tilde *x, t_symbol* s, int argc, 
       } else {
 	char buf[MAXPDSTRING];
 	atom_string(&argv[i], buf, MAXPDSTRING);
-	pd_error(x, "faustgen~: bad midi channel number '%s'", buf);
+	pd_error(x, "faustgen2~: bad midi channel number '%s'", buf);
       }
     }
     if (x->f_midichanmsk != oldmsk)
@@ -655,14 +655,14 @@ static void faustgen_tilde_anything(t_faustgen_tilde *x, t_symbol* s, int argc, 
                 outlet_anything(faust_io_manager_get_extra_output(x->f_io_manager), s, 1, &av);
                 return;
             }
-            pd_error(x, "faustgen~: parameter '%s' not defined", s->s_name);
+            pd_error(x, "faustgen2~: parameter '%s' not defined", s->s_name);
             return;
         }
         else if(argc == 1)
         {
             if(argv[0].a_type != A_FLOAT)
             {
-                pd_error(x, "faustgen~: parameter requires a float value");
+                pd_error(x, "faustgen2~: parameter requires a float value");
                 return;
             }
             if(!faust_ui_manager_set_value(x->f_ui_manager, s, argv[0].a_w.w_float))
@@ -676,7 +676,7 @@ static void faustgen_tilde_anything(t_faustgen_tilde *x, t_symbol* s, int argc, 
                 x->f_active = argv[0].a_w.w_float != 0;
                 return;
             }
-            pd_error(x, "faustgen~: parameter '%s' not defined", s->s_name);
+            pd_error(x, "faustgen2~: parameter '%s' not defined", s->s_name);
             return;
         }
         else
@@ -685,7 +685,7 @@ static void faustgen_tilde_anything(t_faustgen_tilde *x, t_symbol* s, int argc, 
             char name[MAXFAUSTSTRING];
             if(argv[0].a_type != A_FLOAT)
             {
-                pd_error(x, "faustgen~: list parameters requires a first index");
+                pd_error(x, "faustgen2~: list parameters require a first index");
                 return;
             }
             start = (int)argv[0].a_w.w_float;
@@ -694,18 +694,18 @@ static void faustgen_tilde_anything(t_faustgen_tilde *x, t_symbol* s, int argc, 
                 snprintf(name, MAXFAUSTSTRING, "%s%i", s->s_name, start+i);
                 if(argv[i+1].a_type != A_FLOAT)
                 {
-                    pd_error(x, "faustgen~: active parameter requires a float value");
+                    pd_error(x, "faustgen2~: active parameter requires a float value");
                 }
                 if(faust_ui_manager_set_value(x->f_ui_manager, gensym(name), argv[i+1].a_w.w_float))
                 {
-                    pd_error(x, "faustgen~: active parameter '%s' not defined", name);
+                    pd_error(x, "faustgen2~: active parameter '%s' not defined", name);
                     return;
                 }
             }
             return;
         }
     }
-    pd_error(x, "faustgen~: no dsp instance");
+    pd_error(x, "faustgen2~: no dsp instance");
 }
 
 static t_int *faustgen_tilde_perform_single(t_int *w)
@@ -934,7 +934,7 @@ static t_symbol *make_unique_name(t_symbol *dsp_name)
 {
   // this simply counts up starting from zero until we find a symbol that's
   // not bound yet, so this will hopefully create reproducible results, as
-  // long as the relative order of the faustgen~ objects in the patch
+  // long as the relative order of the faustgen2~ objects in the patch
   // doesn't change
   unsigned counter = 0;
   t_symbol *s;
@@ -950,7 +950,7 @@ static t_symbol *make_unique_name(t_symbol *dsp_name)
 static void faustgen_tilde_free(t_faustgen_tilde *x)
 {
     if (x->f_unique_name) {
-      pd_unbind(&x->f_obj.ob_pd, gensym("faustgen~"));
+      pd_unbind(&x->f_obj.ob_pd, gensym("faustgen2~"));
       pd_unbind(&x->f_obj.ob_pd, x->f_dsp_name);
       pd_unbind(&x->f_obj.ob_pd, x->f_unique_name);
       if (x->f_instance_name) {
@@ -989,7 +989,7 @@ static void *faustgen_tilde_new(t_symbol* s, int argc, t_atom* argv)
     if(x)
     {
         char default_file[MAXPDSTRING];
-        bool is_loader_obj = strcmp(s->s_name, "faustgen~") != 0;
+        bool is_loader_obj = strcmp(s->s_name, "faustgen2~") != 0;
         sprintf(default_file, "%s/.default", class_gethelpdir(faustgen_tilde_class));
         x->f_dsp_factory    = NULL;
         x->f_dsp_instance   = NULL;
@@ -1076,8 +1076,8 @@ static void *faustgen_tilde_new(t_symbol* s, int argc, t_atom* argv)
             faustgen_tilde_free(x);
             return NULL;
         }
-	// ag: global faustgen~ receiver
-	pd_bind(&x->f_obj.ob_pd, gensym("faustgen~"));
+	// ag: global faustgen2~ receiver
+	pd_bind(&x->f_obj.ob_pd, gensym("faustgen2~"));
 	// dsp name
 	pd_bind(&x->f_obj.ob_pd, x->f_dsp_name);
 	// unique name derived from the dsp name
@@ -1190,9 +1190,9 @@ static int faustgen_loader_legacy(t_canvas *canvas, char *name)
   return result;
 }
 
-void faustgen_tilde_setup(void)
+void faustgen2_tilde_setup(void)
 {
-  // register the faustgen~ loader
+  // register the faustgen2~ loader
   int major = 0, minor = 0, patchlevel = 0;
   sys_getversion(&major, &minor, &patchlevel);
   if (major ==0 && minor < 47)
@@ -1201,8 +1201,8 @@ void faustgen_tilde_setup(void)
   else
     // since Pd>=0.47, Pd tries the loaders for each path
     sys_register_loader((loader_t)faustgen_loader_pathwise);
-  // register the faustgen~ class
-  t_class* c = class_new(gensym("faustgen~"),
+  // register the faustgen2~ class
+  t_class* c = class_new(gensym("faustgen2~"),
 			 (t_newmethod)faustgen_tilde_new,
 			 (t_method)faustgen_tilde_free,
 			 sizeof(t_faustgen_tilde), CLASS_DEFAULT, A_GIMME, 0);
@@ -1233,15 +1233,15 @@ void faustgen_tilde_setup(void)
     logpost(NULL, 3, "Faust website: faust.grame.fr");
     logpost(NULL, 3, "Faust development: GRAME");
 #endif
-    logpost(NULL, 3, "faustgen~ version: %s, https://github.com/agraef/pd-faustgen", FAUSTGEN_VERSION_STR);
+    logpost(NULL, 3, "faustgen2~ version: %s, https://github.com/agraef/pd-faustgen", FAUSTGEN_VERSION_STR);
     logpost(NULL, 3, "Copyright (c) 2018 Pierre Guillot, (c) 2020 Albert Gräf");
     logpost(NULL, 3, "Faust version: %s, https://faust.grame.fr", getCLibFaustVersion());
     logpost(NULL, 3, "Copyright (c) 2002-2020 GRAME et al");
-    logpost(NULL, 3, "faustgen~ default include directory: %s", class_gethelpdir(c));
+    logpost(NULL, 3, "faustgen2~ default include directory: %s", class_gethelpdir(c));
 #if 0
-    logpost(NULL, 3, "faustgen~ institutions: CICM - ANR MUSICOLL");
-    logpost(NULL, 3, "faustgen~ external author: Pierre Guillot");
-    logpost(NULL, 3, "faustgen~ website: github.com/CICM/pd-faustgen");
+    logpost(NULL, 3, "faustgen2~ institutions: CICM - ANR MUSICOLL, JGU IKM - Music-Informatics");
+    logpost(NULL, 3, "faustgen2~ external authors: Pierre Guillot, Albert Gräf");
+    logpost(NULL, 3, "faustgen2~ website: github.com/agraef/pd-faustgen");
 #endif
   }
     
@@ -1251,7 +1251,7 @@ void faustgen_tilde_setup(void)
 #else
   nw_gui_vmess = dlsym(RTLD_DEFAULT, "gui_vmess");
 #endif
-  if (nw_gui_vmess) logpost(NULL, 3, "faustgen~: using JavaScript interface (Pd-l2ork nw.js version)");
+  if (nw_gui_vmess) logpost(NULL, 3, "faustgen2~: using JavaScript interface (Pd-l2ork nw.js version)");
   faust_ui_receive_setup();
 }
 

@@ -119,7 +119,7 @@ in SMMF format.;
 #X restore 323 472 pd midi-input;
 #X msg 463 478 compile;
 #X msg 463 454 defaults;
-#X obj 463 559 s faustgen~;
+#X obj 463 559 s faustgen2~;
 #X obj 26 423 print amp;
 #X msg 463 503 dump;
 #N canvas 0 0 450 300 amp 0;
@@ -216,7 +216,7 @@ empty 0 -6 0 10 -262144 -1 -1 1 1;
 #X obj 26 239 print synth;
 #X obj 324 398 ctlin 123;
 #X text 324 374 all notes off;
-#X obj 323 501 s faustgen~;
+#X obj 323 501 s faustgen2~;
 #N canvas 0 0 450 300 fx1 0;
 #X obj 10 30 hsl 128 15 0 0.2 0 0 examples/chorus-0/chorus/delay examples/chorus-0/chorus/delay
 delay -2 -6 0 10 -262144 -1 -1 1587 1;

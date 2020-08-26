@@ -35,10 +35,10 @@ static void faust_opt_manager_get_default_include_path(t_faust_opt_manager *x)
             sprintf(x->f_default_include, "%s/libs/", path);
             return;
         }
-        pd_error(x->f_owner, "faustgen~: memory allocation failed - include path");
+        pd_error(x->f_owner, "faustgen2~: memory allocation failed - include path");
         return;
     }
-    pd_error(x->f_owner, "faustgen~: cannot locate the include path");
+    pd_error(x->f_owner, "faustgen2~: cannot locate the include path");
     return;
 }
 
@@ -104,14 +104,14 @@ char faust_opt_manager_parse_compile_options(t_faust_opt_manager *x, size_t cons
                     }
                     else
                     {
-                        pd_error(x->f_owner, "faustgen~: option type invalid");
+                        pd_error(x->f_owner, "faustgen2~: option type invalid");
                         memset(x->f_options[i], 0, MAXFAUSTSTRING);
                     }
                     x->f_noptions = i+1;
                 }
                 else
                 {
-                    pd_error(x->f_owner, "faustgen~: memory allocation failed - compile option %i", (int)i);
+                    pd_error(x->f_owner, "faustgen2~: memory allocation failed - compile option %i", (int)i);
                     x->f_noptions = i;
                     return -1;
                 }
@@ -119,7 +119,7 @@ char faust_opt_manager_parse_compile_options(t_faust_opt_manager *x, size_t cons
         }
         else
         {
-            pd_error(x->f_owner, "faustgen~: memory allocation failed - compile options vector");
+            pd_error(x->f_owner, "faustgen2~: memory allocation failed - compile options vector");
             x->f_noptions = 0;
             return -1;
         }
@@ -137,7 +137,7 @@ char faust_opt_manager_parse_compile_options(t_faust_opt_manager *x, size_t cons
             }
             else
             {
-                pd_error(x, "faustgen~: memory allocation failed - compile option");
+                pd_error(x, "faustgen2~: memory allocation failed - compile option");
                 x->f_noptions = argc;
                 return -1;
             }
@@ -149,7 +149,7 @@ char faust_opt_manager_parse_compile_options(t_faust_opt_manager *x, size_t cons
         }
         else
         {
-            pd_error(x->f_owner, "faustgen~: memory allocation failed - compile options for default include");
+            pd_error(x->f_owner, "faustgen2~: memory allocation failed - compile options for default include");
             return -1;
         }
     }
@@ -214,25 +214,25 @@ char const* faust_opt_manager_get_full_path(t_faust_opt_manager *x, char const* 
         int filedesc = canvas_open(x->f_canvas, name, ".dsp", realdir, &realname, MAXPDSTRING, 0);
         if(filedesc < 0)
         {
-            pd_error(x->f_owner, "faustgen~: can't find the FAUST DSP file %s.dsp", name);
+            pd_error(x->f_owner, "faustgen2~: can't find the FAUST DSP file %s.dsp", name);
             return NULL;
         }
         sys_close(filedesc);
         
         if(!realname)
         {
-            pd_error(x->f_owner, "faustgen~: can't find the real name of the FAUST DSP file %s.dsp", name);
+            pd_error(x->f_owner, "faustgen2~: can't find the real name of the FAUST DSP file %s.dsp", name);
             return NULL;
         }
         sprintf(path, "%s/%s", realdir, realname);
         x->f_temp_path = gensym(path);
 		if(!x->f_temp_path)
 		{
-			pd_error(x->f_owner, "faustgen~: can't generate symbol for the FAUST DSP file %s.dsp", name);
+			pd_error(x->f_owner, "faustgen2~: can't generate symbol for the FAUST DSP file %s.dsp", name);
 			return NULL;
 		}
         return x->f_temp_path->s_name;
     }
-    pd_error(x->f_owner, "faustgen~: invalid path or name");
+    pd_error(x->f_owner, "faustgen2~: invalid path or name");
     return NULL;
 }

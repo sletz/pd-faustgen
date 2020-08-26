@@ -81,7 +81,7 @@ static char faust_io_manager_resize_signals(t_faust_io_manager *x, size_t nsigna
         x->f_signals  = nsigs;
         return 0;
     }
-    pd_error(x->f_owner, "faustgen~: memory allocation failed - signals");
+    pd_error(x->f_owner, "faustgen2~: memory allocation failed - signals");
     return 4;
 }
 
@@ -108,14 +108,14 @@ static char faust_io_manager_resize_inputs(t_faust_io_manager *x, size_t const n
             ninlets[i] = signalinlet_new((t_object *)x->f_owner, 0);
             if(!ninlets[i])
             {
-                pd_error(x->f_owner, "faustgen~: memory allocation failed - input %i", (int)i);
+                pd_error(x->f_owner, "faustgen2~: memory allocation failed - input %i", (int)i);
             }
         }
         x->f_inlets = ninlets;
         x->f_ninlets = rnins;
         return 0;
     }
-    pd_error(x->f_owner, "faustgen~: memory allocation failed - inputs");
+    pd_error(x->f_owner, "faustgen2~: memory allocation failed - inputs");
     return 2;
 }
 
@@ -143,14 +143,14 @@ static char faust_io_manager_resize_outputs(t_faust_io_manager *x, size_t const 
             noutlets[i] = outlet_new((t_object *)x->f_owner, gensym("signal"));
             if(!noutlets[i])
             {
-                pd_error(x->f_owner, "faustgen~: memory allocation failed - output %i", (int)i);
+                pd_error(x->f_owner, "faustgen2~: memory allocation failed - output %i", (int)i);
             }
         }
         x->f_outlets = noutlets;
         x->f_noutlets = rnouts;
         return 0;
     }
-    pd_error(x->f_owner, "faustgen~: memory allocation failed - output");
+    pd_error(x->f_owner, "faustgen2~: memory allocation failed - output");
     return 1;
 }
 
@@ -175,7 +175,7 @@ t_faust_io_manager* faust_io_manager_new(t_object* owner, t_canvas* canvas)
         x->f_valid          = 0;
         if(!x->f_extra_outlet)
         {
-            pd_error(owner, "faustgen~: memory allocation failed - extra output");
+            pd_error(owner, "faustgen2~: memory allocation failed - extra output");
 	    freebytes(x, sizeof(t_faust_io_manager));
             return NULL;
         }
@@ -233,27 +233,27 @@ static char faust_io_manager_is_valid(t_faust_io_manager *x)
 {
     if(!x->f_signals || !x->f_valid)
     {
-        pd_error(x->f_owner, "faustgen~: something wrong happened during iolets allocation");
+        pd_error(x->f_owner, "faustgen2~: something wrong happened during iolets allocation");
         return 0;
     }
     if(obj_nsiginlets(x->f_owner) != x->f_ninlets)
     {
-        pd_error(x->f_owner, "faustgen~: number of signal inlets %i incompatible with internal %i", (int)x->f_ninlets, (int)obj_nsiginlets(x->f_owner));
+        pd_error(x->f_owner, "faustgen2~: number of signal inlets %i incompatible with internal %i", (int)x->f_ninlets, (int)obj_nsiginlets(x->f_owner));
         return 0;
     }
     if(obj_nsiginlets(x->f_owner) != x->f_ninlets)
     {
-        pd_error(x->f_owner, "faustgen~: number of signal inlets %i incompatible with internal %i", (int)x->f_ninlets, (int)obj_nsiginlets(x->f_owner));
+        pd_error(x->f_owner, "faustgen2~: number of signal inlets %i incompatible with internal %i", (int)x->f_ninlets, (int)obj_nsiginlets(x->f_owner));
         return 0;
     }
     if(obj_nsigoutlets(x->f_owner) != x->f_noutlets)
     {
-        pd_error(x->f_owner, "faustgen~: number of signal outlets %i incompatible with internal %i", (int)x->f_noutlets, (int)obj_nsigoutlets(x->f_owner));
+        pd_error(x->f_owner, "faustgen2~: number of signal outlets %i incompatible with internal %i", (int)x->f_noutlets, (int)obj_nsigoutlets(x->f_owner));
         return 0;
     }
     if(x->f_ninlets + x->f_noutlets != x->f_nsignals)
     {
-        pd_error(x->f_owner, "faustgen~: number of signals %i incompatible with number of iolets %i", (int)x->f_nsignals, (int)(x->f_ninlets + x->f_noutlets));
+        pd_error(x->f_owner, "faustgen2~: number of signals %i incompatible with number of iolets %i", (int)x->f_nsignals, (int)(x->f_ninlets + x->f_noutlets));
         return 0;
     }
     return 1;
@@ -271,7 +271,7 @@ char faust_io_manager_prepare(t_faust_io_manager *x, t_signal **sp)
         x->f_signals[i] = sp[i]->s_vec;
         if(x->f_signals[i] == NULL)
         {
-            pd_error(x->f_owner, "faustgen~: the signal vector %i is empty", (int)i);
+            pd_error(x->f_owner, "faustgen2~: the signal vector %i is empty", (int)i);
             return 1;
         }
     }

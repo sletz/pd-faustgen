@@ -6,7 +6,7 @@ set(CMAKE_OSX_DEPLOYMENT_TARGET 10.9)
 
 include(pd.build/pd.cmake)
 
-project(faustgen~ C)
+project(faustgen2~ C)
 
 ## On Linux "force" the link with stdc++
 if(UNIX AND NOT APPLE)
@@ -16,7 +16,7 @@ endif()
 ## Set this to ON to link against an installed libfaust rather than the
 ## version we include. CAVEATS: Use at your own risk. The Faust version
 ## provided by your system may be too old or too new to be used with
-## faustgen~, in which case compilation will fail. If you plan to upload the
+## faustgen2~, in which case compilation will fail. If you plan to upload the
 ## external to Deken, we recommend leaving this option OFF, since that will
 ## gurantee that libfaust is linked statically into the external.
 set(INSTALLED_FAUST "OFF"  CACHE BOOL  "Use an installed Faust library")
@@ -35,7 +35,7 @@ include(FaustLib.cmake)
 endif()
 
 ## Create Faust~
-message(STATUS "faustgen~ external")
+message(STATUS "faustgen2~ external")
 
 ## Create the Pure Data external
 set_pd_sources(${PROJECT_SOURCE_DIR}/pure-data/src/)
@@ -48,7 +48,7 @@ ${PROJECT_SOURCE_DIR}/src/faust_tilde_io.h
 ${PROJECT_SOURCE_DIR}/src/faust_tilde_io.c
 ${PROJECT_SOURCE_DIR}/src/faust_tilde_options.h
 ${PROJECT_SOURCE_DIR}/src/faust_tilde_options.c)
-add_pd_external(faustgen_tilde_project faustgen~ "${faustgen_tilde_sources}")
+add_pd_external(faustgen_tilde_project faustgen2~ "${faustgen_tilde_sources}")
 
 ## Link the Pure Data external with faustlib
 if(INSTALLED_FAUST)
@@ -143,12 +143,12 @@ if(MSVC)
 endif()
 
 ## Installation directory. This is relative to CMAKE_INSTALL_PREFIX.
-## Default is lib/pd/extra/faustgen~ on Linux and other generic Unix-like
-## systems, or just faustgen~ on Mac and Windows.
+## Default is lib/pd/extra/faustgen2~ on Linux and other generic Unix-like
+## systems, or just faustgen2~ on Mac and Windows.
 if(UNIX AND NOT APPLE)
-    set(INSTALL_DIR "lib/pd/extra/faustgen~" CACHE STRING "Destination directory for the external")
+    set(INSTALL_DIR "lib/pd/extra/faustgen2~" CACHE STRING "Destination directory for the external")
 else()
-    set(INSTALL_DIR "faustgen~" CACHE STRING "Destination directory for the external")
+    set(INSTALL_DIR "faustgen2~" CACHE STRING "Destination directory for the external")
 endif()
 
 message(STATUS "Installation goes to CMAKE_INSTALL_PREFIX/${INSTALL_DIR}")

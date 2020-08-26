@@ -7,26 +7,26 @@
 ...;
 #X text 26 429 FAUST developers:;
 #X text 122 17 the FAUST compiler embedded in a Pd external;
-#X text 26 463 faustgen~ website: github.com/agraef/pd-faustgen;
+#X text 26 463 faustgen2~ website: github.com/agraef/pd-faustgen;
 #X text 26 499 This object was inspired by faustgen~ for Max developed
 by Martin Di Rollo and Stéphane Letz., f 50;
-#X text 26 449 faustgen~ institutions: CICM - ANR MUSICOLL \, JGU IKM
-- Music-Informatics, f 72;
-#X text 26 477 faustgen~ developers: Pierre Guillot \, Albert Gräf
+#X text 26 449 faustgen2~ institutions: CICM - ANR MUSICOLL \, JGU
+IKM - Music-Informatics, f 73;
+#X text 26 477 faustgen2~ developers: Pierre Guillot \, Albert Gräf
 ;
-#X text 10 39 The faustgen~ external hooks into the Pd loader \, so
+#X text 10 39 The faustgen2~ external hooks into the Pd loader \, so
 if the external is in the startup libraries \, you can create a Faust
 dsp by simply typing dsp-name (without the .dsp extension) \, or dsp-name~
 (the ~ suffix is for cosmetic purposes only and will be ignored when
-searching for the file). Otherwise type faustgen~ followed by the dsp
-name. The dsp file can be relative to the patch or on the Pd search
+searching for the file). Otherwise type faustgen2~ followed by the
+dsp name. The dsp file can be relative to the patch or on the Pd search
 path. Extra arguments can be used to define compilation options \,
 see the FAUST documentation for further information. Use debug level
 3 to display information about the code in the Pd console., f 72;
 #X text 26 529 The latest version by Albert Gräf adds many improvements
 \, most notably OSC and MIDI support \, polyphony \, and automatic
 Pd GUI generation., f 70;
-#X obj 13 16 faustgen~;
+#X obj 13 16 faustgen2~;
 #X obj 336 165 tgl 15 1 empty empty empty 17 7 0 10 -262144 -1 -1 1
 1;
 #X msg 336 185 \; pd dsp \$1;
@@ -47,7 +47,7 @@ Pd GUI generation., f 70;
 #X text 11 8 Use the compile options to optimize the CPU or improve
 the redering, f 55;
 #X msg 41 115 print;
-#X text 84 116 Print faustgen~ informations;
+#X text 84 116 Print faustgen2~ informations;
 #X obj 17 165 examples/gain~ -vec -lv 1;
 #X connect 1 0 7 0;
 #X connect 5 0 7 0;
@@ -252,7 +252,7 @@ signal.;
 -1 -1;
 #X msg 197 413 freq 4 \$1;
 #X text 425 10 Change the value of the arrays and use the bangs to
-send them to the faustgen~ object, f 33;
+send them to the faustgen2~ object, f 33;
 #X text 100 134 Set the values of all the "gain" parameters, f 23
 ;
 #X text 131 250 Set the values of 4 "decay" parameters starting with
@@ -262,9 +262,9 @@ the index 2, f 36;
 #X obj 195 468 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144
 -1 -1;
 #X obj 337 440 nbx 5 14 -1e+37 1e+37 0 0 empty empty empty 0 -8 0 10
--262144 -1 -1 13 256;
+-262144 -1 -1 0 256;
 #X obj 278 441 nbx 5 14 -1e+37 1e+37 0 0 empty empty empty 0 -8 0 10
--262144 -1 -1 5 256;
+-262144 -1 -1 0 256;
 #X obj 195 489 array get \$0-decays;
 #X obj 195 511 list prepend decay 0;
 #X text 193 439 Dynamic approach, f 9;
@@ -551,9 +551,9 @@ see creation args below), f 16;
 #X text 223 209 Reset parameters to their defaults, f 15;
 #X msg 224 190 defaults;
 #N canvas 702 414 463 334 receivers 0;
-#X text 22 19 The faustgen~ receiver can be used to send a message
-to all faustgen~ objects in a patch., f 25;
-#X msg 23 83 \; faustgen~ print;
+#X text 22 19 The faustgen2~ receiver can be used to send a message
+to all faustgen2~ objects in a patch., f 25;
+#X msg 23 83 \; faustgen2~ print;
 #X msg 23 182 \; examples/gain print;
 #X text 23 129 You can also send a message to all instances of a given
 dsp..., f 25;
@@ -564,13 +564,13 @@ dsp..., f 25;
 #X msg 222 153 \; foo print;
 #X text 23 229 ... or to just a single instance given by its unique
 receiver (printed as "unique name" by the print message)., f 40;
-#X text 222 17 faustgen~ objects can also have an additional instance
+#X text 222 17 faustgen2~ objects can also have an additional instance
 name:, f 31;
 #X text 342 95 ... or to the name:instance receiver., f 16;
 #X msg 274 274 compile;
 #X msg 334 274 defaults;
-#X obj 274 300 s faustgen~;
-#X text 272 197 Two useful examples: recompile all faustgen~ objects
+#X obj 274 300 s faustgen2~;
+#X text 272 197 Two useful examples: recompile all faustgen2~ objects
 \, and reset their control variables to the defaults., f 27;
 #X obj 223 63 examples/gain~ foo;
 #X connect 11 0 13 0;
@@ -588,7 +588,7 @@ empty 0 -6 0 10 -262144 -1 -1;
 empty 0 -6 0 10 -262144 -1 -1 1 1;
 #X coords 0 -1 1 1 235 60 1 0 0;
 #X restore 201 89 pd gain;
-#X obj 15 88 faustgen~ examples/gain gain;
+#X obj 15 88 faustgen2~ examples/gain gain;
 #X obj 134 157 dac~ 1 2;
 #X obj 71 157 snapshot~;
 #X obj 71 178 nbx 5 14 -1e+37 1e+37 0 0 empty empty empty 0 -8 0 10
@@ -598,14 +598,14 @@ empty 0 -6 0 10 -262144 -1 -1 1 1;
 1;
 #X obj 180 61 noise~;
 #X msg 15 61 gui;
-#X text 17 209 faustgen~ can automatically generate a Pd GUI (GOP subpatch)
-for a Faust dsp. To do this: (1) Create a one-off subpatch for the
-GUI. (2) Enter the name of the subpatch as the instance name (2nd creation
-argument) of the faustgen~ object. => The subpatch will be populated
-with an IEM slider/number combo for each UI element. The subpatch is
-updated each time the object is recompiled \, and you can also trigger
-a GUI update manually by sending a "gui" message to the object., f
-68;
+#X text 17 209 faustgen2~ can automatically generate a Pd GUI (GOP
+subpatch) for a Faust dsp. To do this: (1) Create a one-off subpatch
+for the GUI. (2) Enter the name of the subpatch as the instance name
+(2nd creation argument) of the faustgen2~ object. => The subpatch will
+be populated with an IEM slider/number combo for each UI element. The
+subpatch is updated each time the object is recompiled \, and you can
+also trigger a GUI update manually by sending a "gui" message to the
+object., f 68;
 #X text 15 18 gui message triggers the GUI update manually, f 23;
 #X text 233 51 left (bang) button in titlebar resets controls to their
 defaults, f 33;
@@ -686,7 +686,7 @@ empty 0 -6 0 10 -262144 -1 -1 1 1;
 #X text 12 12 Synths a.k.a. polyphonic dsps have special freq/gain/gate
 controls marked up with the 'voice' meta data. Please check the source
 of the organ object below to see how these are implemented. Voice assignment
-is done automatically by the faustgen~ object. Please also see synth.pd
+is done automatically by the faustgen2~ object. Please also see synth.pd
 for a more comprehensive example. You can also find a few more synths
 in the examples.;
 #N canvas 916 411 450 300 midi-input 0;
@@ -850,8 +850,8 @@ in SMMF format.;
 #X msg 18 355 /dump;
 #X text 208 241 enable OSC output;
 #X text 17 207 send an OSC message;
-#X text 12 12 faustgen~ objects can process incoming OSC messages \,
-and output OSC messages for passive controls. Click on the faustgen~
+#X text 12 12 faustgen2~ objects can process incoming OSC messages
+\, and output OSC messages for passive controls. Click on the faustgen2~
 objects below and look at the [osc:/...] meta data in their UI elements
 to see how this is configured., f 41;
 #X text 280 354 NOTE: This patch doesn't show communication with external

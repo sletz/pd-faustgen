@@ -18,7 +18,7 @@ install:
 build_script:
   - mkdir build && cd build
   - cmake .. -G "%compiler%" -A x64 -DUSE_LLVM_CONFIG=off -DLLVM_DIR=./llvm/lib/cmake/llvm
-  - msbuild faustgen~.sln /nologo /p:config=%configuration% /p:plateform=%platform%
+  - msbuild faustgen2~.sln /nologo /p:config=%configuration% /p:plateform=%platform%
 after_build:
   - cd %APPVEYOR_BUILD_FOLDER%
   - del /F /Q llvm.zip
@@ -31,8 +31,8 @@ after_build:
   - xcopy /S /E /Y /I .\faust\libraries .\external\libs
   - xcopy /S /E /Y /I .\src .\external\sources
   - attrib +R external\.default.dsp
-  - rename external faustgen~
-  - 7z a "faustgen_tilde-%release_arch%-sources.zip" faustgen~
+  - rename external faustgen2~
+  - 7z a "faustgen2_tilde-%release_arch%-sources.zip" faustgen2~
 
 artifacts:
   - path: '*.zip'
