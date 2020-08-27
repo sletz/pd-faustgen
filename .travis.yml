@@ -10,24 +10,27 @@ matrix:
   - os: osx
     compiler: clang
     osx_image: xcode9.1
-    env: release_arch=Darwin-amd64-32
+    env: release_arch=darwin-x86_64
     install:
     - git submodule update --init --recursive
     - curl -o ./llvm.tar.xz -L https://releases.llvm.org/9.0.0/clang+llvm-9.0.0-x86_64-darwin-apple.tar.xz
     - tar xzf ./llvm.tar.xz && mv clang+llvm-9.0.0-x86_64-darwin-apple llvm
     script:
     - mkdir build && cd build
-    - cmake .. -GXcode -DUSE_LLVM_CONFIG=off -DLLVM_DIR=./llvm/lib/cmake/llvm -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9
+    - cmake .. -GXcode -DUSE_LLVM_CONFIG=off -DLLVM_DIR=./llvm/lib/cmake/llvm -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9 -DCMAKE_INSTALL_PREFIX=/
     - cmake --build . --config Release --target faustgen_tilde_project
-    before_deploy:
-    - cd $TRAVIS_BUILD_DIR/build
-    - cmake --install . --prefix .
+    - cp -r ../external faustgen2~
+    - mkdir faustgen2~/libs
+    - cp ../faust/libraries/*.lib  ../faust/libraries/old/*.lib faustgen2~/libs
     - cp ../README.md ../LICENSE faustgen2~
     - chmod 0444 faustgen2~/default.dsp
-    - zip -r "../faustgen2_tilde-$release_arch.zip" faustgen2~
+    - zip -r "../pd-faustgen2-$release_arch.zip" faustgen2~
+    before_deploy:
+    - cd $TRAVIS_BUILD_DIR
+    - ls *.zip
   - os: linux
     compiler: gcc
-    env: release_arch=Linux-amd64-32
+    env: release_arch=linux-x86_64
     install:
     - git submodule update --init --recursive
     - sudo apt-get install -y pkg-config libedit-dev
@@ -35,28 +38,28 @@ matrix:
     - tar xvf ./llvm.tar.xz && mv clang+llvm-9.0.0-x86_64-linux-gnu-ubuntu-18.04 llvm
     script:
     - mkdir build && cd build
-    - cmake .. -DCMAKE_C_FLAGS=-m64 -DUSE_LLVM_CONFIG=off -DLLVM_DIR=./llvm/lib/cmake/llvm -DCMAKE_BUILD_TYPE=Release -DINSTALL_DIR=faustgen2~
+    - cmake .. -DCMAKE_C_FLAGS=-m64 -DUSE_LLVM_CONFIG=off -DLLVM_DIR=./llvm/lib/cmake/llvm -DCMAKE_BUILD_TYPE=Release -DINSTALL_DIR=faustgen2~ -DCMAKE_INSTALL_PREFIX=/
     - cmake --build . --config Release --target faustgen_tilde_project
-    before_deploy:
-    - cd $TRAVIS_BUILD_DIR/build
-    - cmake --install . --prefix .
+    - make install DESTDIR=$PWD
     - cp ../README.md ../LICENSE faustgen2~
     - chmod 0444 faustgen2~/default.dsp
-    - zip -r "../faustgen2_tilde-$release_arch.zip" faustgen2~
-    - cd .. && ./make-dist.sh
+    - zip -r "../pd-faustgen2-$release_arch.zip" faustgen2~
+    before_deploy:
+    - cd $TRAVIS_BUILD_DIR
+    - ./make-dist.sh
+    - ls *.zip *.tar.gz
 deploy:
   provider: releases
   skip_cleanup: true
   prerelease: true
   draft: true
-  overwrite: true
   name: ${TRAVIS_TAG}
   tag_name: ${TRAVIS_TAG}
   api_key:
     secure: nmGGuop/gOgDJln6ee6MNhVppRQ54+ut7XZb1xKX3ByOnT6Xrkh4y7TArNIbseiSLCZAcupyU78W8k5xT8A2vwjiMdBy8lPoeVaOo/6U1eLCLGp/c+y0vH7EBGUr/pV7nUgBLxn24HB2M1Sc9xV5BguDcnB+OTffHyYcBpB7bcDC3KU+ZYoxWNGBv/T08/p1H5TEyuPFqIgaL+yQf12fj+O7hyt3eaPauKTZUsS8rDRj5FvDOCPpw5qFu3DCwRmgXDIBKLLBMeE2Eiekb/aMCV798c7ZcUZ9yKg3LPpJlnmsnnrlRXEbANqoGQg8twMeML2U0hsDzGC0dYZTOCrusnQIF3fq3smzdpYPsPAd0y5JNKnrbYFz/DmaygmU9yGurXnhEXQr14oc6v38+7lBhKUMqLDdEdZyE9Deg+yzy+dBIQa79qCDHgybztma6Qh9CNCXlBsvuKrNU+wqzoKUZfUrKRgDsRh9H/X8sDviaf799iCOXCPk4vNPl+E5W05IDPNPhhOzgf3gEJqE/Yzt8+K0YovHF/hqESYl2EDpJBoK1hKRyr9NWQnKbZOk7v1/OQuuBxCEhB5aFPRF2E68l/O+QTKV+kW8c9TxjxrsRqQ1rMTruKNGnXH62UBLL6EWbQjEuqx/7eK9d/LPzhCmSO2uCTpXI6qddSx9vt8u7FE=
   file_glob: true
   file:
-  - "faustgen2_tilde-$release_arch-sources.zip"
+  - 'pd-faustgen2-*.zip'
   - '*.tar.gz'
   on:
     repo: agraef/pd-faustgen

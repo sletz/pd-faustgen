@@ -1,32 +1,46 @@
-os: Visual Studio 2019
+version: 2.0.0-rc5
+image: Visual Studio 2019
+branches:
+  only:
+  - faustgen2
+
+skip_non_tags: true
 
 environment:
   matrix:
-  #- platform: Win32
-  #  compiler: "Visual Studio 14 2015"
-  #  configuration: Debug
+# not working yet
+#  - platform: Win32
+#    compiler: "Visual Studio 16 2019"
+#    configuration: Release
+#    llvm_package: https://github.com/CICM/pd-faustgen/releases/download/v0.0.0/llvm-9.0.0-windows-x86-mt.zip
+#    release_arch: "windows-x86"
   - platform: x64
     compiler: "Visual Studio 16 2019"
     configuration: Release
-    release_arch: "Windows-amd64-32"
+    llvm_package: https://github.com/CICM/pd-faustgen/releases/download/v0.0.0/llvm-9.0.0-windows-x64-mt.zip
+    release_arch: "windows-x86_64"
 
 install:
   - git submodule update --init --recursive
-  - curl -L https://github.com/CICM/pd-faustgen/releases/download/v0.0.0/llvm-9.0.0-windows-x64-mt.zip -o llvm.zip
+  - curl -L %llvm_package% -o llvm.zip
   - 7z x llvm.zip
-  - curl http://faust.grame.fr/images/faust-quick-reference.pdf -o ./external/faust-quick-reference.pdf
 build_script:
   - mkdir build && cd build
-  - cmake .. -G "%compiler%" -A x64 -DUSE_LLVM_CONFIG=off -DLLVM_DIR=./llvm/lib/cmake/llvm
+  - cmake .. -G "%compiler%" -A %platform% -DUSE_LLVM_CONFIG=off -DLLVM_DIR=./llvm/lib/cmake/llvm
   - msbuild faustgen2~.sln /nologo /p:config=%configuration% /p:plateform=%platform%
 after_build:
   - cd %APPVEYOR_BUILD_FOLDER%
   - del /F /Q llvm.zip
+  - del /F /S /Q /A external\*.pdb
+  - del /F /S /Q /A external\*.ilk
+  - del /F /S /Q /A external\*.lib
+  - del /F /S /Q /A external\*.exp
   - cd build
   - cmake --install . --prefix .
-  - copy ..\README.md ..\LICENSE faustgen2~
+  - copy ..\README.md faustgen2~
+  - copy ..\LICENSE faustgen2~
   - attrib +R faustgen2~\default.dsp
-  - 7z a "..\faustgen2_tilde-%release_arch%.zip" faustgen2~
+  - 7z a "..\pd-faustgen2-%release_arch%.zip" faustgen2~
 
 artifacts:
   - path: '*.zip'
@@ -34,7 +48,6 @@ artifacts:
 deploy:
   provider: GitHub
   prerelease: true
-  overwrite: true
   draft: true
   auth_token:
     secure: 3+K3lmZ4ioB5/0y0tU7mhpAbTHYh7OiuKU7Djk5rSHFaPWeyOwCPHOzcjstLq69N
