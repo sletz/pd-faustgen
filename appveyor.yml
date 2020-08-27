@@ -22,17 +22,11 @@ build_script:
 after_build:
   - cd %APPVEYOR_BUILD_FOLDER%
   - del /F /Q llvm.zip
-  - del /F /S /Q /A external\*.pdb
-  - del /F /S /Q /A external\*.ilk
-  - del /F /S /Q /A external\*.lib
-  - del /F /S /Q /A external\*.exp
-  - copy README.md external\README.md
-  - copy LICENSE external\LICENSE.txt
-  - xcopy /S /E /Y /I .\faust\libraries .\external\libs
-  - xcopy /S /E /Y /I .\src .\external\sources
-  - attrib +R external\default.dsp
-  - rename external faustgen2~
-  - 7z a "faustgen2_tilde-%release_arch%-sources.zip" faustgen2~
+  - cd build
+  - cmake --install . --prefix .
+  - copy ..\README.md ..\LICENSE faustgen2~
+  - attrib +R faustgen2~\default.dsp
+  - 7z a "..\faustgen2_tilde-%release_arch%.zip" faustgen2~
 
 artifacts:
   - path: '*.zip'

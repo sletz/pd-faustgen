@@ -20,15 +20,11 @@ matrix:
     - cmake .. -GXcode -DUSE_LLVM_CONFIG=off -DLLVM_DIR=./llvm/lib/cmake/llvm -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9
     - cmake --build . --config Release --target faustgen_tilde_project
     before_deploy:
-    - cd $TRAVIS_BUILD_DIR
-    - cp -r faust/libraries external/libs
-    - cp -r src/ external/sources
-    - cp README.md external/README.txt
-    - cp LICENSE external/LICENSE.txt
-    - chmod 0444 external/default.dsp
-    - curl -o ./external/faust-quick-reference.pdf http://faust.grame.fr/images/faust-quick-reference.pdf
-    - mv external faustgen2~
-    - zip -r "faustgen2_tilde-$release_arch-sources.zip" faustgen2~
+    - cd $TRAVIS_BUILD_DIR/build
+    - cmake --install . --prefix .
+    - cp ../README.md ../LICENSE faustgen2~
+    - chmod 0444 faustgen2~/default.dsp
+    - zip -r "../faustgen2_tilde-$release_arch.zip" faustgen2~
   - os: linux
     compiler: gcc
     env: release_arch=Linux-amd64-32
@@ -39,20 +35,15 @@ matrix:
     - tar xvf ./llvm.tar.xz && mv clang+llvm-9.0.0-x86_64-linux-gnu-ubuntu-18.04 llvm
     script:
     - mkdir build && cd build
-    - cmake .. -DCMAKE_C_FLAGS=-m64 -DUSE_LLVM_CONFIG=off -DLLVM_DIR=./llvm/lib/cmake/llvm
-      -DCMAKE_BUILD_TYPE=Release
+    - cmake .. -DCMAKE_C_FLAGS=-m64 -DUSE_LLVM_CONFIG=off -DLLVM_DIR=./llvm/lib/cmake/llvm -DCMAKE_BUILD_TYPE=Release -DINSTALL_DIR=faustgen2~
     - cmake --build . --config Release --target faustgen_tilde_project
     before_deploy:
-    - cd $TRAVIS_BUILD_DIR
-    - cp -r faust/libraries external/libs
-    - cp -r src/ external/sources
-    - cp README.md external/README.txt
-    - cp LICENSE external/LICENSE.txt
-    - chmod 0444 external/default.dsp
-    - curl -o ./external/faust-quick-reference.pdf http://faust.grame.fr/images/faust-quick-reference.pdf
-    - mv external faustgen2~
-    - zip -r "faustgen2_tilde-$release_arch-sources.zip" faustgen2~
-    - ./make-dist.sh
+    - cd $TRAVIS_BUILD_DIR/build
+    - cmake --install . --prefix .
+    - cp ../README.md ../LICENSE faustgen2~
+    - chmod 0444 faustgen2~/default.dsp
+    - zip -r "../faustgen2_tilde-$release_arch.zip" faustgen2~
+    - cd .. && ./make-dist.sh
 deploy:
   provider: releases
   skip_cleanup: true
