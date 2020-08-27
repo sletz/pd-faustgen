@@ -396,7 +396,7 @@ static void faustgen_tilde_tuning(t_faustgen_tilde *x, t_symbol* s, int argc, t_
     outlet_anything(out, s, ac, av);
     return;
   } else if (argv[0].a_type == A_SYMBOL &&
-	     (argc == 1 || argc == 2 && argv[1].a_type == A_FLOAT)) {
+	     (argc == 1 || (argc == 2 && argv[1].a_type == A_FLOAT))) {
     const char *name = argv[0].a_w.w_symbol->s_name, *ext = strrchr(name, '.');
     int base = argc>1?argv[1].a_w.w_float:0;
     if (ext && !strchr(ext, '/'))
@@ -414,7 +414,7 @@ static void faustgen_tilde_tuning(t_faustgen_tilde *x, t_symbol* s, int argc, t_
     else {
       // load tuning from a Scala file
       // (http://www.huygens-fokker.org/scala/scl_format.html)
-      char path[MAXFAUSTSTRING], realdir[MAXPDSTRING], *realname = NULL;
+      char realdir[MAXPDSTRING], *realname = NULL;
       int fd = canvas_open(canvas_getcurrent(), name, ext, realdir,
 			   &realname, MAXPDSTRING, 0);
       if (fd < 0) {

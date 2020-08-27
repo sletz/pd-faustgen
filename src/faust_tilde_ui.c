@@ -40,9 +40,11 @@ static const char *midi_key[N_MIDI] = {
   "start", "stop", "clock"
 };
 
+#if 0 // currently unused
 static const char *voice_key[N_VOICE] = {
   "none", "freq", "gain", "gate"
 };
+#endif
 
 // Encoding of MIDI messages in SMMF (https://bitbucket.org/agraef/pd-smmf).
 // This is used for incoming and outgoing MIDI messages on the Pd side. Hence
@@ -1939,7 +1941,7 @@ void faust_ui_manager_gui(t_faust_ui_manager *x,
   // Spacing of number boxes and horizontal sliders. You may have to adjust
   // this if your Pd version differs from the usual defaults, or if you change
   // the font sizes below.
-  const int nentry_x = 75, nentry_y = 30;
+  const int nentry_x = 75; // nentry_y = 30;
   const int hslider_x = 150, hslider_y = 30;
   // GUI font sizes. fn1 sets the font size of the slider labels, fn2 that of
   // the number boxes. Common font sizes are 10 and 12.
