@@ -1,3 +1,4 @@
+
 ### v2.0.0 (Albert Gräf, JGU-IKM, aggraef at gmail.com)
 - Renamed external to faustgen2~ to avoid clashes with CICM faustgen~ (needed since faustgen2~ is *not* a drop-in replacement for faustgen~)
 - Reworked layout of inlets and outlets (now one control inlet/outlet pair on the left, remaining iolets are the dsp's inputs and outputs)
