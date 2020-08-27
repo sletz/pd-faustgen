@@ -4,7 +4,10 @@
   <img width="50" alt="FaustLogo" img src="https://user-images.githubusercontent.com/1409918/64951909-41544a00-d87f-11e9-87dd-720e0f8e1570.png"/> faustgen2~ <img width="40" alt="PdLogo" img src="https://user-images.githubusercontent.com/1409918/64951943-5335ed00-d87f-11e9-9b52-b4b6af47d7ba.png"/>
   </h1>
   <p align="center">
+  </p>
+  <p align="center">
     The Faust compiler in a box
+    <a href="https://travis-ci.org/agraef/pd-faustgen/builds"><img src="https://img.shields.io/travis/agraef/pd-faustgen.svg?label=travis" alt="Travis CI"></a>
 	<img alt="Screenshot" img src="faustgen2~.png"/>
   </p>
 </p>
