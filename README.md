@@ -8,6 +8,7 @@
   <p align="center">
     The Faust compiler in a box
     <a href="https://travis-ci.org/agraef/pd-faustgen/builds"><img src="https://img.shields.io/travis/agraef/pd-faustgen.svg?label=travis" alt="Travis CI"></a>
+    <a href="https://ci.appveyor.com/project/agraef/pd-faustgen/history"><img src="https://img.shields.io/appveyor/ci/agraef/pd-faustgen.svg?label=appveyor" alt="Appveyor CI"></a>
 	<img alt="Screenshot" img src="faustgen2~.png"/>
   </p>
 </p>
