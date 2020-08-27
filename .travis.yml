@@ -68,11 +68,12 @@ deploy:
   name: ${TRAVIS_TAG}
   tag_name: ${TRAVIS_TAG}
   api_key:
-    secure: K5Fu30/Jahwit18UpJBti48aLE7Z1U3VmiZCgdnYBQHnNAyZ9g5IsILRegU9p7m1yY2AMQbl/eIybYDtfVldTSCdxEaeGta5Q+emV5TUzj/na9kNduZlXSaVgIzZ6rWtdRJQsaaBL7Q7F++o3AlDl6jvi8N41EbIpMy5Enkux4ZkGKvOftviBip5OTnkmM3MFZWGVOgnFV//DvMXBSLtHgSylSnq8jE++7DvyMlN6C9yZIGcBy7ZRpMGD7aqccCy2u41gQq286IQBPPfqmzcZOgC1s1jbM8+oD0Hl9e5LaA/D8tnrt2lZbfh5R+ULGgXd7BAGp/I/+ketCWEnMqg3bV1jTXglweIGmC+uTSAiu9hAfGW5DCzVYc4G15rnniy/HlXS7qCyTuow377HfqtRdqGe4lulSxvmIWGsCAgjXuXnaTSDR70Mer0g6bsNijDa5f28c68KCv9Kq6Oy8CMmGOAmUoO7Yp5y3jVUHlHpwxMukH35ScJaauEzzPqu0CbR/bx5+nGNIllkT7yzeOI+YMq6deLnakG/4iBqmWfgtTnTUDq1Q+hm+RtYjS0JQ5LKMKjMui+/UFSGZ1ZTer+NWhmL2sWXtYyYOPwLWY+AdDAHGOq386CsohMQ36seAiU3X5bC1icBK3tG93nrJEIucgVmDeAvsrHHX41FHW8dL4=
+    secure: nmGGuop/gOgDJln6ee6MNhVppRQ54+ut7XZb1xKX3ByOnT6Xrkh4y7TArNIbseiSLCZAcupyU78W8k5xT8A2vwjiMdBy8lPoeVaOo/6U1eLCLGp/c+y0vH7EBGUr/pV7nUgBLxn24HB2M1Sc9xV5BguDcnB+OTffHyYcBpB7bcDC3KU+ZYoxWNGBv/T08/p1H5TEyuPFqIgaL+yQf12fj+O7hyt3eaPauKTZUsS8rDRj5FvDOCPpw5qFu3DCwRmgXDIBKLLBMeE2Eiekb/aMCV798c7ZcUZ9yKg3LPpJlnmsnnrlRXEbANqoGQg8twMeML2U0hsDzGC0dYZTOCrusnQIF3fq3smzdpYPsPAd0y5JNKnrbYFz/DmaygmU9yGurXnhEXQr14oc6v38+7lBhKUMqLDdEdZyE9Deg+yzy+dBIQa79qCDHgybztma6Qh9CNCXlBsvuKrNU+wqzoKUZfUrKRgDsRh9H/X8sDviaf799iCOXCPk4vNPl+E5W05IDPNPhhOzgf3gEJqE/Yzt8+K0YovHF/hqESYl2EDpJBoK1hKRyr9NWQnKbZOk7v1/OQuuBxCEhB5aFPRF2E68l/O+QTKV+kW8c9TxjxrsRqQ1rMTruKNGnXH62UBLL6EWbQjEuqx/7eK9d/LPzhCmSO2uCTpXI6qddSx9vt8u7FE=
   file_glob: true
   file:
   - "faustgen2_tilde-$release_arch-sources.zip"
   - '*.tar.gz'
   on:
-    repo: CICM/pd-faustgen
+    repo: agraef/pd-faustgen
+    branch: faustgen2
     tags: true
