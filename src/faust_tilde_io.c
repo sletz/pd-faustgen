@@ -262,7 +262,7 @@ static char faust_io_manager_is_valid(t_faust_io_manager *x)
 char faust_io_manager_prepare(t_faust_io_manager *x, t_signal **sp)
 {
     size_t i;
-    if(!faust_io_manager_is_valid)
+    if(!faust_io_manager_is_valid(x))
     {
         return 1;
     }
