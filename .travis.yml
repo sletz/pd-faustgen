@@ -19,11 +19,12 @@ matrix:
     - mkdir build && cd build
     - cmake .. -GXcode -DUSE_LLVM_CONFIG=off -DLLVM_DIR=./llvm/lib/cmake/llvm -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9 -DCMAKE_INSTALL_PREFIX=/
     - cmake --build . --config Release --target faustgen_tilde_project
-    - cp -r ../external faustgen2~
+    - cp -R ../external faustgen2~
     - mkdir faustgen2~/libs
     - cp ../faust/libraries/*.lib  ../faust/libraries/old/*.lib faustgen2~/libs
     - cp ../README.md ../LICENSE faustgen2~
     - chmod 0444 faustgen2~/default.dsp
+    - for x in $(otool -L faustgen2~/faustgen2~.pd_darwin | sed -n 's|.*@rpath/\(.*\.dylib\).*|\1|p'); do cp ../llvm/lib/$x faustgen2~; install_name_tool -change @rpath/$x @loader_path/$x faustgen2~/faustgen2~.pd_darwin; done
     - zip -r "../pd-faustgen2-$release_arch.zip" faustgen2~
     before_deploy:
     - cd $TRAVIS_BUILD_DIR
