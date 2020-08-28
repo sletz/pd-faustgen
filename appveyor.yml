@@ -1,4 +1,4 @@
-version: 2.0.0-rc6
+version: 2.0.0-rc7.{build}
 image: Visual Studio 2019
 branches:
   only:
@@ -8,12 +8,12 @@ skip_non_tags: true
 
 environment:
   matrix:
-# not working yet
-#  - platform: Win32
-#    compiler: "Visual Studio 16 2019"
-#    configuration: Release
-#    llvm_package: llvm-9.0.0-windows-build/llvm-9.0.0-windows-x86-mt.zip
-#    release_arch: "windows-x86"
+# win32 build fails with linker errors, disabled for now
+# - platform: Win32
+#   compiler: "Visual Studio 16 2019"
+#   configuration: Release
+#   llvm_package: llvm-9.0.0-windows-build/llvm-9.0.0-windows-x86-mt.zip
+#   release_arch: "windows-x86"
   - platform: x64
     compiler: "Visual Studio 16 2019"
     configuration: Release
@@ -22,12 +22,13 @@ environment:
 
 install:
   - git submodule update --init --recursive
+  - echo "LLVM package %llvm_package%"
   - curl -L https://github.com/agraef/pd-faustgen/releases/download/%llvm_package% -o llvm.zip
   - 7z x llvm.zip
 build_script:
   - mkdir build && cd build
   - cmake .. -G "%compiler%" -A %platform% -DUSE_LLVM_CONFIG=off -DLLVM_DIR=./llvm/lib/cmake/llvm
-  - msbuild faustgen2~.sln /nologo /p:config=%configuration% /p:plateform=%platform%
+  - cmake --build . --config %configuration%
 after_build:
   - cd %APPVEYOR_BUILD_FOLDER%
   - del /F /Q llvm.zip
