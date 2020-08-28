@@ -12,17 +12,17 @@ environment:
 #  - platform: Win32
 #    compiler: "Visual Studio 16 2019"
 #    configuration: Release
-#    llvm_package: https://github.com/CICM/pd-faustgen/releases/download/v0.0.0/llvm-9.0.0-windows-x86-mt.zip
+#    llvm_package: llvm-9.0.0-windows-build/llvm-9.0.0-windows-x86-mt.zip
 #    release_arch: "windows-x86"
   - platform: x64
     compiler: "Visual Studio 16 2019"
     configuration: Release
-    llvm_package: https://github.com/CICM/pd-faustgen/releases/download/v0.0.0/llvm-9.0.0-windows-x64-mt.zip
+    llvm_package: llvm-9.0.0-windows-build/llvm-9.0.0-windows-x64-mt.zip
     release_arch: "windows-x86_64"
 
 install:
   - git submodule update --init --recursive
-  - curl -L %llvm_package% -o llvm.zip
+  - curl -L https://github.com/agraef/pd-faustgen/releases/download/%llvm_package% -o llvm.zip
   - 7z x llvm.zip
 build_script:
   - mkdir build && cd build
