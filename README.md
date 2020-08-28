@@ -1,12 +1,12 @@
 
 <p align="center">
   <h1 align="center">
-  <img width="50" alt="FaustLogo" img src="https://user-images.githubusercontent.com/1409918/64951909-41544a00-d87f-11e9-87dd-720e0f8e1570.png"/> faustgen2~ <img width="40" alt="PdLogo" img src="https://user-images.githubusercontent.com/1409918/64951943-5335ed00-d87f-11e9-9b52-b4b6af47d7ba.png"/>
+  <img width="60" alt="FaustLogo" img src="https://user-images.githubusercontent.com/1409918/64951909-41544a00-d87f-11e9-87dd-720e0f8e1570.png"/> faustgen2~ <img width="50" alt="PdLogo" img src="https://user-images.githubusercontent.com/1409918/64951943-5335ed00-d87f-11e9-9b52-b4b6af47d7ba.png"/>
   </h1>
   <p align="center">
   </p>
   <p align="center">
-    The Faust compiler in a box
+    The Faust compiler in a box<br/>
     <a href="https://travis-ci.org/agraef/pd-faustgen/builds"><img src="https://img.shields.io/travis/agraef/pd-faustgen.svg?label=travis" alt="Travis CI"></a>
     <a href="https://ci.appveyor.com/project/agraef/pd-faustgen/history"><img src="https://img.shields.io/appveyor/ci/agraef/pd-faustgen.svg?label=appveyor" alt="Appveyor CI"></a>
 	<img alt="Screenshot" img src="faustgen2~.png"/>
@@ -17,19 +17,19 @@
 
 The **faustgen2~** object is a [Faust](https://faust.grame.fr/) external for Pd a.k.a. [Pure Data](http://msp.ucsd.edu/software.html), Miller Puckette's interactive multimedia programming environment. Yann Orlarey's Faust is a functional programming language developed by [Grame](https://www.grame.fr/), which is tailored for real-time signal processing and synthesis.
 
-faustgen2~ was written by Albert Gräf (JGU Mainz, IKM, Music Informatics) based on [faustgen~](https://github.com/CICM/pd-faustgen) by  Pierre Guillot (Paris 8, CICM), which in turn was inspired by Grame's [faustgen~](https://github.com/grame-cncm/faust/tree/master-dev/embedded/faustgen) object for Max/MSP. faustgen2~ is a comprehensive update which offers plenty new features, bringing it up to par with both Grame's faustgen~ and the author's [pd-faust](https://agraef.github.io/pure-docs/pd-faust.html) external.
+faustgen2~ was written by Albert Gräf (JGU Mainz, IKM, Music-Informatics) based on [faustgen~](https://github.com/CICM/pd-faustgen) by  Pierre Guillot (Paris 8, CICM), which in turn was inspired by Grame's [faustgen~](https://github.com/grame-cncm/faust/tree/master-dev/embedded/faustgen) object for Max/MSP. faustgen2~ is a comprehensive update which offers plenty of new features, bringing it up to par with both Grame's faustgen~ and the author's [pd-faust](https://agraef.github.io/pure-docs/pd-faust.html) external, and adds some of its own, such as the integrated loader extension and a novel approach to polyphonic synth implementation.
 
-faustgen2~, like faustgen~, uses Faust's [LLVM](http://llvm.org)-based just-in-time (JIT) compiler to load, compile and play Faust programs on the fly. The Faust JIT compiler brings together the convenience of a standalone interpreted language with the efficiency of a compiled language.
+faustgen2~, like faustgen~, uses Faust's [LLVM](http://llvm.org)-based just-in-time (JIT) compiler to load, compile and play Faust programs on the fly. The Faust JIT compiler brings together the convenience of a standalone interpreted language with the efficiency of a compiled language, fostering creative exploration of the Faust language and enabling live-coding.
 
-Binary packages for Mac and Windows containing the ready-to-use external are available at <https://github.com/agraef/pd-faustgen/releases>. Please use these if you can. If you want or need to compile faustgen2~ yourself, see the instructions below.
+## Installation
 
-## Prerequisites
+Ready-made binary packages for Mac, Windows, and Ubuntu are available at <https://github.com/agraef/pd-faustgen/releases>. Use these if you can. If you want or need to compile faustgen2~ yourself, please refer to the instructions below.
 
-To compile faustgen2~ you'll need [LLVM](http://llvm.org), [Faust](https://github.com/grame-cncm/faust.git), [Pd](https://github.com/pure-data/pure-data.git), and [CMake](https://cmake.org/). The sources for Faust and Pd are included, so you don't have to install these beforehand, but of course you'll want to install Pd (or one of its flavors, such as [Purr Data](https://agraef.github.io/purr-data/)) to use faustgen2~. If you already have an installation of the Faust compiler (including libfaust), you can use that version instead of the included Faust source, which will make the installation much easier and faster. Make sure that you have Faust 2.27.2 or later (older versions may or may not work with faustgen2~, use at your own risk), and LLVM 9.0.0 or later.
+## Installing from Source
 
-If you're running Linux, recent versions of LLVM and cmake should be readily available in your distribution's package repositories. On the Mac, they are available in MacPorts or Homebrew. On Windows, you can get them via Visual Studio, or install them from the corresponding websites.
+To compile faustgen2~ you'll need [LLVM](http://llvm.org), [Faust](https://github.com/grame-cncm/faust.git), [Pd](https://github.com/pure-data/pure-data.git), and [CMake](https://cmake.org/). The sources for Faust and Pd are included in the faustgen2~ source, so you don't have to install these beforehand, but of course you'll want to install Pd (or one of its flavors, such as [Purr Data](https://agraef.github.io/purr-data/)) to use faustgen2~. If you already have an installation of the Faust compiler (including libfaust), you can use that version instead of the included Faust source, which will make the installation much easier and faster. Make sure that you have Faust 2.27.2 or later (older versions may or may not work with faustgen2~, use at your own risk), and LLVM 9.0.0 or later.
 
-Please also check the [original (faustgen~) README](README-CICM.md), which goes into more detail about installing LLVM and how to upload an external to Deken, Pd's package manager. Up-to-date information on how to install faustgen2~ can be found below.
+If you're running Linux, recent versions of LLVM and cmake should be readily available in your distribution's package repositories. On the Mac, they are available in MacPorts or Homebrew, and there's a binary LLVM package available on <http://llvm.org>. At the time of this writing, the ready-made LLVM packages for Windows available through Visual Studio or <http://llvm.org> are useless for installing faustgen2~, because they do not contain the LLVM compiler backend. Thus you might want to grab the [binaries](https://github.com/agraef/pd-faustgen/releases/tag/llvm-9.0.0-windows-build) we provide on Github, or compile LLVM yourself (instructions can be found in the [original CICM README](README-CICM.md)).
 
 ## Getting the Source Code
 
@@ -49,10 +49,10 @@ faustgen2~ uses cmake as its build system. Having installed all the dependencies
 ~~~shell
 mkdir build && cd build
 cmake ..
-make
+cmake --build .
 ~~~
 
-This should work at least on Linux and Mac. If your system doesn't have a working make program, you can also try `cmake --build .` instead. (Using MSYS or MSYS2 on Windows, you'll have to add the option `-G "MSYS Makefiles"` when running cmake. Right now, this still requires a fair amount of fiddling with the sources, so you might want to make your life a lot easier by using the precompiled binaries. Compilation with MSVC should work out of the box, though.)
+This should work on Linux and Mac, where you can also just run `make` instead of `cmake --build`. In principle, on Windows you can do the same using MSVC, but you'll most likely have to fiddle with the cmake options (have a look at the build script in the included AppVeyour configuration to figure out the details). MSYS/MSYS2 doesn't work at present.
 
 The above will compile the included Faust source and use that to build the external. This may take a while. To use an installed Faust library, you can run cmake as follows:
 
@@ -116,7 +116,7 @@ The staged installation allows you to see beforehand what exactly gets installed
 
 After finishing the installation, you also want to add faustgen~ to Pd's startup libraries. This isn't necessary to run the faustgen2~ external under its name, but loading the external at startup enables its included *loader extension* which hooks into Pd's abstraction and external loader. This allows you to create Faust dsps by just typing their names (*without* the faustgen2~ prefix), just as if the dsp files themselves were Pd externals (which effectively they are, although they're loaded through the faustgen2~ object rather than Pd's built-in loader).
 
-If you do *not* want to add faustgen2~ to the startup libraries for some reason, there are other ways to activate the loader when you need it. The most portable of these is Pd's `declare`. To these ends, place `declare -lib faustgen2~` *first* into each patch which requires the loader. Note that the `-lib` option will search the patch directory first, so it will work if you use a local copy of faustgen2~. If the external has been installed on Pd's search path, then using `-stdlib` in lieu of `-lib` will also do the job.
+If you do *not* want to add faustgen2~ to the startup libraries for some reason, there are other ways to activate the loader when you need it. The most portable of these is Pd's `declare`. To these ends, place `declare -lib faustgen2~` *first* into each patch which requires the loader. Note that the `-lib` option will search the patch directory first, so it will also work if you use a local copy of faustgen2~. If the external has been installed on Pd's search path, then using `-stdlib` in lieu of `-lib` will also do the job.
 
 ## Run
 
@@ -124,9 +124,9 @@ You can try the external without installing it first, by running it directly fro
 
 To start using faustgen2~ in your own projects, you will have to finish the installation as described in the preceding section. Start from an empty patch and a Faust dsp file, both in the same directory. You can then just create an object like `faustgen2~ amp` and connect its inlets and outlets to some audio sources and sinks such as `osc~`, `adc~`, and `dac~`. If everything has been set up properly, you should be able to hear the output from the dsp.
 
-To avoid having to type `faustgen2~` each time you create an object, you can add `faustgen2~` to your startup libraries in Pd in order to enable its loader extension, as described under "Faust Loader" above. faustgen2~ then lets you type just the dsp name (e.g., `amp~` or `amp`) and be done with it. The trailing tilde is optional (and ignored when searching for the dsp file) but customary to denote dsp objects in Pd, so faustgen2~ supports this notation.
+The `faustgen2~` prefix actually isn't needed, if you add `faustgen2~` to your startup libraries in Pd in order to enable its loader extension, as described under "Faust Loader" above. faustgen2~ then lets you type just the dsp name (e.g., `amp~` or `amp`) and be done with it. The trailing tilde is optional (and ignored when searching for the dsp file) but customary to denote dsp objects in Pd, so faustgen2~ supports this notation.
 
-### Getting Started
+### A Simple Example
 
 Let's try a fun little example. Here's the mynoise.dsp program:
 
@@ -136,9 +136,11 @@ noise   = random/2147483647.0;
 process = noise * hslider("vol", 0.5, 0, 1, 0.01);
 ~~~
 
-Create an empty patch in the same directory as mynoise.dsp and add the `declare -lib faustgen2~` object to it, so that the loader extension is activated (or make sure that you have faustgen2~ in your startup libraries, then you don't need this). Next add the `mynoise~` object to the patch. In Pd's console you should see a message like "faustgen2~ mynoise (0/1)" which indicates that the dsp was loaded successfully and that it has zero inputs and one output. The single output will be available as an outlet on the *right* (the leftmost inlet/outlet pair is for control input and output only). Connect that outlet to a `dac~` object, make sure that dsp processing is on, and you should now be able to hear some white noise.
+Create an empty patch in the same directory as mynoise.dsp and add the `declare -lib faustgen2~` object to it, so that the loader extension is activated (or make sure that you have faustgen2~ in your startup libraries, then you don't need this). Next add the `mynoise~` object to the patch. In Pd's console you should see a message like "faustgen2~ mynoise (0/1)" which indicates that the dsp was loaded successfully and that it has zero inputs and one output. The single output will be available as an outlet on the *right* (the leftmost inlet/outlet pair is for control input and output only). Connect that outlet to a `dac~` object, make sure that dsp processing is on, and you should now be able to hear some white noise. It's as simple as that.
 
-It's as simple as that! But note that the Faust dsp also has a control variable "vol" which we can use to change the output volume. We could change that control by sending messages to mynoise~'s left control inlet, but faustgen2~ makes it even easier than that, because we can just have faustgen2~ create a Pd GUI in the form of a GOP subpatch for us. To these ends, add a new one-off subpatch named "noise" (create a `pd noise` object). Just leave the subpatch empty and close its window. Next edit the `mynoise~` object so that it becomes `mynoise~ noise` (this references the noise subpatch we just created). You should now see the subpatch being populated with a horizontal slider and a number entry, and once you're out of edit mode you can change the volume using either of these. Try it!
+Note that the Faust dsp also has a control variable "vol" which we can use to change the output volume. We could change that control by sending messages to mynoise~'s left control inlet, but faustgen2~ can also create a Pd GUI in the form of a GOP subpatch for us. To these ends, add a new one-off subpatch named "noise" (create a `pd noise` object). Just leave the subpatch empty and close its window. Next edit the `mynoise~` object so that it becomes `mynoise~ noise` (this refers to the noise subpatch we just created). You should now see the subpatch being populated with a horizontal slider and a number entry, and once you're out of edit mode you can change the volume using either of these. Try it! The resulting patch will look like this:
+
+![screenie](mynoise~.png)
 
 faustgen2~ offers many other possibilities, such as MIDI input and output (including monophonic and polyphonic synths, using the author's [SMMF](https://bitbucket.org/agraef/pd-smmf/) format for representing MIDI messages), and communication with OSC (Open Sound Control) devices and applications such as TouchOSC. These are all explained in the help patch. Running Faust dsps in Pd has never been easier!
 
