@@ -1247,7 +1247,7 @@ void faustgen2_tilde_setup(void)
     
   faustgen_tilde_class = c;
 #ifdef _WIN32
-  nw_gui_vmess = (void*)GetProcAddress(GetModuleHandle("pd.dll"), "gui_vmess");
+  nw_gui_vmess = (void*)GetProcAddress(GetModuleHandleA("pd.dll"), "gui_vmess");
 #else
   nw_gui_vmess = dlsym(RTLD_DEFAULT, "gui_vmess");
 #endif
