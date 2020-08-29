@@ -2,7 +2,7 @@ language: c
 dist: bionic
 sudo: required
 notifications:
-  email: false
+  email: true
 git:
   submodules: true
 matrix:

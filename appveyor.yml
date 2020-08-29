@@ -55,4 +55,4 @@ deploy:
 notifications:
 
   - provider: Email
-    on_build_status_changed: false
+    on_build_status_changed: true
