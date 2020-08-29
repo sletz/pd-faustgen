@@ -136,7 +136,7 @@ static void faustgen_tilde_compile(t_faustgen_tilde *x)
             const int ninputs = getNumInputsCDSPInstance(instance);
             const int noutputs = getNumOutputsCDSPInstance(instance);
             logpost(x, 3, "faustgen2~ %s (%d/%d)", x->f_dsp_name->s_name, ninputs, noutputs);
-            faust_ui_manager_init(x->f_ui_manager, instance);
+            faust_ui_manager_init(x->f_ui_manager, instance, faust_opt_has_double_precision(x->f_opt_manager));
             faust_io_manager_init(x->f_io_manager, ninputs, noutputs);
             
             faustgen_tilde_delete_instance(x);

@@ -21,7 +21,7 @@ typedef uint64_t t_channelmask;
 
 t_faust_ui_manager* faust_ui_manager_new(t_object* owner);
 
-void faust_ui_manager_init(t_faust_ui_manager *x, void* dspinstance);
+void faust_ui_manager_init(t_faust_ui_manager *x, void* dspinstance, int isdbl);
 
 void faust_ui_manager_free(t_faust_ui_manager *x);
 

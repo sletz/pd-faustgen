@@ -151,6 +151,8 @@ void faust_ui_receive_setup(void)
   class_addfloat(faust_ui_proxy_class, faust_ui_receive);
 }
 
+typedef void FAUSTFLOATX; // can be either float or double
+
 typedef struct _faust_ui
 {
     t_symbol*           p_name;
@@ -159,7 +161,7 @@ typedef struct _faust_ui
     t_faust_ui_proxy *  p_uirecv;
     FAUSTFLOAT          p_uival;
     int                 p_type;
-    FAUSTFLOAT*         p_zone;
+    FAUSTFLOATX*        p_zone;
     FAUSTFLOAT          p_min;
     FAUSTFLOAT          p_max;
     FAUSTFLOAT          p_step;
@@ -197,6 +199,7 @@ typedef struct _faust_ui_manager
     t_symbol**  f_names;
     size_t      f_nnames;
     MetaGlue    f_meta_glue;
+    bool        f_isdouble;
     bool        f_midi, f_osc;
     int         f_nvoices;
     t_faust_voice *f_voices, *f_free, *f_used;
@@ -329,17 +332,50 @@ static t_faust_ui* faust_ui_manager_get(t_faust_ui_manager const *x, t_symbol co
     return NULL;
 }
 
-static void faust_ui_manager_prepare_changes(t_faust_ui_manager *x)
+// Generic zone value accesses. Note that the actual floating point type of
+// the zone values depends on the f_isdouble flag (-double compilation option)
+// which may change with each compilation. Normally this is float, but changes
+// to double if the dsp is compiled with -double. Thus we need to cast the
+// zone pointers accordingly at runtime, which is handled by the following
+// routines. Note that the FAUSTFLOAT type doesn't help with this because it
+// is determined at compile time. By default, FAUSTFLOAT is just float, but
+// you can set it to double *before* including llvm-c-dsp.h if you want to
+// internally represent all control data using double precision.
+
+static FAUSTFLOAT faustflt(const t_faust_ui_manager *x, FAUSTFLOATX *z)
+{
+  if (x->f_isdouble)
+    return *(double*)z;
+  else
+    return *(float*)z;
+}
+
+static FAUSTFLOAT setfaustflt(t_faust_ui_manager *x, FAUSTFLOATX *z, FAUSTFLOAT v)
+{
+  if (x->f_isdouble)
+    return (*(double*)z = v);
+  else
+    return (*(float*)z = v);
+}
+
+static void faust_ui_manager_prepare_changes(t_faust_ui_manager *x, int isdbl)
 {
     t_faust_ui *c = x->f_uis;
     faust_ui_manager_all_notes_off(x);
+    // Note that here we're still accessing the *old* zone values, so we only
+    // update the f_isdouble flag to its new value *after* this has been done.
     while(c)
     {
         c->p_kept  = 0;
-        c->p_tempv = *(c->p_zone);
+        c->p_tempv = faustflt(x, c->p_zone);
         c = c->p_next;
     }
     x->f_nuis = 0;
+    // Update the f_isdouble flag now, so that subsequent zone value accesses
+    // use the new status. Note that this flag may change with each
+    // compilation, depending on the compilation options (specifically,
+    // whether -double is used or not).
+    x->f_isdouble = isdbl;
     x->f_midi = x->f_osc = true;
     faust_free_voices(x);
     last_meta.n_midi = 0;
@@ -555,7 +591,7 @@ static void faust_ui_manager_add_param(t_faust_ui_manager *x, const char* label,
     c->p_midi      = NULL;
     c->p_nmidi     = 0;
     c->p_voice     = VOICE_NONE;
-    *(c->p_zone)   = current;
+    setfaustflt(x, c->p_zone, current);
     if (last_meta.zone == zone) {
       if (last_meta.voice) {
 	if (c->p_type != FAUST_UI_TYPE_BARGRAPH) {
@@ -954,6 +990,7 @@ t_faust_ui_manager* faust_ui_manager_new(t_object* owner)
         ui_manager->f_nuis      = 0;
         ui_manager->f_names     = NULL;
         ui_manager->f_nnames    = 0;
+        ui_manager->f_isdouble  = false;
         ui_manager->f_midi = ui_manager->f_osc = true;
         ui_manager->f_nvoices   = 0;
         ui_manager->f_keys = NULL;
@@ -975,9 +1012,9 @@ void faust_ui_manager_free(t_faust_ui_manager *x)
     freebytes(x, sizeof(*x));
 }
 
-void faust_ui_manager_init(t_faust_ui_manager *x, void* dspinstance)
+void faust_ui_manager_init(t_faust_ui_manager *x, void* dspinstance, int isdbl)
 {
-    faust_ui_manager_prepare_changes(x);
+    faust_ui_manager_prepare_changes(x, isdbl);
     buildUserInterfaceCDSPInstance((llvm_dsp *)dspinstance, (UIGlue *)&(x->f_glue));
     faust_ui_manager_finish_changes(x);
     faust_ui_manager_free_names(x);
@@ -1007,9 +1044,9 @@ static void gui_update(FAUSTFLOAT v, t_faust_ui_proxy *r)
   }
 }
 
-static void set_zone(FAUSTFLOAT *z, FAUSTFLOAT v, t_faust_ui_proxy *r)
+static void set_zone(t_faust_ui_manager *x, FAUSTFLOATX *z, FAUSTFLOAT v, t_faust_ui_proxy *r)
 {
-  *z = v;
+  setfaustflt(x, z, v);
   gui_update(v, r);
 }
 
@@ -1020,13 +1057,13 @@ char faust_ui_manager_set_value(t_faust_ui_manager *x, t_symbol const *name, t_f
     {
         if(ui->p_type == FAUST_UI_TYPE_BUTTON || ui->p_type == FAUST_UI_TYPE_TOGGLE)
         {
-            set_zone(ui->p_zone, (FAUSTFLOAT)(f > FLT_EPSILON), ui->p_uirecv);
+            set_zone(x, ui->p_zone, (FAUSTFLOAT)(f > FLT_EPSILON), ui->p_uirecv);
             return 0;
         }
         else if(ui->p_type == FAUST_UI_TYPE_NUMBER)
         {
             const FAUSTFLOAT v = (FAUSTFLOAT)(f);
-            set_zone(ui->p_zone, (FAUSTFLOAT)(v < ui->p_min?ui->p_min:v > ui->p_max?ui->p_max:v), ui->p_uirecv);
+            set_zone(x, ui->p_zone, (FAUSTFLOAT)(v < ui->p_min?ui->p_min:v > ui->p_max?ui->p_max:v), ui->p_uirecv);
             return 0;
         }
     }
@@ -1038,7 +1075,7 @@ char faust_ui_manager_get_value(t_faust_ui_manager const *x, t_symbol const *nam
     t_faust_ui* ui = faust_ui_manager_get(x, name);
     if(ui)
     {
-        *f = (t_float)(*(ui->p_zone));
+        *f = (t_float)(faustflt(x, ui->p_zone));
         return 0;
     }
     return 1;
@@ -1140,9 +1177,9 @@ static void voices_noteon(t_faust_ui_manager *x, int num, int val, int chan)
       pd_error(x->f_owner, "faustgen2~: memory allocation failed - monophony");
     }
     t_faust_voice *v = x->f_voices;
-    if (v->freq_c) *v->freq_c->p_zone = note2cps(x, num);
-    if (v->gain_c) *v->gain_c->p_zone = ((double)val)/127.0;
-    if (v->gate_c) *v->gate_c->p_zone = 1.0;
+    if (v->freq_c) setfaustflt(x, v->freq_c->p_zone, note2cps(x, num));
+    if (v->gain_c) setfaustflt(x, v->gain_c->p_zone, ((double)val)/127.0);
+    if (v->gate_c) setfaustflt(x, v->gate_c->p_zone, 1.0);
     return;
   }
 #endif
@@ -1174,9 +1211,9 @@ static void voices_noteon(t_faust_ui_manager *x, int num, int val, int chan)
     // Simply bypass all checking of control ranges and steps for now. We
     // might want to do something more comprehensive later. Also, having MTS
     // support would be nice. :)
-    if (v->freq_c) *v->freq_c->p_zone = note2cps(x, num);
-    if (v->gain_c) *v->gain_c->p_zone = ((double)val)/127.0;
-    if (v->gate_c) *v->gate_c->p_zone = 1.0;
+    if (v->freq_c) setfaustflt(x, v->freq_c->p_zone, note2cps(x, num));
+    if (v->gain_c) setfaustflt(x, v->gain_c->p_zone, ((double)val)/127.0);
+    if (v->gate_c) setfaustflt(x, v->gate_c->p_zone, 1.0);
   }
 }
 
@@ -1203,10 +1240,10 @@ static void voices_noteoff(t_faust_ui_manager *x, int num, int chan)
 	  if (p) {
 	    // legato (change to the previous frequency); note that if you
 	    // want portamento, you'll have to do this in the Faust source
-	    if (v->freq_c) *v->freq_c->p_zone = note2cps(x, p->num);
+	    if (v->freq_c) setfaustflt(x, v->freq_c->p_zone, note2cps(x, p->num));
 	  } else {
 	    // note off
-	    if (v->gate_c) *v->gate_c->p_zone = 0.0;
+	    if (v->gate_c) setfaustflt(x, v->gate_c->p_zone, 0.0);
 	  }
 	  x->f_keys = p;
 	}
@@ -1235,7 +1272,7 @@ static void voices_noteoff(t_faust_ui_manager *x, int num, int chan)
     } else {
       x->f_free = u;
     }
-    if (u->gate_c) *u->gate_c->p_zone = 0.0;
+    if (u->gate_c) setfaustflt(x, u->gate_c->p_zone, 0.0);
   }
 }
 
@@ -1244,7 +1281,7 @@ void faust_ui_manager_all_notes_off(t_faust_ui_manager *x)
 #if MONOPHONIC
   if (x->f_nvoices == 1) {
     t_faust_voice *v = x->f_voices;
-    if (v->gate_c) *v->gate_c->p_zone = 0.0;
+    if (v->gate_c) setfaustflt(x, v->gate_c->p_zone, 0.0);
     while (x->f_keys) {
       t_faust_key *next = x->f_keys->next;
       freebytes(x->f_keys, sizeof(t_faust_key));
@@ -1254,7 +1291,7 @@ void faust_ui_manager_all_notes_off(t_faust_ui_manager *x)
   }
 #endif
   for (t_faust_voice *u = x->f_used; u; u = u->next_free) {
-    if (u->gate_c) *u->gate_c->p_zone = 0.0;
+    if (u->gate_c) setfaustflt(x, u->gate_c->p_zone, 0.0);
     u->next_free = u->next_used;
     u->next_used = NULL;
   }
@@ -1342,42 +1379,42 @@ int faust_ui_manager_get_midi(t_faust_ui_manager *x, t_symbol const *s, int argc
 	  bool log = true;
 	  switch (i) {
 	  case MIDI_START:
-	    *c->p_zone =
+	    setfaustflt(x, c->p_zone,
 	      translate_from_midi(1, 0, 1,
-				  c->p_type, c->p_min, c->p_max, c->p_step);
+				  c->p_type, c->p_min, c->p_max, c->p_step));
 	    break;
 	  case MIDI_STOP:
-	    *c->p_zone =
+	    setfaustflt(x, c->p_zone,
 	      translate_from_midi(0, 0, 1,
-				  c->p_type, c->p_min, c->p_max, c->p_step);
+				  c->p_type, c->p_min, c->p_max, c->p_step));
 	    break;
 	  case MIDI_CLOCK:
 	    // square signal which toggles at each clock
 	    if (c->p_type == FAUST_UI_TYPE_BUTTON ||
 		c->p_type == FAUST_UI_TYPE_TOGGLE)
-	      val = *c->p_zone == 0.0;
+	      val = faustflt(x, c->p_zone) == 0.0;
 	    else
-	      val = *c->p_zone == c->p_min;
-	    *c->p_zone =
+	      val = faustflt(x, c->p_zone) == c->p_min;
+	    setfaustflt(x, c->p_zone,
 	      translate_from_midi(val, 0, 1,
-				  c->p_type, c->p_min, c->p_max, c->p_step);
+				  c->p_type, c->p_min, c->p_max, c->p_step));
 	    break;
 	  case MIDI_PITCHWHEEL:
-	    *c->p_zone =
+	    setfaustflt(x, c->p_zone,
 	      translate_from_midi(val, 0, 16384,
-				  c->p_type, c->p_min, c->p_max, c->p_step);
+				  c->p_type, c->p_min, c->p_max, c->p_step));
 	    break;
 	  default:
 	    if (midi_argc[i] == 1) {
 	      // Pd counts program changes starting at 1
 	      if (i == MIDI_PGM) val--;
-	      *c->p_zone =
+	      setfaustflt(x, c->p_zone,
 		translate_from_midi(val, 0, 128,
-				    c->p_type, c->p_min, c->p_max, c->p_step);
+				    c->p_type, c->p_min, c->p_max, c->p_step));
 	    } else if (c->p_midi[j].num == num) {
-	      *c->p_zone =
+	      setfaustflt(x, c->p_zone,
 		translate_from_midi(val, 0, 128,
-				    c->p_type, c->p_min, c->p_max, c->p_step);
+				    c->p_type, c->p_min, c->p_max, c->p_step));
 	    } else {
 	      log = false;
 	    }
@@ -1385,7 +1422,7 @@ int faust_ui_manager_get_midi(t_faust_ui_manager *x, t_symbol const *s, int argc
 	  }
 	  if (log) {
 	    //logpost(x->f_owner, 3, "%s = %g", c->p_name->s_name, *c->p_zone);
-	    gui_update(*c->p_zone, c->p_uirecv);
+	    gui_update(faustflt(x, c->p_zone), c->p_uirecv);
 	  }
 	}
       }
@@ -1460,7 +1497,8 @@ const t_symbol *faust_ui_manager_get_osc(t_faust_ui_manager *x, t_symbol const *
       for (size_t j = 0; j < c->p_nosc; j++) {
 	int ac = 0;
 	t_atom av[4];
-	double val = translate_to_osc(*c->p_zone, c->p_min, c->p_max,
+	double val = translate_to_osc(faustflt(x, c->p_zone),
+				      c->p_min, c->p_max,
 				      c->p_type, c->p_osc[j].a, c->p_osc[j].b);
 	if (r) {
 	  SETSYMBOL(av+ac, c->p_osc[j].msg); ac++;
@@ -1515,9 +1553,9 @@ const t_symbol *faust_ui_manager_get_osc(t_faust_ui_manager *x, t_symbol const *
 	      argv[k].a_type == A_FLOAT) {
 	    double val = argv[k].a_w.w_float;
 	    // Translate the value to the target range.
-	    *c->p_zone =
+	    setfaustflt(x, c->p_zone,
 	      translate_from_osc(val, c->p_osc[j].a, c->p_osc[j].b,
-				 c->p_type, c->p_min, c->p_max, c->p_step);
+				 c->p_type, c->p_min, c->p_max, c->p_step));
 	  } else {
 	    log = false;
 	  }
@@ -1527,15 +1565,15 @@ const t_symbol *faust_ui_manager_get_osc(t_faust_ui_manager *x, t_symbol const *
 	  // arguments. Here we just assume a default value of b in that case.
 	  double val = argc > 0 ? argv[0].a_w.w_float : c->p_osc[j].b;
 	  // Translate the value to the target range.
-	  *c->p_zone =
+	  setfaustflt(x, c->p_zone,
 	    translate_from_osc(val, c->p_osc[j].a, c->p_osc[j].b,
-			       c->p_type, c->p_min, c->p_max, c->p_step);
+			       c->p_type, c->p_min, c->p_max, c->p_step));
 	} else {
 	  log = false;
 	}
 	if (log) {
 	  //logpost(x->f_owner, 3, "%s = %g", c->p_name->s_name, *c->p_zone);
-	  gui_update(*c->p_zone, c->p_uirecv);
+	  gui_update(faustflt(x, c->p_zone), c->p_uirecv);
 	}
       }
     }
@@ -1549,7 +1587,7 @@ void faust_ui_manager_save_states(t_faust_ui_manager *x)
     t_faust_ui *c = x->f_uis;
     while(c)
     {
-        c->p_saved = *(c->p_zone);
+        c->p_saved = faustflt(x, c->p_zone);
         c = c->p_next;
     }
 }
@@ -1559,7 +1597,7 @@ void faust_ui_manager_restore_states(t_faust_ui_manager *x)
     t_faust_ui *c = x->f_uis;
     while(c)
     {
-        set_zone(c->p_zone, c->p_saved, c->p_uirecv);
+        set_zone(x, c->p_zone, c->p_saved, c->p_uirecv);
         c = c->p_next;
     }
 }
@@ -1570,7 +1608,7 @@ void faust_ui_manager_restore_default(t_faust_ui_manager *x)
     faust_ui_manager_all_notes_off(x);
     while(c)
     {
-        set_zone(c->p_zone, c->p_default, c->p_uirecv);
+        set_zone(x, c->p_zone, c->p_default, c->p_uirecv);
         c = c->p_next;
     }
 }
@@ -1597,7 +1635,7 @@ void faust_ui_manager_print(t_faust_ui_manager const *x, char const log)
         logpost(x->f_owner, 2+log, "parameter: %s [path:%s - type:%s - init:%g - min:%g - max:%g - current:%g]",
                 name->s_name, lname->s_name,
                 faust_ui_manager_get_parameter_char(c->p_type),
-                c->p_default, c->p_min, c->p_max, *c->p_zone);
+                c->p_default, c->p_min, c->p_max, faustflt(x, c->p_zone));
         if (c->p_midi) {
           for (size_t i = 0; i < c->p_nmidi; i++) {
             if (c->p_midi[i].chan >= 0) {
@@ -1648,7 +1686,7 @@ int faust_ui_manager_dump(t_faust_ui_manager const *x, t_symbol *s, t_outlet *ou
 	SETFLOAT(argv+argc, c->p_default); argc++;
 	SETFLOAT(argv+argc, c->p_min); argc++;
 	SETFLOAT(argv+argc, c->p_max); argc++;
-	SETFLOAT(argv+argc, *c->p_zone); argc++;
+	SETFLOAT(argv+argc, faustflt(x, c->p_zone)); argc++;
 	if (c->p_midi) {
 	  for (size_t i = 0; i < c->p_nmidi && argc+3 < DUMP_MAX_ARGS; i++) {
 	    char buf[MAXPDSTRING];
@@ -1770,31 +1808,31 @@ void faust_ui_manager_midiout(t_faust_ui_manager const *x, int midichan,
 	switch (i) {
 	case MIDI_START:
 	  // val means output a start message
-	  val = *c->p_zone > c->p_min;
+	  val = faustflt(x, c->p_zone) > c->p_min;
 	  if (!val) s = NULL;
 	  break;
 	case MIDI_STOP:
 	  // !val means output a stop message
-	  val = *c->p_zone > c->p_min;
+	  val = faustflt(x, c->p_zone) > c->p_min;
 	  if (val) s = NULL;
 	  break;
 	case MIDI_CLOCK:
 	  // change in val means output a clock message
-	  val = *c->p_zone > c->p_min;
+	  val = faustflt(x, c->p_zone) > c->p_min;
 	  break;
 	case MIDI_PITCHWHEEL:
-	  val = translate_to_midi(*c->p_zone, c->p_min, c->p_max, 0, 16384);
+	  val = translate_to_midi(faustflt(x, c->p_zone), c->p_min, c->p_max, 0, 16384);
 	  // voice message, add channel
 	  argc++;
 	  chan = c->p_midi[j].chan;
 	  break;
 	default:
 	  if (argc == 1) {
-	    val = translate_to_midi(*c->p_zone, c->p_min, c->p_max, 0, 128);
+	    val = translate_to_midi(faustflt(x, c->p_zone), c->p_min, c->p_max, 0, 128);
 	    // Pd counts program changes starting at 1
 	    if (i == MIDI_PGM) val++;
 	  } else {
-	    val = translate_to_midi(*c->p_zone, c->p_min, c->p_max, 0, 128);
+	    val = translate_to_midi(faustflt(x, c->p_zone), c->p_min, c->p_max, 0, 128);
 	    num = c->p_midi[j].num;
 	  }
 	  // voice message, add channel
@@ -1886,7 +1924,7 @@ void faust_ui_manager_oscout(t_faust_ui_manager const *x,
 	t_symbol *s = c->p_osc[j].msg;
 	double val = 0.0, oldval = c->p_osc[j].val;
 	t_atom argv[1];
-	val = translate_to_osc(*c->p_zone, c->p_min, c->p_max,
+	val = translate_to_osc(faustflt(x, c->p_zone), c->p_min, c->p_max,
 			       c->p_type, c->p_osc[j].a, c->p_osc[j].b);
 	// only output changed values
 	if (val != oldval) {
@@ -1910,9 +1948,10 @@ void faust_ui_manager_gui_update(t_faust_ui_manager const *x)
     if (c->p_type == FAUST_UI_TYPE_BARGRAPH &&
 	c->p_uisym && c->p_uisym->s_thing) {
       // only output changed values
-      if (*c->p_zone != c->p_uival) {
-	gui_update(*c->p_zone, c->p_uirecv);
-	c->p_uival = *c->p_zone;
+      if (faustflt(x, c->p_zone) != c->p_uival) {
+	FAUSTFLOAT val = faustflt(x, c->p_zone);
+	gui_update(val, c->p_uirecv);
+	c->p_uival = val;
       }
     }
     c = c->p_next;
@@ -2013,8 +2052,9 @@ void faust_ui_manager_gui(t_faust_ui_manager *x,
       typedmess(ui->s_thing, gensym("obj"), argc, argv);
       argc = 0;
       if (s->s_thing) {
-	gui_update(*c->p_zone, c->p_uirecv);
-	c->p_uival = *c->p_zone;
+	FAUSTFLOAT val = faustflt(x, c->p_zone);
+	gui_update(val, c->p_uirecv);
+	c->p_uival = val;
       } else {
 	// this shouldn't happen
 	pd_error(x->f_owner, "faustgen2~: can't initialize %s - gui", s->s_name);
@@ -2070,8 +2110,9 @@ void faust_ui_manager_gui(t_faust_ui_manager *x,
       SETFLOAT(argv+argc, 256); argc++;
       typedmess(ui->s_thing, gensym("obj"), argc, argv);
       if (s->s_thing) {
-	gui_update(*c->p_zone, c->p_uirecv);
-	c->p_uival = *c->p_zone;
+	FAUSTFLOAT val = faustflt(x, c->p_zone);
+	gui_update(val, c->p_uirecv);
+	c->p_uival = val;
       } else {
 	// this shouldn't happen
 	pd_error(x->f_owner, "faustgen2~: can't initialize %s - gui", s->s_name);
@@ -2185,7 +2226,7 @@ static void faust_ui_receive(t_faust_ui_proxy *r, t_floatarg v)
     t_faust_ui* c = faust_ui_manager_get(r->owner, r->lname);
     if (c) {
       //logpost(r->owner->f_owner, 3, "%s = %g", r->uisym->s_name, v);
-      *c->p_zone = v;
+      setfaustflt(r->owner, c->p_zone, v);
     }
   }
 }
