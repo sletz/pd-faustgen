@@ -76,7 +76,7 @@ cmake should then be able to find the other required files (include and dsp libr
 
 ## Install
 
-Once the compilation finishes, you can install the external by running `make install` or `cmake . --install` from the build directory. By default, installation will go into the lib/pd/extra/faustgen2~ directory on Linux, and to just faustgen2~ on Mac and Windows, but this directory can be changed by setting the INSTALL_DIR variable at configuration time (`cmake .. -DINSTALL_DIR=some/path`). In any case, this directory is taken relative to cmake's CMAKE_INSTALL_PREFIX, which has an OS-specific default (e.g., on Linux it is /usr/local), but can be set with the `--prefix` option at installation time when running `cmake . --install`, see below.
+Once the compilation finishes, you can install the external by running `make install` or `cmake --install .` from the build directory. By default, installation will go into the lib/pd/extra/faustgen2~ directory on Linux, and to just faustgen2~ on Mac and Windows, but this directory can be changed by setting the INSTALL_DIR variable at configuration time (`cmake .. -DINSTALL_DIR=some/path`). In any case, this directory is taken relative to cmake's CMAKE_INSTALL_PREFIX, which has an OS-specific default (e.g., on Linux it is /usr/local), but can be set with the `--prefix` option at installation time when running `cmake --install .`, see below.
 
 ### The TL;DR
 
@@ -84,22 +84,22 @@ Follow this cheat sheet and adjust the paths accordingly:
 
 #### Linux
 
-Either just `make install` or `cmake . --install --prefix /usr` (depending on whether you have Pd under /usr/local or /usr) should hopefully do the trick.
+Either just `make install` or `cmake --install . --prefix /usr` (depending on whether you have Pd under /usr/local or /usr) should hopefully do the trick.
 
 #### Mac
 
-Use `cmake . --install --prefix ~/Library/Pd` for personal or `sudo cmake . --install --prefix /Library/Pd` for system-wide installation. That should be the safest option, since your Pd extra directory most likely lives somewhere in the Pd application bundle, which you usually don't want to touch.
+Use `cmake --install . --prefix ~/Library/Pd` for personal or `sudo cmake --install . --prefix /Library/Pd` for system-wide installation. That should be the safest option, since your Pd extra directory most likely lives somewhere in the Pd application bundle, which you usually don't want to touch.
 
 #### Windows
 
-Try `cmake . --install --prefix "/Users/Your Name/AppData/Roaming/Pd"` for personal or `cmake . --install --prefix "/Program Files/Pd/extra"` for system-wide installation. The prefix for the latter may vary *a lot* depending on which package you use and how you installed it (e.g., use the "Program Files (x86)" folder if you're running the 32 bit version of Pd). If you installed Pd from a zip package then all bets are off, and you should go look where your extra directory is and adjust the prefix path accordingly.
+Try `cmake --install . --prefix "/Users/Your Name/AppData/Roaming/Pd"` for personal or `cmake --install . --prefix "/Program Files/Pd/extra"` for system-wide installation. The prefix for the latter may vary *a lot* depending on which package you use and how you installed it (e.g., use the "Program Files (x86)" folder if you're running the 32 bit version of Pd). If you installed Pd from a zip package then all bets are off, and you should go look where your extra directory is and adjust the prefix path accordingly.
 
 ### Staged Installation
 
 It's also possible (and recommended) to do a "staged install" first. You can do that in a platform-independent way as follows:
 
 ~~~shell
-cmake . --install --prefix staging
+cmake --install . --prefix staging
 ~~~
 
 This will leave the installed files in the staging subdirectory of your build directory. On Linux and other Unix-like systems, you can also run:
