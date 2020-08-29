@@ -160,5 +160,6 @@ if(INSTALLED_FAUST)
 else()
   file(GLOB lib_files ${PROJECT_SOURCE_DIR}/faust/libraries/*.lib ${PROJECT_SOURCE_DIR}/faust/libraries/old/*.lib)
 endif()
-install(DIRECTORY external/ DESTINATION ${INSTALL_DIR})
+## Exclude the random junk MSVC produces along the dll file.
+install(DIRECTORY external/ DESTINATION ${INSTALL_DIR} PATTERN "*.exp" EXCLUDE PATTERN "*.ilk" EXCLUDE PATTERN "*.lib" EXCLUDE PATTERN "*.pdb" EXCLUDE)
 install(FILES ${lib_files} DESTINATION ${INSTALL_DIR}/libs)
