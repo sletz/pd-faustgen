@@ -17,13 +17,13 @@
 
 The **faustgen2~** object is a [Faust](https://faust.grame.fr/) external for Pd a.k.a. [Pure Data](http://msp.ucsd.edu/software.html), Miller Puckette's interactive multimedia programming environment. Yann Orlarey's Faust is a functional programming language developed by [Grame](https://www.grame.fr/), which is tailored for real-time signal processing and synthesis.
 
-faustgen2~ was written by Albert Gräf (JGU Mainz, IKM, Music-Informatics) based on [faustgen~](https://github.com/CICM/pd-faustgen) by  Pierre Guillot (Paris 8, CICM), which in turn was inspired by Grame's [faustgen~](https://github.com/grame-cncm/faust/tree/master-dev/embedded/faustgen) object for Max/MSP. faustgen2~ is a comprehensive update which offers plenty of new features, bringing it up to par with both Grame's faustgen~ and the author's [pd-faust](https://agraef.github.io/pure-docs/pd-faust.html) external, and adds some of its own, such as the integrated loader extension and a novel approach to polyphonic synth implementation.
+faustgen2~ was written by Albert Gräf (JGU Mainz, IKM, Music-Informatics) based on [faustgen~](https://github.com/CICM/pd-faustgen) by  Pierre Guillot (Paris 8, CICM), which in turn was inspired by Grame's [faustgen~](https://github.com/grame-cncm/faust/tree/master-dev/embedded/faustgen) object for Max/MSP. faustgen2~ is a comprehensive update which offers plenty of new functionality, bringing it up to par with both Grame's faustgen~ and the author's [pd-faust](https://agraef.github.io/pure-docs/pd-faust.html) external. It also adds some of its own features, such as the integrated loader extension and a novel approach to polyphonic synth implementation.
 
-faustgen2~, like faustgen~, uses Faust's [LLVM](http://llvm.org)-based just-in-time (JIT) compiler to load, compile and play Faust programs on the fly. The Faust JIT compiler brings together the convenience of a standalone interpreted language with the efficiency of a compiled language, fostering creative exploration of the Faust language and enabling live-coding.
+Like faustgen~, faustgen2~ uses Faust's [LLVM](http://llvm.org)-based just-in-time (JIT) compiler to load, compile and play Faust programs on the fly. The Faust JIT compiler brings together the convenience of an interpreted environment with the efficiency of a compiled language, which fosters creative exploration of the Faust language and enables live-coding techniques.
 
 ## Installation
 
-Ready-made binary packages for Mac, Windows, and Ubuntu are available at <https://github.com/agraef/pd-faustgen/releases>. Use these if you can. If you want or need to compile faustgen2~ yourself, please refer to the instructions below.
+Ready-made binary packages for Mac, Windows, and Ubuntu are available at <https://github.com/agraef/pd-faustgen/releases>. Use these if you can. Note that we only distribute builds for 64 bit architectures. If you want or need to compile faustgen2~ yourself, please refer to the instructions below.
 
 ## Installing from Source
 
@@ -143,6 +143,10 @@ Note that the Faust dsp also has a control variable "vol" which we can use to ch
 ![screenie](mynoise~.png)
 
 faustgen2~ offers many other possibilities, such as MIDI input and output (including monophonic and polyphonic synths, using the author's [SMMF](https://bitbucket.org/agraef/pd-smmf/) format for representing MIDI messages), and communication with OSC (Open Sound Control) devices and applications such as TouchOSC. These are all explained in the help patch. Running Faust dsps in Pd has never been easier!
+
+## Known Bugs
+
+Code generated from dsp files by the LLVM JIT crashes the 32 bit version of the external on Windows. The 64 bit version works fine, though. Other projects using the Faust LLVM JIT have similar issues, so this is most likely a Win32-specific bug in Faust's LLVM backend or LLVM itself. What this means is that you can't use faustgen2~ in 32 bit Pd versions on Windows right now, you'll have to run the 64 bit version instead.
 
 ## Author
 
