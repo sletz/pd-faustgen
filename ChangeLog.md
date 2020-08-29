@@ -1,5 +1,8 @@
 
-### v2.0.0 (Albert Gräf, JGU-IKM, aggraef at gmail.com)
+### v2.0.0 (faustgen2)
+
+This is an extensive update by Albert Gräf (JGU-IKM, aggraef at gmail.com) with many new features:
+
 - Renamed external to faustgen2~ to avoid clashes with CICM faustgen~ (needed since faustgen2~ is *not* a drop-in replacement for faustgen~)
 - Reworked layout of inlets and outlets (now one control inlet/outlet pair on the left, remaining iolets are the dsp's inputs and outputs)
 - MIDI, polyphony, Scala tunings, OSC, and Pd GUI support (that's an abundance of new functionality, bringing faustgen2~ up to par with both Grame's faustgen~ and JGU's pd-faust)
