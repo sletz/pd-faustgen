@@ -29,7 +29,7 @@ Ready-made binary packages for Mac, Windows, and Ubuntu can be found at <https:/
 
 To compile faustgen2~ you'll need [LLVM](http://llvm.org), [Faust](https://github.com/grame-cncm/faust.git), [Pd](https://github.com/pure-data/pure-data.git), and [CMake](https://cmake.org/). The sources for Faust and Pd are included in the faustgen2~ source, so you don't have to install these beforehand, but of course you'll want to install Pd (or one of its flavors, such as [Purr Data](https://agraef.github.io/purr-data/)) to use faustgen2~. If you already have an installation of the Faust compiler (including libfaust), you can use that version instead of the included Faust source, which will make the installation much easier and faster. Make sure that you have Faust 2.27.2 or later (older versions may or may not work with faustgen2~, use at your own risk), and LLVM 9.0.0 or later.
 
-If you're running Linux, recent versions of LLVM and cmake should be readily available in your distribution's package repositories. On the Mac, they are available in MacPorts or Homebrew, and there's a binary LLVM package available on <http://llvm.org>. At the time of this writing, the ready-made LLVM packages for Windows available through Visual Studio or <http://llvm.org> are useless for installing faustgen2~, because they do not contain the LLVM compiler backend. Thus you might want to grab the [binaries](https://github.com/agraef/pd-faustgen/releases/tag/llvm-9.0.0-windows-build) we provide on Github, or compile LLVM yourself (instructions can be found in the [original CICM README](README-CICM.md)).
+If you're running Linux, recent versions of LLVM and cmake should be readily available in your distribution's package repositories. On the Mac, they are available in MacPorts or Homebrew, and there's a binary LLVM package available on <http://llvm.org>. At the time of this writing, the LLVM packages for Windows available through Visual Studio or <http://llvm.org> can't be used for installing faustgen2~, because they do not contain the LLVM development tools and libraries. Thus you might want to grab the [binaries](https://github.com/agraef/pd-faustgen/releases/tag/llvm-9.0.0-windows-build) we provide on Github, or compile LLVM yourself (instructions can be found in the [original CICM README](README-CICM.md)).
 
 ## Getting the Source Code
 
@@ -52,7 +52,7 @@ cmake ..
 cmake --build .
 ~~~
 
-This should work on Linux and Mac, where you can also just run `make` instead of `cmake --build`. In principle, on Windows you can do the same using MSVC, but you'll most likely have to fiddle with the cmake options (have a look at the build script in the included AppVeyour configuration to figure out the details). MSYS/MSYS2 doesn't work at present.
+This should work on Linux and Mac, where you can also just run `make` instead of `cmake --build`. In principle, on Windows you can do the same using MSVC, but you'll most likely have to fiddle with the cmake options (see the build script in the included AppVeyour configuration for details). MSYS/MSYS2 doesn't work at present.
 
 The above will compile the included Faust source and use that to build the external. This may take a while. To use an installed Faust library, you can run cmake as follows:
 
