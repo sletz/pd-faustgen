@@ -17,13 +17,13 @@
 
 The **faustgen2~** object is a [Faust](https://faust.grame.fr/) external for Pd a.k.a. [Pure Data](http://msp.ucsd.edu/software.html), Miller Puckette's interactive multimedia programming environment. Yann Orlarey's Faust is a functional programming language developed by [Grame](https://www.grame.fr/), which is tailored for real-time signal processing and synthesis.
 
-faustgen2~ was written by Albert Gräf (JGU Mainz, IKM, Music-Informatics) based on [faustgen~](https://github.com/CICM/pd-faustgen) by  Pierre Guillot (Paris 8, CICM), which in turn was inspired by Grame's [faustgen~](https://github.com/grame-cncm/faust/tree/master-dev/embedded/faustgen) object for Max/MSP. faustgen2~ is a comprehensive update which offers plenty of new functionality, bringing it up to par with both Grame's faustgen~ and the author's [pd-faust](https://agraef.github.io/pure-docs/pd-faust.html) external. It also adds some of its own features, such as the integrated loader extension and a novel approach to polyphonic synth implementation.
+faustgen2~ was written by Albert Gräf (JGU Mainz, IKM, Music-Informatics) based on [faustgen~](https://github.com/CICM/pd-faustgen) by  Pierre Guillot (Paris 8, CICM), which in turn was inspired by Grame's [faustgen~](https://github.com/grame-cncm/faust/tree/master-dev/embedded/faustgen) object for Max/MSP. faustgen2~ is an extensive update which offers plenty of new functionality, bringing it up to par with both Grame's faustgen~ and the author's [pd-faust](https://agraef.github.io/pure-docs/pd-faust.html) external. It also adds some of its own features, such as the integrated loader extension and a novel approach to polyphonic synth implementation.
 
 Like faustgen~, faustgen2~ uses Faust's [LLVM](http://llvm.org)-based just-in-time (JIT) compiler to load, compile and play Faust programs on the fly. The Faust JIT compiler brings together the convenience of an interpreted environment with the efficiency of a compiled language, which fosters creative exploration of the Faust language and enables live-coding techniques.
 
 ## Installation
 
-Ready-made binary packages for Mac, Windows, and Ubuntu are available at <https://github.com/agraef/pd-faustgen/releases>. Use these if you can. Note that we only distribute builds for 64 bit architectures. If you want or need to compile faustgen2~ yourself, please refer to the instructions below.
+Ready-made binary packages for Mac, Windows, and Ubuntu can be found at <https://github.com/agraef/pd-faustgen/releases>; use these if you can. For Arch Linux users, we have PKGBUILDs available on the [AUR](https://aur.archlinux.org/packages/?K=pd-faustgen2). If you want or need to compile faustgen2~ yourself, please refer to the instructions below.
 
 ## Installing from Source
 
@@ -84,7 +84,7 @@ Follow this cheat sheet and adjust the paths accordingly:
 
 #### Linux
 
-Either just `make install` or `cmake --install . --prefix /usr` (depending on whether you have Pd under /usr/local or /usr) should hopefully do the trick.
+Either just `sudo make install` or `sudo cmake --install . --prefix /usr` (depending on whether you have Pd under /usr/local or /usr) should hopefully do the trick. This will do a system-wide installation. You can also do a personal installation if you perform a staged install as described below and manually copy the faustgen2~ folder to some directory Pd searches for externals (such as ~/pd-externals).
 
 #### Mac
 
@@ -92,7 +92,7 @@ Use `cmake --install . --prefix ~/Library/Pd` for personal or `sudo cmake --inst
 
 #### Windows
 
-Try `cmake --install . --prefix "/Users/Your Name/AppData/Roaming/Pd"` for personal or `cmake --install . --prefix "/Program Files/Pd/extra"` for system-wide installation. The prefix for the latter may vary *a lot* depending on which package you use and how you installed it (e.g., use the "Program Files (x86)" folder if you're running the 32 bit version of Pd). If you installed Pd from a zip package then all bets are off, and you should go look where your extra directory is and adjust the prefix path accordingly.
+Try `cmake --install . --prefix "/Users/Your Name/AppData/Roaming/Pd"` for personal or `cmake --install . --prefix "/Program Files/Pd/extra"` for system-wide installation. The prefix for the latter may vary *a lot* depending on which package you use and how you installed it. If you installed Pd from a zip package then all bets are off, and you should go look where your extra directory is and adjust the prefix path accordingly.
 
 ### Staged Installation
 
@@ -114,7 +114,7 @@ The staged installation allows you to see beforehand what exactly gets installed
 
 ### Faust Loader
 
-After finishing the installation, you also want to add faustgen~ to Pd's startup libraries. This isn't necessary to run the faustgen2~ external under its name, but loading the external at startup enables its included *loader extension* which hooks into Pd's abstraction and external loader. This allows you to create Faust dsps by just typing their names (*without* the faustgen2~ prefix), just as if the dsp files themselves were Pd externals (which effectively they are, although they're loaded through the faustgen2~ object rather than Pd's built-in loader).
+After finishing the installation, you also want to add faustgen2~ to Pd's startup libraries. This isn't necessary to run the faustgen2~ external under its name, but loading the external at startup enables its included *loader extension* which hooks into Pd's loader. This allows you to create Faust dsps by just typing their names (*without* the faustgen2~ prefix), just as if the dsp files themselves were Pd externals (which effectively they are, although they're loaded through the faustgen2~ object rather than Pd's built-in loader).
 
 If you do *not* want to add faustgen2~ to the startup libraries for some reason, there are other ways to activate the loader when you need it. The most portable of these is Pd's `declare`. To these ends, place `declare -lib faustgen2~` *first* into each patch which requires the loader. Note that the `-lib` option will search the patch directory first, so it will also work if you use a local copy of faustgen2~. If the external has been installed on Pd's search path, then using `-stdlib` in lieu of `-lib` will also do the job.
 
