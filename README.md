@@ -37,10 +37,11 @@ You can install either from a released source tarball available at <https://gith
 
 ~~~shell
 git clone https://github.com/agraef/pd-faustgen.git
+cd pd-faustgen
 git submodule update --init --recursive
 ~~~
 
-Note that the second command above will check out various required sources from other locations which are included in faustgen2~ as git submodules. The distributed tarballs are self-contained and already include all the submodule sources.
+Note that the third command above will check out various required sources from other locations which are included in faustgen2~ as git submodules. The distributed tarballs are self-contained and already include all the submodule sources.
 
 ## Build
 
