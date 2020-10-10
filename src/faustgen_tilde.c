@@ -11,6 +11,7 @@
 #include <float.h>
 #include <math.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <sys/stat.h>
 
 // ag: I'm not sure what this definition is supposed to do, but this will
@@ -422,7 +423,11 @@ static void faustgen_tilde_tuning(t_faustgen_tilde *x, t_symbol* s, int argc, t_
 	pd_error(x, "faustgen2~: can't find %s.scl", name);
 	return;
       }
-      FILE *fp = fdopen(fd, "r");
+      sys_close(fd);
+      char absname[MAXPDSTRING];
+      memset(absname, 0, MAXPDSTRING);
+      snprintf(absname, MAXPDSTRING, "%s/%s", realdir, realname);
+      FILE *fp = fopen(absname, "r");
       if (!fp) {
 	pd_error(x, "faustgen2~: can't open %s", realname);
 	return;
