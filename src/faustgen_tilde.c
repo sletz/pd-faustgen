@@ -27,7 +27,7 @@
 #include "faust_tilde_io.h"
 #include "faust_tilde_options.h"
 
-#define FAUSTGEN_VERSION_STR "2.0.1"
+#define FAUSTGEN_VERSION_STR "2.0.2"
 #define MAXFAUSTSTRING 4096
 
 // ag: GUI update interval for the passive controls (msec). A zero value will
