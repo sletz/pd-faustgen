@@ -759,6 +759,8 @@ either a Scala file and an optional reference tone in the octave \,
 or 12 tuning offsets in cent as arguments, f 58;
 #X obj 19 130 examples/organ~ organ, f 22;
 #X obj 19 180 examples/chorus chorus;
+#X connect 0 0 6 0;
+#X connect 1 0 6 0;
 #X connect 7 0 6 0;
 #X connect 8 0 10 0;
 #X connect 10 0 11 0;
