@@ -74,6 +74,7 @@ typedef struct _faustgen_tilde
     t_symbol*           f_instance_name;
     t_symbol*           f_unique_name;
     double              f_next_tick;
+    t_canvas*           f_canvas;
 } t_faustgen_tilde;
 
 static t_class *faustgen_tilde_class;
@@ -415,7 +416,7 @@ static void faustgen_tilde_tuning(t_faustgen_tilde *x, t_symbol* s, int argc, t_
       // load tuning from a Scala file
       // (http://www.huygens-fokker.org/scala/scl_format.html)
       char realdir[MAXPDSTRING], *realname = NULL;
-      int fd = canvas_open(canvas_getcurrent(), name, ext, realdir,
+      int fd = canvas_open(x->f_canvas, name, ext, realdir,
 			   &realname, MAXPDSTRING, 0);
       if (fd < 0) {
 	pd_error(x, "faustgen2~: can't find %s.scl", name);
@@ -990,6 +991,7 @@ static void *faustgen_tilde_new(t_symbol* s, int argc, t_atom* argv)
     {
         char default_file[MAXPDSTRING];
         bool is_loader_obj = strcmp(s->s_name, "faustgen2~") != 0;
+        x->f_canvas = canvas_getcurrent();
         sprintf(default_file, "%s/default", class_gethelpdir(faustgen_tilde_class));
         x->f_dsp_factory    = NULL;
         x->f_dsp_instance   = NULL;
@@ -1000,8 +1002,8 @@ static void *faustgen_tilde_new(t_symbol* s, int argc, t_atom* argv)
         x->f_signal_aligned_double = NULL;
         
         x->f_ui_manager     = faust_ui_manager_new((t_object *)x);
-        x->f_io_manager     = faust_io_manager_new((t_object *)x, canvas_getcurrent());
-        x->f_opt_manager    = faust_opt_manager_new((t_object *)x, canvas_getcurrent());
+        x->f_io_manager     = faust_io_manager_new((t_object *)x, x->f_canvas);
+        x->f_opt_manager    = faust_opt_manager_new((t_object *)x, x->f_canvas);
         x->f_dsp_name       = is_loader_obj ? real_dsp_name(s) :
 	  argc ? atom_getsymbolarg(0, argc, argv) : gensym(default_file);
         x->f_clock          = clock_new(x, (t_method)faustgen_tilde_autocompile_tick);
