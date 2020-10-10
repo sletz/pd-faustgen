@@ -53,7 +53,18 @@ cmake ..
 cmake --build .
 ~~~
 
-This should work on Linux and Mac, where you can also just run `make` instead of `cmake --build`. In principle, on Windows you can do the same using MSVC, but you'll most likely have to fiddle with the cmake options (see the build script in the included AppVeyour configuration for details). MSYS/MSYS2 doesn't work at present.
+This should work on Linux and Mac, where you can also just run `make` instead of `cmake --build`.
+
+----
+
+In principle, on Windows you can do the same using MSVC (MSYS/MSYS2 doesn't work at present). But as usual on Windows most defaults will be wrong, and so you'll most likely have to add a bunch of options to tell cmake about the MSVC version you want to use, the architecture you want to build for, the path to your LLVM installation, and the build type. The following works for me, but YMMV:
+
+~~~shell
+cmake .. -G "Visual Studio 16 2019" -A x64 -DUSE_LLVM_CONFIG=off -DCMAKE_PREFIX_PATH=/path/to/llvm
+cmake --build . --config Release
+~~~
+
+----
 
 The above will compile the included Faust source and use that to build the external. This may take a while. To use an installed Faust library, you can run cmake as follows:
 
