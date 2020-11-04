@@ -1,0 +1,5 @@
+pd-faustgen2 (2.0.2-1) bionic; urgency=low
+
+  * Build from latest upstream source.
+
+ -- Albert Graef <aggraef@gmail.com>  Wed, 04 Nov 2020 18:34:35 +0100

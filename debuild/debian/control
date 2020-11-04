@@ -1,0 +1,24 @@
+Source: pd-faustgen2
+Section: sound
+Priority: extra
+Maintainer: Albert Graef <aggraef@gmail.com>
+Build-Depends: debhelper (>= 7.0.50~), dh-python, llvm-10-dev, cmake
+Standards-Version: 3.9.5
+Homepage: https://github.com/agraef/pd-faustgen
+
+Package: pd-faustgen2
+Architecture: any
+Depends: llvm-10-dev, ${misc:Depends}, ${shlibs:Depends}
+Suggests: puredata, purr-data
+Description:  Faust external for Pd
+ The faustgen2~ object is a Faust external for Pd a.k.a. Pure Data, Miller
+ Puckette's interactive multimedia programming environment. Yann Orlarey's
+ Faust is a functional programming language developed by Grame, which is
+ tailored for real-time signal processing and synthesis.
+ .
+ faustgen2~ is based on Pierre Guillot's faustgen~ which in turn was inspired
+ by Grame's faustgen~ object for Max/MSP. Like faustgen~, faustgen2~ uses
+ Faust's LLVM-based just-in-time (JIT) compiler to load, compile and play
+ Faust programs on the fly. faustgen2~ is an extensive update which offers
+ plenty of new functionality such as MIDI, polyphony, Scala tunings, OSC,
+ and Pd GUI support, as well as a Pd loader extension for Faust.
