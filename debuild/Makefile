@@ -30,7 +30,7 @@
 # unsigned package.
 
 # 4. Run 'make debclean' to get rid of any files that were created in steps 2
-# and 3.
+# and 3, as well as any changes to the debian directory.
 
 # The Debian version gets derived from the date and serial number of the last
 # commit. You can print it with 'make debversion'.
@@ -58,6 +58,7 @@ debchange:
 debclean:
 	rm -rf $(debdist)
 	rm -f pd-faustgen2_*+git* pd-faustgen2-dbgsym_*+git*
+	git checkout debian/
 
 deb: $(debsrc)
 # Unpack the source into our temporary build directory.
