@@ -4,6 +4,8 @@
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
+pdlibdir = /usr/lib/pd
+
 LLVMLIBS = $(shell llvm-config-10 --ldflags --link-shared --libs engine)
 
 %:
@@ -15,7 +17,7 @@ override_dh_auto_clean:
 	rm -rf build
 
 override_dh_auto_build:
-	mkdir -p build && cd build && cmake .. -DCMAKE_INSTALL_PREFIX=/usr -DUSE_LLVM_CONFIG=off -Dllvm_libs="$(LLVMLIBS)" && make
+	mkdir -p build && cd build && cmake .. -DCMAKE_INSTALL_PREFIX="$(pdlibdir)" -DINSTALL_DIR="extra/faustgen2~" -DUSE_LLVM_CONFIG=off -Dllvm_libs="$(LLVMLIBS)" && make
 	strip --strip-unneeded external/faustgen2~.pd_linux
 
 override_dh_auto_install:
