@@ -784,6 +784,23 @@ static t_int *faustgen_tilde_perform_double(t_int *w)
     t_sample const** realinputs = (t_sample const**)w[6];
     t_sample** realoutputs      = (t_sample **)w[7];
     t_faustgen_tilde *x = (t_faustgen_tilde *)w[8];
+    if (!x->f_active) {
+      // ag: default `active` flag: bypass or mute the dsp
+      if (ninputs == noutputs) {
+	for (i = 0; i < ninputs; ++i) {
+	  for(j = 0; j < nsamples; ++j) {
+	    realoutputs[i][j] = realinputs[i][j];
+	  }
+	}
+      } else {
+	for (i = 0; i < noutputs; ++i) {
+	  for(j = 0; j < nsamples; ++j) {
+	    realoutputs[i][j] = 0.0;
+	  }
+	}
+      }
+      return (w+9);
+    }
     for(i = 0; i < ninputs; ++i)
     {
         for(j = 0; j < nsamples; ++j)
