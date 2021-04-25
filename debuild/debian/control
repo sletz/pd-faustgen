@@ -2,7 +2,7 @@ Source: pd-faustgen2
 Section: sound
 Priority: extra
 Maintainer: Albert Graef <aggraef@gmail.com>
-Build-Depends: debhelper (>= 7.0.50~), dh-python, llvm-10-dev, cmake
+Build-Depends: debhelper (>= 7.0.50~), dh-python, llvm-11-dev | llvm-10-dev, cmake
 Standards-Version: 3.9.5
 Homepage: https://github.com/agraef/pd-faustgen
 

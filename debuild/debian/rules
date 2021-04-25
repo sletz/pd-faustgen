@@ -5,8 +5,8 @@
 #export DH_VERBOSE=1
 
 pdlibdir = /usr/lib/pd
-
-LLVMLIBS = $(shell llvm-config-10 --ldflags --link-shared --libs engine)
+llvmconfig = $(wildcard /usr/bin/llvm-config-*)
+LLVMLIBS = $(shell $(llvmconfig) --ldflags --link-shared --libs engine)
 
 %:
 	dh $@
