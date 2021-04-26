@@ -2,13 +2,13 @@ Source: pd-faustgen2
 Section: sound
 Priority: extra
 Maintainer: Albert Graef <aggraef@gmail.com>
-Build-Depends: debhelper (>= 7.0.50~), dh-python, llvm-11-dev | llvm-10-dev, cmake
+Build-Depends: debhelper (>= 7.0.50~), dh-python, llvm-11-dev, cmake
 Standards-Version: 3.9.5
 Homepage: https://github.com/agraef/pd-faustgen
 
 Package: pd-faustgen2
 Architecture: any
-Depends: llvm-10-dev, ${misc:Depends}, ${shlibs:Depends}
+Depends: llvm-11-dev, ${misc:Depends}, ${shlibs:Depends}
 Suggests: puredata, purr-data
 Description:  Faust external for Pd
  The faustgen2~ object is a Faust external for Pd a.k.a. Pure Data, Miller
