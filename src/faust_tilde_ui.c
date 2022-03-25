@@ -6,7 +6,11 @@
 
 
 #include "faust_tilde_ui.h"
+#ifdef DSPC
+#include <faust/dsp/llvm-dsp-c.h>
+#else
 #include <faust/dsp/llvm-c-dsp.h>
+#endif
 #include <string.h>
 #include <ctype.h>
 #include <float.h>

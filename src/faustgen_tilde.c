@@ -21,7 +21,11 @@
 #if 0
 #define FAUSTFLOAT t_sample
 #endif
+#ifdef DSPC
+#include <faust/dsp/llvm-dsp-c.h>
+#else
 #include <faust/dsp/llvm-c-dsp.h>
+#endif
 
 #include "faust_tilde_ui.h"
 #include "faust_tilde_io.h"
