@@ -23,7 +23,7 @@ Like faustgen~, faustgen2~ uses Faust's [LLVM](http://llvm.org)-based just-in-ti
 
 ## Installation
 
-Ready-made binary packages for Mac, Windows, and Ubuntu can be found at <https://github.com/agraef/pd-faustgen/releases>; use these if you can. For Arch Linux users, we have PKGBUILDs available on the [AUR](https://aur.archlinux.org/packages/?K=pd-faustgen2). If you want or need to compile faustgen2~ yourself, please refer to the instructions below.
+Ready-made binary packages for Mac, Windows, and Ubuntu can be found at <https://github.com/agraef/pd-faustgen/releases>; use these if you can. For recent Debian/Ubuntu and Fedora versions, you can find proper package repositories at the [OBS](https://build.opensuse.org/project/show/home:aggraef:pd-faustgen2). For Arch Linux users, we have PKGBUILDs available on the [AUR](https://aur.archlinux.org/packages/?K=pd-faustgen2). If you want or need to compile faustgen2~ yourself, please refer to the instructions below.
 
 ## Installing from Source
 
