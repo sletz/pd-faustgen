@@ -70,6 +70,12 @@ cmake .. -DFAUST_LIBRARY=/some/path/to/libfaust.a
 
 cmake should then be able to find the other required files (include and dsp library files) on its own. If all else fails, just use the included Faust source, this should always work.
 
+As of Pd 0.51-0 you can compile a ["Double precision" Pd](http://msp.ucsd.edu/Pd_documentation/x6.htm#s6.6). If you intend to use faustgen2~ in such an environment, you must also compile it for double precision with the following option:
+
+~~~shell
+cmake .. -DPD_FLOATSIZE64=ON
+~~~
+
 ----
 
 In principle, on Windows you can do the same using MSVC (MSYS/MSYS2 doesn't work at present). But this usually requires a lot of fiddling, and it also doesn't help that the LLVM Windows binaries which are available from llvm.org or as part of Visual Studio lack the development tools and libraries needed to do any serious LLVM development. So I really recommend that you use the builds that we provide on GitHub. If you still want to give it a go, check the Windows build in the makefile.yml file in this repository, it will tell you exactly what to do. You'll also need the [LLVM binaries](https://github.com/agraef/pd-faustgen/releases/tag/llvm-9.0.0-windows-build) we provide on GitHub, or compile LLVM yourself (instructions can be found in the [original CICM README](README-CICM.md)).
