@@ -65,10 +65,11 @@ jobs:
 
     - name: prepare
       run: |
-        # The official mac arm64 package from llvm.org doesn't work (gives
-        # unresolved symbols), here is one that does:
-        curl -o ./llvm.tar.xz -L https://github.com/ycm-core/llvm/releases/download/15.0.1/clang+llvm-15.0.1-arm64-apple-darwin.tar.xz
-        tar xzf ./llvm.tar.xz && mv clang+llvm-* llvm
+        # The official mac arm64 package from llvm.org is broken, the one from
+        # homebrew (llvm@14) works, but is difficult to install on a x86_64
+        # runner, so we uploaded a snapshot here:
+        curl -L https://github.com/agraef/pd-faustgen/releases/download/llvm-14-homebrew/llvm-14.0.6-homebrew-arm64.zip -o llvm.zip
+        unzip llvm.zip
 
     - name: make
       run: |
@@ -85,6 +86,8 @@ jobs:
         cmake --build . --config Release --target faustgen_tilde_project
         # staged install into dist
         cmake --install . --prefix $PWD/dist
+        # copy over libLLVM.dylib and fix the loader path of the external
+        for x in $(otool -L dist/faustgen2~/faustgen2~.pd_darwin | sed -n 's|.*llvm@14/lib/\(.*\.dylib\).*|\1|p'); do cp ../llvm/lib/$x dist/faustgen2~; install_name_tool -change /opt/homebrew/opt/llvm@14/lib/$x @loader_path/$x dist/faustgen2~/faustgen2~.pd_darwin; done
         cp ../README.md ../LICENSE dist/faustgen2~
         chmod 0444 dist/faustgen2~/default.dsp
 
