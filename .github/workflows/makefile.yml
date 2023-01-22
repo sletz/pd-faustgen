@@ -29,17 +29,18 @@ jobs:
     - name: make
       run: |
         echo version: $version
+        # we need llvm-config for the static build even with USE_LLVM_CONFIG=off
+        export PATH=$PWD/llvm/bin:$PATH
         mkdir build && cd build
-        cmake .. -GXcode -DUSE_LLVM_CONFIG=off -DLLVM_DIR=./llvm/lib/cmake/llvm -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9 -DCMAKE_INSTALL_PREFIX=/
+        # Need to include llvm-config --ldflags in llvm_libs, the fallback
+        # linker options don't work as is.
+        cmake .. -DUSE_LLVM_CONFIG=off -DLLVM_DIR=./llvm/lib/cmake/llvm -DCMAKE_BUILD_TYPE=Release -DINSTALL_DIR=faustgen2~ -DCMAKE_INSTALL_PREFIX=/ -Dllvm_libs="$(llvm-config --ldflags --libs | tr '\n' ' ')"
         cmake --build . --config Release --target faustgen_tilde_project
-        cp -R ../external faustgen2~
-        mkdir faustgen2~/libs
-        cp ../faust/libraries/*.lib  ../faust/libraries/old/*.lib faustgen2~/libs
-        cp ../README.md ../LICENSE faustgen2~
-        chmod 0444 faustgen2~/default.dsp
-        for x in $(otool -L faustgen2~/faustgen2~.pd_darwin | sed -n 's|.*@rpath/\(.*\.dylib\).*|\1|p'); do cp ../llvm/lib/$x faustgen2~; install_name_tool -change @rpath/$x @loader_path/$x faustgen2~/faustgen2~.pd_darwin; done
-        mkdir dist
-        mv faustgen2~ dist
+        # staged install into dist
+        cmake --install . --prefix $PWD/dist
+        for x in $(otool -L dist/faustgen2~/faustgen2~.pd_darwin | sed -n 's|.*@rpath/\(.*\.dylib\).*|\1|p'); do cp ../llvm/lib/$x dist/faustgen2~; install_name_tool -change @rpath/$x @loader_path/$x dist/faustgen2~/faustgen2~.pd_darwin; done
+        cp ../README.md ../LICENSE dist/faustgen2~
+        chmod 0444 dist/faustgen2~/default.dsp
 
     - name: upload
       uses: actions/upload-artifact@v3
