@@ -16,7 +16,7 @@
 
 The **faustgen2~** object is a [Faust](https://faust.grame.fr/) external for Pd a.k.a. [Pure Data](http://msp.ucsd.edu/software.html), Miller Puckette's interactive multimedia programming environment. Yann Orlarey's Faust is a functional programming language developed by [Grame](https://www.grame.fr/), which is tailored for real-time signal processing and synthesis.
 
-faustgen2~ was written by Albert Gräf (JGU Mainz, IKM, Music-Informatics) based on [faustgen~](https://github.com/CICM/pd-faustgen) by  Pierre Guillot (Paris 8, CICM), which in turn was inspired by Grame's [faustgen~](https://github.com/grame-cncm/faust/tree/master-dev/embedded/faustgen) object for Max/MSP. faustgen2~ is an extensive update which offers plenty of new functionality, bringing it up to par with both Grame's faustgen~ and the author's [pd-faust](https://agraef.github.io/pure-docs/pd-faust.html) external. It also adds some of its own features, such as the integrated loader extension and a novel approach to polyphonic synth implementation.
+faustgen2~ is a fork of Pierre Guillot's [faustgen~](https://github.com/CICM/pd-faustgen), which in turn was inspired by Grame's [faustgen~](https://github.com/grame-cncm/faust/tree/master-dev/embedded/faustgen) object for Max/MSP. faustgen2~, by Albert Gräf (JGU Mainz, IKM, Music-Informatics), is an extensive update which offers plenty of new functionality, bringing it up to par with both Grame's faustgen~ and the author's [pd-faust](https://agraef.github.io/pure-docs/pd-faust.html) external. It also adds some of its own features, such as the integrated loader extension and a novel approach to polyphonic synth implementation.
 
 Like faustgen~, faustgen2~ uses Faust's [LLVM](http://llvm.org)-based just-in-time (JIT) compiler to load, compile and play Faust programs on the fly. The Faust JIT compiler brings together the convenience of an interpreted environment with the efficiency of a compiled language, which fosters creative exploration of the Faust language and enables live-coding techniques.
 
@@ -35,12 +35,10 @@ If you're running Linux, recent versions of LLVM and cmake should be readily ava
 You can install either from a released source tarball available at <https://github.com/agraef/pd-faustgen>, or from the Git sources. The latter can be obtained as follows:
 
 ~~~shell
-git clone https://github.com/agraef/pd-faustgen.git
-cd pd-faustgen
-git submodule update --init --recursive
+git clone --recurse-submodules https://github.com/agraef/pd-faustgen.git
 ~~~
 
-Note that the third command above will check out various required sources from other locations which are included in faustgen2~ as git submodules. The distributed tarballs are self-contained and already include all the submodule sources.
+Note that the `--recurse-submodules` option will check out various required sources from other locations which are included in faustgen2~ as git submodules. The distributed tarballs are self-contained and already include all the submodule sources.
 
 ## Build
 
@@ -159,10 +157,6 @@ faustgen2~ offers many other possibilities, such as MIDI input and output (inclu
 
 Code generated from dsp files by the LLVM JIT crashes the 32 bit version of the external on Windows. The 64 bit version works fine, though. Other projects using the Faust LLVM JIT have similar issues, so this is most likely a Win32-specific bug in Faust's LLVM backend or LLVM itself. What this means is that you can't use faustgen2~ in 32 bit Pd versions on Windows right now, you'll have to run the 64 bit version instead.
 
-## Author
-
-Albert Gräf, Johannes Gutenberg University (JGU) Mainz/Germany, IKM, Music-Informatics department <aggraef at gmail.com>
-
 ## Credits
 
-Many thanks are due to Pierre Guillot from CICM (Paris 8) for his awesome faustgen~ external which faustgen2~ is based on. Without Pierre's pioneering work the present version simply wouldn't exist. I'd also like to say thanks for his artwork which I shamelessly pilfered for this updated version of the README.
+Many thanks are due to Pierre Guillot, then at CICM (Paris 8), for his faustgen~ external which faustgen2~ is based on. Without Pierre's pioneering work the present version simply wouldn't exist. I'd also like to say thanks for his artwork which I shamelessly pilfered for this updated version of the README.
