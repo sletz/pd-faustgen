@@ -43,7 +43,7 @@ endif
 
 # The Debian version gets derived from the date and serial number of the last
 # commit. You can print it with 'make debversion'.
-version = $(shell grep "\#define FAUSTGEN_VERSION_STR" ../src/faustgen_tilde.c | sed 's|^\#define *FAUSTGEN_VERSION_STR *"\(.*\)".*|\1|')
+version = $(shell grep "#define FAUSTGEN_VERSION_STR" ../src/faustgen_tilde.c | sed 's|^#define *FAUSTGEN_VERSION_STR *"\(.*\)".*|\1|')
 debversion = $(version)+git$(shell git rev-list --count HEAD)+$(shell git rev-parse --short HEAD)
 # Debian revision number of the package.
 debrevision = 1
