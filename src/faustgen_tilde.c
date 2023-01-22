@@ -1257,20 +1257,12 @@ void faustgen2_tilde_setup(void)
     //class_addmethod(c,      (t_method)faustgen_tilde_read,             gensym("read"),           A_SYMBOL);
     class_addbang(c, (t_method)faustgen_tilde_allnotesoff);
     class_addanything(c, (t_method)faustgen_tilde_anything);
-#if 0
-    logpost(NULL, 3, "Faust website: faust.grame.fr");
-    logpost(NULL, 3, "Faust development: GRAME");
-#endif
-    logpost(NULL, 3, "faustgen2~ version: %s, https://github.com/agraef/pd-faustgen", FAUSTGEN_VERSION_STR);
-    logpost(NULL, 3, "Copyright (c) 2018 Pierre Guillot, (c) 2020 Albert Gräf");
-    logpost(NULL, 3, "Faust version: %s, https://faust.grame.fr", getCLibFaustVersion());
-    logpost(NULL, 3, "Copyright (c) 2002-2020 GRAME et al");
+    post("faustgen2~ version: %s, https://github.com/agraef/pd-faustgen", FAUSTGEN_VERSION_STR);
+    post("Copyright (c) 2018 Pierre Guillot, (c) 2020 Albert Gräf");
+    post("Faust version: %s, https://faust.grame.fr", getCLibFaustVersion());
+    post("Copyright (c) 2002-2020 GRAME et al");
     logpost(NULL, 3, "faustgen2~ default include directory: %s", class_gethelpdir(c));
-#if 0
-    logpost(NULL, 3, "faustgen2~ institutions: CICM - ANR MUSICOLL, JGU IKM - Music-Informatics");
-    logpost(NULL, 3, "faustgen2~ external authors: Pierre Guillot, Albert Gräf");
-    logpost(NULL, 3, "faustgen2~ website: github.com/agraef/pd-faustgen");
-#endif
+
   }
     
   faustgen_tilde_class = c;
@@ -1279,7 +1271,7 @@ void faustgen2_tilde_setup(void)
 #else
   nw_gui_vmess = dlsym(RTLD_DEFAULT, "gui_vmess");
 #endif
-  if (nw_gui_vmess) logpost(NULL, 3, "faustgen2~: using JavaScript interface (Pd-l2ork nw.js version)");
+  if (nw_gui_vmess) post("faustgen2~: using JavaScript interface (nw.js)");
   faust_ui_receive_setup();
 }
 
