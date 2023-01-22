@@ -48,6 +48,52 @@ jobs:
         path: build/dist
         retention-days: 2
 
+  macos-arm-build:
+
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: recursive
+        fetch-depth: 0
+
+    - name: version
+      run: |
+        echo "version=$(git describe --tags)" >> $GITHUB_ENV
+
+    - name: prepare
+      run: |
+        # The official mac arm64 package from llvm.org doesn't work (gives
+        # unresolved symbols), here is one that does:
+        curl -o ./llvm.tar.xz -L https://github.com/ycm-core/llvm/releases/download/15.0.1/clang+llvm-15.0.1-arm64-apple-darwin.tar.xz
+        tar xzf ./llvm.tar.xz && mv clang+llvm-* llvm
+
+    - name: make
+      run: |
+        echo version: $version
+        # we need llvm-config for the static build even with USE_LLVM_CONFIG=off
+        export PATH=$PWD/llvm/bin:$PATH
+        mkdir build && cd build
+        # Need to include llvm-config --ldflags in llvm_libs, the fallback
+        # linker options don't work as is. Also, we need to specify the right
+        # target architecture which is arm64. This will require a recent macos
+        # version which supports that architecture. At the time of this
+        # writing, macos-latest is at Monterey, which is fine.
+        cmake .. -DUSE_LLVM_CONFIG=off -DLLVM_DIR=./llvm/lib/cmake/llvm -DCMAKE_BUILD_TYPE=Release -DINSTALL_DIR=faustgen2~ -DCMAKE_INSTALL_PREFIX=/ -Dllvm_libs="$(llvm-config --ldflags --libs | tr '\n' ' ')" -DCMAKE_OSX_ARCHITECTURES="arm64"
+        cmake --build . --config Release --target faustgen_tilde_project
+        # staged install into dist
+        cmake --install . --prefix $PWD/dist
+        cp ../README.md ../LICENSE dist/faustgen2~
+        chmod 0444 dist/faustgen2~/default.dsp
+
+    - name: upload
+      uses: actions/upload-artifact@v3
+      with:
+        name: pd-faustgen2-${{ env.version }}-macos-arm64
+        path: build/dist
+        retention-days: 2
+
   ubuntu-build:
 
     runs-on: ubuntu-latest
@@ -165,7 +211,7 @@ jobs:
   release:
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
-    needs: [macos-build, windows-build, ubuntu-build, tarball]
+    needs: [macos-build, macos-arm-build, windows-build, ubuntu-build, tarball]
     steps:
     - uses: actions/download-artifact@v3
     - name: ziptie
