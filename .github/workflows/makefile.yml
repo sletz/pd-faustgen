@@ -9,7 +9,7 @@ on:
 jobs:
   macos-build:
 
-    runs-on: macos-latest
+    runs-on: macos-11
 
     steps:
     - uses: actions/checkout@v3
@@ -21,24 +21,21 @@ jobs:
       run: |
         echo "version=$(git describe --tags)" >> $GITHUB_ENV
 
-    - name: prepare
+    - name: dependencies
       run: |
-        curl -o ./llvm.tar.xz -L https://releases.llvm.org/9.0.0/clang+llvm-9.0.0-x86_64-darwin-apple.tar.xz
-        tar xzf ./llvm.tar.xz && mv clang+llvm-9.0.0-x86_64-darwin-apple llvm
+        brew install llvm@14
+        brew link llvm@14
 
     - name: make
       run: |
         echo version: $version
-        # we need llvm-config for the static build even with USE_LLVM_CONFIG=off
-        export PATH=$PWD/llvm/bin:$PATH
         mkdir build && cd build
-        # Need to include llvm-config --ldflags in llvm_libs, the fallback
-        # linker options don't work as is.
-        cmake .. -DUSE_LLVM_CONFIG=off -DLLVM_DIR=./llvm/lib/cmake/llvm -DCMAKE_BUILD_TYPE=Release -DINSTALL_DIR=faustgen2~ -DCMAKE_INSTALL_PREFIX=/ -Dllvm_libs="$(llvm-config --ldflags --libs | tr '\n' ' ')"
-        cmake --build . --config Release --target faustgen_tilde_project
+        cmake .. && make
         # staged install into dist
-        cmake --install . --prefix $PWD/dist
-        for x in $(otool -L dist/faustgen2~/faustgen2~.pd_darwin | sed -n 's|.*@rpath/\(.*\.dylib\).*|\1|p'); do cp ../llvm/lib/$x dist/faustgen2~; install_name_tool -change @rpath/$x @loader_path/$x dist/faustgen2~/faustgen2~.pd_darwin; done
+        cmake --install . --prefix dist
+        # copy over libLLVM.dylib and fix the loader path of the external
+        llvmdir="$(brew --prefix)/opt/llvm@14/lib"
+        (cd dist/Faustgen2~; for x in $(otool -L faustgen2~.pd_darwin | sed -n 's|.*llvm@14/lib/\(.*\.dylib\).*|\1|p'); do echo "$llvmdir/$x:"; cp $llvmdir/$x .; install_name_tool -change $llvmdir/$x @loader_path/$x faustgen2~.pd_darwin; done)
         cp ../README.md ../LICENSE dist/faustgen2~
         chmod 0444 dist/faustgen2~/default.dsp
 
