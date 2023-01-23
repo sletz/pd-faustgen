@@ -48,7 +48,7 @@ jobs:
 
   macos-arm-build:
 
-    runs-on: macos-latest
+    runs-on: macos-11
 
     steps:
     - uses: actions/checkout@v3
@@ -62,29 +62,23 @@ jobs:
 
     - name: prepare
       run: |
-        # The official mac arm64 package from llvm.org is broken, the one from
-        # homebrew (llvm@14) works, but is difficult to install on a x86_64
-        # runner, so we uploaded a snapshot here:
-        curl -L https://github.com/agraef/pd-faustgen/releases/download/llvm-14-homebrew/llvm-14.0.6-homebrew-arm64.zip -o llvm.zip
+        # This is a bit tricky since we want to cross-compile for arm64 on
+        # an x86_64 Big Sur runner using the llvm@14 arm64 homebrew package.
+        # Here is a suitable snapshot of the package that we prepared:
+        curl -L https://github.com/agraef/pd-faustgen/releases/download/llvm-14-homebrew/llvm-14.0.6-homebrew-macos11-arm64.zip -o llvm.zip
         unzip llvm.zip
 
     - name: make
       run: |
         echo version: $version
-        # we need llvm-config for the static build even with USE_LLVM_CONFIG=off
+        # we need llvm-config for the static build
         export PATH=$PWD/llvm/bin:$PATH
         mkdir build && cd build
-        # Need to include llvm-config --ldflags in llvm_libs, the fallback
-        # linker options don't work as is. Also, we need to specify the right
-        # target architecture which is arm64. This will require a recent macos
-        # version which supports that architecture. At the time of this
-        # writing, macos-latest is at Monterey, which is fine.
-        cmake .. -DUSE_LLVM_CONFIG=off -DLLVM_DIR=./llvm/lib/cmake/llvm -DCMAKE_BUILD_TYPE=Release -DINSTALL_DIR=faustgen2~ -DCMAKE_INSTALL_PREFIX=/ -Dllvm_libs="$(llvm-config --ldflags --libs | tr '\n' ' ')" -DCMAKE_OSX_ARCHITECTURES="arm64"
-        cmake --build . --config Release --target faustgen_tilde_project
+        cmake .. -DLLVM_DIR=./llvm/lib/cmake/llvm -DCMAKE_OSX_ARCHITECTURES="arm64" && make
         # staged install into dist
-        cmake --install . --prefix $PWD/dist
+        cmake --install . --prefix dist
         # copy over libLLVM.dylib and fix the loader path of the external
-        for x in $(otool -L dist/faustgen2~/faustgen2~.pd_darwin | sed -n 's|.*llvm@14/lib/\(.*\.dylib\).*|\1|p'); do cp ../llvm/lib/$x dist/faustgen2~; install_name_tool -change /opt/homebrew/opt/llvm@14/lib/$x @loader_path/$x dist/faustgen2~/faustgen2~.pd_darwin; done
+        for x in $(otool -L dist/faustgen2~/faustgen2~.pd_darwin | sed -n 's|.*llvm@14/lib/\(.*\.dylib\).*|\1|p'); do echo "../llvm/lib/$x:"; cp ../llvm/lib/$x dist/faustgen2~; install_name_tool -change @@HOMEBREW_PREFIX@@/opt/llvm@14/lib/$x @loader_path/$x dist/faustgen2~/faustgen2~.pd_darwin; done
         cp ../README.md ../LICENSE dist/faustgen2~
         chmod 0444 dist/faustgen2~/default.dsp
 
