@@ -31,7 +31,7 @@
 #include "faust_tilde_io.h"
 #include "faust_tilde_options.h"
 
-#define FAUSTGEN_VERSION_STR "2.1.0"
+#define FAUSTGEN_VERSION_STR "2.1.1"
 #define MAXFAUSTSTRING 4096
 
 // ag: GUI update interval for the passive controls (msec). A zero value will
@@ -1260,7 +1260,7 @@ void faustgen2_tilde_setup(void)
     post("faustgen2~ version: %s, https://github.com/agraef/pd-faustgen", FAUSTGEN_VERSION_STR);
     post("Copyright (c) 2018 Pierre Guillot, (c) 2020 Albert Gräf");
     post("Faust version: %s, https://faust.grame.fr", getCLibFaustVersion());
-    post("Copyright (c) 2002-2020 GRAME et al");
+    post("Copyright (c) 2002-2022 GRAME et al");
     logpost(NULL, 3, "faustgen2~ default include directory: %s", class_gethelpdir(c));
 
   }
