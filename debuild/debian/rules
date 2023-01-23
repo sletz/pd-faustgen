@@ -6,7 +6,7 @@
 
 pdlibdir = /usr/lib/pd
 llvmconfig = $(wildcard /usr/bin/llvm-config-*)
-LLVMLIBS = $(shell $(llvmconfig) --ldflags --link-shared --libs engine)
+LLVMLIBS = $(shell $(llvmconfig) --ldflags --link-shared --libs)
 
 %:
 	dh $@
