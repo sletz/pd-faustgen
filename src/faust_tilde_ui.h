@@ -29,7 +29,7 @@ void faust_ui_manager_clear(t_faust_ui_manager *x);
 
 typedef void FAUSTFLOATX; // can be either float or double
 char faust_ui_manager_get_polyphony(t_faust_ui_manager *x, char *midi, int *npoly,
-				    FAUSTFLOATX** freq, FAUSTFLOATX** gain, FAUSTFLOATX** gate);
+                                    FAUSTFLOATX** freq, FAUSTFLOATX** gain, FAUSTFLOATX** gate);
 
 char faust_ui_manager_set_value(t_faust_ui_manager *x, t_symbol const *name, t_float const f);
 
@@ -55,16 +55,16 @@ t_float *faust_ui_manager_get_tuning(t_faust_ui_manager const *x);
 void faust_ui_manager_clear_tuning(t_faust_ui_manager *x);
 
 void faust_ui_manager_midiout(t_faust_ui_manager const *x, int midichan,
-			      t_symbol *midirecv, t_outlet *out);
+                              t_symbol *midirecv, t_outlet *out);
 void faust_ui_manager_oscout(t_faust_ui_manager const *x,
-			     t_symbol *oscrecv, t_outlet *out);
+                             t_symbol *oscrecv, t_outlet *out);
 
 void faust_ui_manager_gui_update(t_faust_ui_manager const *x);
 
 void faust_ui_manager_gui(t_faust_ui_manager *x,
-			  t_symbol *unique_name, t_symbol *instance_name);
+                          t_symbol *unique_name, t_symbol *instance_name);
 void faust_ui_manager_gui2(t_faust_ui_manager *x,
-			   t_symbol *unique_name, t_symbol *instance_name);
+                           t_symbol *unique_name, t_symbol *instance_name);
 
 void faust_ui_receive_setup(void);
 

@@ -256,8 +256,8 @@ static void faust_new_voices(t_faust_ui_manager *x)
   int n_voices = n_freq?n_freq:n_gain?n_gain:n_gate;
   if (n_voices) {
     if ((n_freq && n_freq != n_voices) ||
-	(n_gain && n_gain != n_voices) ||
-	(n_gate && n_gate != n_voices)) {
+        (n_gain && n_gain != n_voices) ||
+        (n_gate && n_gate != n_voices)) {
       if (!x->f_quiet) pd_error(x->f_owner, "faustgen2~: inconsistent number of voice controls");
       return;
     }
@@ -274,16 +274,16 @@ static void faust_new_voices(t_faust_ui_manager *x)
     while (c) {
       switch (c->p_voice) {
       case VOICE_FREQ:
-	x->f_voices[n_freq++].freq_c = c;
-	break;
+        x->f_voices[n_freq++].freq_c = c;
+        break;
       case VOICE_GAIN:
-	x->f_voices[n_gain++].gain_c = c;
-	break;
+        x->f_voices[n_gain++].gain_c = c;
+        break;
       case VOICE_GATE:
-	x->f_voices[n_gate++].gate_c = c;
-	break;
+        x->f_voices[n_gate++].gate_c = c;
+        break;
       default:
-	break;
+        break;
       }
       c = c->p_next;
     }
@@ -293,9 +293,9 @@ static void faust_new_voices(t_faust_ui_manager *x)
     x->f_used = NULL;
     for (int i = 0; i < n_voices; i++) {
       if (i+1 < n_voices)
-	x->f_voices[i].next_free = x->f_voices+i+1;
+        x->f_voices[i].next_free = x->f_voices+i+1;
       else
-	x->f_voices[i].next_free = NULL;
+        x->f_voices[i].next_free = NULL;
       x->f_voices[i].next_used = NULL;
     }
     x->f_used = NULL;
@@ -414,7 +414,7 @@ static void faust_ui_manager_sort(t_faust_ui_manager *x)
     if (n <= x->f_nuis && n > 0) {
       qsort(cv, n, sizeof(t_faust_ui*), cmpui);
       for (i = 1; i < n; i++) {
-	cv[i-1]->p_next = cv[i];
+        cv[i-1]->p_next = cv[i];
       }
       cv[i-1]->p_next = NULL;
       x->f_uis = cv[0];
@@ -453,8 +453,8 @@ static void faust_ui_manager_finish_changes(t_faust_ui_manager *x)
             faust_ui_free(c);
             freebytes(c, sizeof(*c));
         }
-	faust_ui_manager_sort(x);
-	faust_new_voices(x);
+        faust_ui_manager_sort(x);
+        faust_new_voices(x);
     }
 }
 
@@ -490,8 +490,8 @@ static t_symbol* mangle(const char* label)
   while (*label && i < MAXFAUSTSTRING-1) {
     if (isalnum(*label)) {
       if (state) {
-	name[i++] = '-';
-	if (i >= MAXFAUSTSTRING-1) break;
+        name[i++] = '-';
+        if (i >= MAXFAUSTSTRING-1) break;
       }
       name[i++] = *label++;
       state = 0;
@@ -521,7 +521,7 @@ static t_symbol* faust_ui_manager_get_long_name(t_faust_ui_manager *x, const cha
     // remove dummy "0x00" labels for anonymous controls
     t_symbol *mangled;
     if (strcmp(label, "0x00") &&
-	strcmp((mangled = mangle(label))->s_name, "0x00"))
+        strcmp((mangled = mangle(label))->s_name, "0x00"))
       strncat(name, mangled->s_name, MAXFAUSTSTRING - strnlen(name, MAXFAUSTSTRING) - 1);
     else if (*name) // remove trailing "/"
       name[strnlen(name, MAXFAUSTSTRING) - 1] = 0;
@@ -537,12 +537,12 @@ static t_symbol* faust_ui_manager_get_name(t_faust_ui_manager *x, const char* la
     // return the last component in the path which isn't "0x00"
     t_symbol *mangled;
     if (strcmp(label, "0x00") &&
-	strcmp((mangled = mangle(label))->s_name, "0x00"))
+        strcmp((mangled = mangle(label))->s_name, "0x00"))
       return mangled;
     for(i = x->f_nnames; i > 0; --i)
     {
       if (strcmp(x->f_names[i-1]->s_name, "0x00"))
-	return x->f_names[i-1];
+        return x->f_names[i-1];
     }
     // The resulting name may be empty if all components, including the
     // control label itself, are "0x00"; in that case, return "anon" instead.
@@ -550,9 +550,9 @@ static t_symbol* faust_ui_manager_get_name(t_faust_ui_manager *x, const char* la
 }
 
 static int midi_defaultval(FAUSTFLOAT z, FAUSTFLOAT p_min, FAUSTFLOAT p_max,
-			   int p_type, int msg);
+                           int p_type, int msg);
 static int osc_defaultval(FAUSTFLOAT z, FAUSTFLOAT p_min, FAUSTFLOAT p_max,
-			  int p_type, double a, double b);
+                          int p_type, double a, double b);
 
 static void faust_ui_manager_add_param(t_faust_ui_manager *x, const char* label, int const type, FAUSTFLOAT* zone,
                                         FAUSTFLOAT init, FAUSTFLOAT min, FAUSTFLOAT max, FAUSTFLOAT step)
@@ -601,70 +601,70 @@ static void faust_ui_manager_add_param(t_faust_ui_manager *x, const char* label,
     setfaustflt(x, c->p_zone, current);
     if (last_meta.zone == zone) {
       if (last_meta.voice) {
-	if (c->p_type != FAUST_UI_TYPE_BARGRAPH) {
-	  c->p_voice = last_meta.voice;
+        if (c->p_type != FAUST_UI_TYPE_BARGRAPH) {
+          c->p_voice = last_meta.voice;
 #if 0
-	  if (!x->f_quiet)
-	    logpost(x->f_owner, 3, "             %s: voice:%s", name->s_name,
-		    voice_key[last_meta.voice]);
+          if (!x->f_quiet)
+            logpost(x->f_owner, 3, "             %s: voice:%s", name->s_name,
+                    voice_key[last_meta.voice]);
 #endif
-	} else {
-	  // voice controls can't be passive
-	  if (!x->f_quiet) pd_error(x->f_owner, "faustgen2~: '%s' can't be used as voice control", name->s_name);
-	}
+        } else {
+          // voice controls can't be passive
+          if (!x->f_quiet) pd_error(x->f_owner, "faustgen2~: '%s' can't be used as voice control", name->s_name);
+        }
       }
       if (last_meta.n_midi) {
-	c->p_midi = getbytes(last_meta.n_midi*sizeof(t_faust_midi_ui));
-	if (c->p_midi) {
-	  c->p_nmidi = last_meta.n_midi;
-	  for (size_t i = 0; i < last_meta.n_midi; i++) {
-	    if (!x->f_quiet) {
-	      if (last_meta.midi[i].chan >= 0) {
-		if (midi_argc[last_meta.midi[i].msg] > 1)
-		  logpost(x->f_owner, 3, "             %s: midi:%s %d %d", name->s_name,
-			  midi_key[last_meta.midi[i].msg], last_meta.midi[i].num,
-			  last_meta.midi[i].chan);
-		else
-		  logpost(x->f_owner, 3, "             %s: midi:%s %d", name->s_name,
-			  midi_key[last_meta.midi[i].msg], last_meta.midi[i].chan);
-	      } else {
-		if (midi_argc[last_meta.midi[i].msg] > 1)
-		  logpost(x->f_owner, 3, "             %s: midi:%s %d", name->s_name,
-			  midi_key[last_meta.midi[i].msg], last_meta.midi[i].num);
-		else
-		  logpost(x->f_owner, 3, "             %s: midi:%s", name->s_name,
-			  midi_key[last_meta.midi[i].msg]);
-	      }
-	    }
-	    c->p_midi[i].msg  = last_meta.midi[i].msg;
-	    c->p_midi[i].num  = last_meta.midi[i].num;
-	    c->p_midi[i].chan = last_meta.midi[i].chan;
-	    c->p_midi[i].val  = midi_defaultval(init, min, max, type,
-						c->p_midi[i].msg);
-	  }
-	} else if (!x->f_quiet) {
-	  pd_error(x->f_owner, "faustgen2~: memory allocation failed - ui midi");
-	}
+        c->p_midi = getbytes(last_meta.n_midi*sizeof(t_faust_midi_ui));
+        if (c->p_midi) {
+          c->p_nmidi = last_meta.n_midi;
+          for (size_t i = 0; i < last_meta.n_midi; i++) {
+            if (!x->f_quiet) {
+              if (last_meta.midi[i].chan >= 0) {
+                if (midi_argc[last_meta.midi[i].msg] > 1)
+                  logpost(x->f_owner, 3, "             %s: midi:%s %d %d", name->s_name,
+                          midi_key[last_meta.midi[i].msg], last_meta.midi[i].num,
+                          last_meta.midi[i].chan);
+                else
+                  logpost(x->f_owner, 3, "             %s: midi:%s %d", name->s_name,
+                          midi_key[last_meta.midi[i].msg], last_meta.midi[i].chan);
+              } else {
+                if (midi_argc[last_meta.midi[i].msg] > 1)
+                  logpost(x->f_owner, 3, "             %s: midi:%s %d", name->s_name,
+                          midi_key[last_meta.midi[i].msg], last_meta.midi[i].num);
+                else
+                  logpost(x->f_owner, 3, "             %s: midi:%s", name->s_name,
+                          midi_key[last_meta.midi[i].msg]);
+              }
+            }
+            c->p_midi[i].msg  = last_meta.midi[i].msg;
+            c->p_midi[i].num  = last_meta.midi[i].num;
+            c->p_midi[i].chan = last_meta.midi[i].chan;
+            c->p_midi[i].val  = midi_defaultval(init, min, max, type,
+                                                c->p_midi[i].msg);
+          }
+        } else if (!x->f_quiet) {
+          pd_error(x->f_owner, "faustgen2~: memory allocation failed - ui midi");
+        }
       }
       if (last_meta.n_osc) {
-	c->p_osc = getbytes(last_meta.n_osc*sizeof(t_faust_osc_ui));
-	if (c->p_osc) {
-	  c->p_nosc = last_meta.n_osc;
-	  for (size_t i = 0; i < last_meta.n_osc; i++) {
-	    if (!x->f_quiet)
-	      logpost(x->f_owner, 3, "             %s: osc:%s %g %g",
-		      name->s_name, last_meta.osc[i].msg->s_name,
-		      last_meta.osc[i].a, last_meta.osc[i].b);
-	    c->p_osc[i].msg = last_meta.osc[i].msg;
-	    c->p_osc[i].a   = last_meta.osc[i].a;
-	    c->p_osc[i].b   = last_meta.osc[i].b;
-	    c->p_osc[i].val = osc_defaultval(init, min, max, type,
-					     c->p_osc[i].a,
-					     c->p_osc[i].b);
-	  }
-	} else if (!x->f_quiet) {
-	  pd_error(x->f_owner, "faustgen2~: memory allocation failed - ui osc");
-	}
+        c->p_osc = getbytes(last_meta.n_osc*sizeof(t_faust_osc_ui));
+        if (c->p_osc) {
+          c->p_nosc = last_meta.n_osc;
+          for (size_t i = 0; i < last_meta.n_osc; i++) {
+            if (!x->f_quiet)
+              logpost(x->f_owner, 3, "             %s: osc:%s %g %g",
+                      name->s_name, last_meta.osc[i].msg->s_name,
+                      last_meta.osc[i].a, last_meta.osc[i].b);
+            c->p_osc[i].msg = last_meta.osc[i].msg;
+            c->p_osc[i].a   = last_meta.osc[i].a;
+            c->p_osc[i].b   = last_meta.osc[i].b;
+            c->p_osc[i].val = osc_defaultval(init, min, max, type,
+                                             c->p_osc[i].a,
+                                             c->p_osc[i].b);
+          }
+        } else if (!x->f_quiet) {
+          pd_error(x->f_owner, "faustgen2~: memory allocation failed - ui osc");
+        }
       }
     }
     last_meta.n_osc = last_meta.n_midi = 0;
@@ -789,14 +789,14 @@ static void faust_ui_manager_ui_declare(t_faust_ui_manager* x, FAUSTFLOAT* zone,
     //if (!x->f_quiet) logpost(x->f_owner, 3, "             %s: %s (%p)", key, value, zone);
     if (strcmp(key, "voice") == 0) {
       if (strcmp(value, "freq") == 0) {
-	last_meta.zone = zone;
-	last_meta.voice = VOICE_FREQ;
+        last_meta.zone = zone;
+        last_meta.voice = VOICE_FREQ;
       } else if (strcmp(value, "gain") == 0) {
-	last_meta.zone = zone;
-	last_meta.voice = VOICE_GAIN;
+        last_meta.zone = zone;
+        last_meta.voice = VOICE_GAIN;
       } else if (strcmp(value, "gate") == 0) {
-	last_meta.zone = zone;
-	last_meta.voice = VOICE_GATE;
+        last_meta.zone = zone;
+        last_meta.voice = VOICE_GATE;
       }
     } else if (strcmp(key, "midi") == 0) {
       unsigned num, chan;
@@ -807,100 +807,100 @@ static void faust_ui_manager_ui_declare(t_faust_ui_manager* x, FAUSTFLOAT* zone,
       // The extra channel argument isn't in the Faust manual, but recognized
       // in faust/gui/MidiUI.h, so we support it here, too.
       if ((count = sscanf(value, "ctrl %u %u", &num, &chan)) > 0) {
-	last_meta.zone = zone;
-	last_meta.midi[i].msg = MIDI_CTRL;
-	last_meta.midi[i].num = num;
-	last_meta.midi[i].chan = (count > 1)?chan:-1;
-	last_meta.midi[i].val = -1;
-	last_meta.n_midi++;
+        last_meta.zone = zone;
+        last_meta.midi[i].msg = MIDI_CTRL;
+        last_meta.midi[i].num = num;
+        last_meta.midi[i].chan = (count > 1)?chan:-1;
+        last_meta.midi[i].val = -1;
+        last_meta.n_midi++;
       } else if ((count = sscanf(value, "keyon %u %u", &num, &chan)) > 0) {
-	last_meta.zone = zone;
-	last_meta.midi[i].msg = MIDI_KEYON;
-	last_meta.midi[i].num = num;
-	last_meta.midi[i].chan = (count > 1)?chan:-1;
-	last_meta.midi[i].val = -1;
-	last_meta.n_midi++;
+        last_meta.zone = zone;
+        last_meta.midi[i].msg = MIDI_KEYON;
+        last_meta.midi[i].num = num;
+        last_meta.midi[i].chan = (count > 1)?chan:-1;
+        last_meta.midi[i].val = -1;
+        last_meta.n_midi++;
       } else if ((count = sscanf(value, "keyoff %u %u", &num, &chan)) > 0) {
-	last_meta.zone = zone;
-	last_meta.midi[i].msg = MIDI_KEYOFF;
-	last_meta.midi[i].num = num;
-	last_meta.midi[i].chan = (count > 1)?chan:-1;
-	last_meta.midi[i].val = -1;
-	last_meta.n_midi++;
+        last_meta.zone = zone;
+        last_meta.midi[i].msg = MIDI_KEYOFF;
+        last_meta.midi[i].num = num;
+        last_meta.midi[i].chan = (count > 1)?chan:-1;
+        last_meta.midi[i].val = -1;
+        last_meta.n_midi++;
       } else if ((count = sscanf(value, "key %u %u", &num, &chan)) > 0) {
-	last_meta.zone = zone;
-	last_meta.midi[i].msg = MIDI_KEY;
-	last_meta.midi[i].num = num;
-	last_meta.midi[i].chan = (count > 1)?chan:-1;
-	last_meta.midi[i].val = -1;
-	last_meta.n_midi++;
+        last_meta.zone = zone;
+        last_meta.midi[i].msg = MIDI_KEY;
+        last_meta.midi[i].num = num;
+        last_meta.midi[i].chan = (count > 1)?chan:-1;
+        last_meta.midi[i].val = -1;
+        last_meta.n_midi++;
       } else if ((count = sscanf(value, "keypress %u %u", &num, &chan)) > 0) {
-	last_meta.zone = zone;
-	last_meta.midi[i].msg = MIDI_KEYPRESS;
-	last_meta.midi[i].num = num;
-	last_meta.midi[i].chan = (count > 1)?chan:-1;
-	last_meta.midi[i].val = -1;
-	last_meta.n_midi++;
+        last_meta.zone = zone;
+        last_meta.midi[i].msg = MIDI_KEYPRESS;
+        last_meta.midi[i].num = num;
+        last_meta.midi[i].chan = (count > 1)?chan:-1;
+        last_meta.midi[i].val = -1;
+        last_meta.n_midi++;
       } else if ((count = sscanf(value, "pgm %u", &chan)) > 0 ||
-		 strcmp(value, "pgm") == 0) {
-	last_meta.zone = zone;
-	last_meta.midi[i].msg = MIDI_PGM;
-	last_meta.midi[i].num = 0; // ignored
-	last_meta.midi[i].chan = (count > 0)?chan:-1;
-	last_meta.midi[i].val = -1;
-	last_meta.n_midi++;
+                 strcmp(value, "pgm") == 0) {
+        last_meta.zone = zone;
+        last_meta.midi[i].msg = MIDI_PGM;
+        last_meta.midi[i].num = 0; // ignored
+        last_meta.midi[i].chan = (count > 0)?chan:-1;
+        last_meta.midi[i].val = -1;
+        last_meta.n_midi++;
       } else if ((count = sscanf(value, "chanpress %u", &chan)) > 0 ||
-		 strcmp(value, "chanpress") == 0) {
-	// At the time of this writing, this isn't mentioned in the Faust
-	// manual, but it is in faust/gui/MidiUI.h. (The implementation in
-	// faust/gui/MidiUI.h seems to be broken at present, however, as it
-	// adds an extra note number argument which doesn't make any sense
-	// with channel pressure. Here we do it correctly.)
-	last_meta.zone = zone;
-	last_meta.midi[i].msg = MIDI_CHANPRESS;
-	last_meta.midi[i].num = 0; // ignored
-	last_meta.midi[i].chan = (count > 0)?chan:-1;
-	last_meta.midi[i].val = -1;
-	last_meta.n_midi++;
+                 strcmp(value, "chanpress") == 0) {
+        // At the time of this writing, this isn't mentioned in the Faust
+        // manual, but it is in faust/gui/MidiUI.h. (The implementation in
+        // faust/gui/MidiUI.h seems to be broken at present, however, as it
+        // adds an extra note number argument which doesn't make any sense
+        // with channel pressure. Here we do it correctly.)
+        last_meta.zone = zone;
+        last_meta.midi[i].msg = MIDI_CHANPRESS;
+        last_meta.midi[i].num = 0; // ignored
+        last_meta.midi[i].chan = (count > 0)?chan:-1;
+        last_meta.midi[i].val = -1;
+        last_meta.n_midi++;
       } else if ((count = sscanf(value, "pitchwheel %u", &chan)) > 0 ||
-		 strcmp(value, "pitchwheel") == 0) {
-	last_meta.zone = zone;
-	last_meta.midi[i].msg = MIDI_PITCHWHEEL;
-	last_meta.midi[i].num = 0; // ignored
-	last_meta.midi[i].chan = (count > 0)?chan:-1;
-	last_meta.midi[i].val = -1;
-	last_meta.n_midi++;
+                 strcmp(value, "pitchwheel") == 0) {
+        last_meta.zone = zone;
+        last_meta.midi[i].msg = MIDI_PITCHWHEEL;
+        last_meta.midi[i].num = 0; // ignored
+        last_meta.midi[i].chan = (count > 0)?chan:-1;
+        last_meta.midi[i].val = -1;
+        last_meta.n_midi++;
       } else if ((count = sscanf(value, "pitchbend %u", &chan)) > 0 ||
-		 strcmp(value, "pitchbend") == 0) {
-	// synonym for "pitchwheel" (again, this isn't in the Faust manual,
-	// but it is in faust/gui/MidiUI.h, so we support it)
-	last_meta.zone = zone;
-	last_meta.midi[i].msg = MIDI_PITCHWHEEL;
-	last_meta.midi[i].num = 0; // ignored
-	last_meta.midi[i].chan = (count > 0)?chan:-1;
-	last_meta.midi[i].val = -1;
-	last_meta.n_midi++;
+                 strcmp(value, "pitchbend") == 0) {
+        // synonym for "pitchwheel" (again, this isn't in the Faust manual,
+        // but it is in faust/gui/MidiUI.h, so we support it)
+        last_meta.zone = zone;
+        last_meta.midi[i].msg = MIDI_PITCHWHEEL;
+        last_meta.midi[i].num = 0; // ignored
+        last_meta.midi[i].chan = (count > 0)?chan:-1;
+        last_meta.midi[i].val = -1;
+        last_meta.n_midi++;
       } else if (strcmp(value, "start") == 0) {
-	last_meta.zone = zone;
-	last_meta.midi[i].msg = MIDI_START;
-	last_meta.midi[i].num = 0; // ignored
-	last_meta.midi[i].chan = -1;
-	last_meta.midi[i].val = -1;
-	last_meta.n_midi++;
+        last_meta.zone = zone;
+        last_meta.midi[i].msg = MIDI_START;
+        last_meta.midi[i].num = 0; // ignored
+        last_meta.midi[i].chan = -1;
+        last_meta.midi[i].val = -1;
+        last_meta.n_midi++;
       } else if (strcmp(value, "stop") == 0) {
-	last_meta.zone = zone;
-	last_meta.midi[i].msg = MIDI_STOP;
-	last_meta.midi[i].num = 0; // ignored
-	last_meta.midi[i].chan = -1;
-	last_meta.midi[i].val = -1;
-	last_meta.n_midi++;
+        last_meta.zone = zone;
+        last_meta.midi[i].msg = MIDI_STOP;
+        last_meta.midi[i].num = 0; // ignored
+        last_meta.midi[i].chan = -1;
+        last_meta.midi[i].val = -1;
+        last_meta.n_midi++;
       } else if (strcmp(value, "clock") == 0) {
-	last_meta.zone = zone;
-	last_meta.midi[i].msg = MIDI_CLOCK;
-	last_meta.midi[i].num = 0; // ignored
-	last_meta.midi[i].chan = -1;
-	last_meta.midi[i].val = -1;
-	last_meta.n_midi++;
+        last_meta.zone = zone;
+        last_meta.midi[i].msg = MIDI_CLOCK;
+        last_meta.midi[i].num = 0; // ignored
+        last_meta.midi[i].chan = -1;
+        last_meta.midi[i].val = -1;
+        last_meta.n_midi++;
       }
     } else if (strcmp(key, "osc") == 0) {
       char s[1024];
@@ -909,18 +909,18 @@ static void faust_ui_manager_ui_declare(t_faust_ui_manager* x, FAUSTFLOAT* zone,
       // We only support up to N_OSC_UI different entries per element.
       if (i >= N_OSC_UI) return;
       if (sscanf(value, "%1023s %lg %lg", s, &a, &b) == 3) {
-	last_meta.zone = zone;
-	last_meta.osc[i].msg = gensym(s);
-	last_meta.osc[i].a = a;
-	last_meta.osc[i].b = b;
-	last_meta.n_osc++;
+        last_meta.zone = zone;
+        last_meta.osc[i].msg = gensym(s);
+        last_meta.osc[i].a = a;
+        last_meta.osc[i].b = b;
+        last_meta.n_osc++;
       } else if (sscanf(value, "%1023s", s) == 1) {
-	last_meta.zone = zone;
-	last_meta.osc[i].msg = gensym(s);
-	// range defaults to 0.0 - 1.0 (the default OSC range)
-	last_meta.osc[i].a = 0.0;
-	last_meta.osc[i].b = 1.0;
-	last_meta.n_osc++;
+        last_meta.zone = zone;
+        last_meta.osc[i].msg = gensym(s);
+        // range defaults to 0.0 - 1.0 (the default OSC range)
+        last_meta.osc[i].a = 0.0;
+        last_meta.osc[i].b = 1.0;
+        last_meta.n_osc++;
       }
     }
   }
@@ -947,33 +947,33 @@ static void faust_ui_manager_meta_declare(t_faust_ui_manager* x, const char* key
       int n;
       while (isspace(*s)) ++s;
       while (sscanf(s, "[%127[^]:]:%127[^]]]%n", k, v, &n) == 2) {
-	if (strcmp(k, "midi") == 0) {
-	  if (strcmp(v, "on") == 0) {
-	    x->f_midi = true;
-	    if (!x->f_quiet) logpost(x->f_owner, 3, "             [%s:%s]", k, v);
-	  } else if (strcmp(v, "off") == 0) {
-	    x->f_midi = false;
-	    if (!x->f_quiet) logpost(x->f_owner, 3, "             [%s:%s]", k, v);
-	  } else if (!x->f_quiet) {
-	    pd_error(x->f_owner, "faustgen2~: error parsing option %s:%s", k, v);
-	  }
-	} else if (strcmp(k, "osc") == 0) {
-	  if (strcmp(v, "on") == 0) {
-	    x->f_osc = true;
-	    if (!x->f_quiet) logpost(x->f_owner, 3, "             [%s:%s]", k, v);
-	  } else if (strcmp(v, "off") == 0) {
-	    x->f_osc = false;
-	    if (!x->f_quiet) logpost(x->f_owner, 3, "             [%s:%s]", k, v);
-	  } else if (!x->f_quiet) {
-	    pd_error(x->f_owner, "faustgen2~: error parsing option %s:%s", k, v);
-	  }
-	}
-	s += n;
-	while (isspace(*s)) ++s;
+        if (strcmp(k, "midi") == 0) {
+          if (strcmp(v, "on") == 0) {
+            x->f_midi = true;
+            if (!x->f_quiet) logpost(x->f_owner, 3, "             [%s:%s]", k, v);
+          } else if (strcmp(v, "off") == 0) {
+            x->f_midi = false;
+            if (!x->f_quiet) logpost(x->f_owner, 3, "             [%s:%s]", k, v);
+          } else if (!x->f_quiet) {
+            pd_error(x->f_owner, "faustgen2~: error parsing option %s:%s", k, v);
+          }
+        } else if (strcmp(k, "osc") == 0) {
+          if (strcmp(v, "on") == 0) {
+            x->f_osc = true;
+            if (!x->f_quiet) logpost(x->f_owner, 3, "             [%s:%s]", k, v);
+          } else if (strcmp(v, "off") == 0) {
+            x->f_osc = false;
+            if (!x->f_quiet) logpost(x->f_owner, 3, "             [%s:%s]", k, v);
+          } else if (!x->f_quiet) {
+            pd_error(x->f_owner, "faustgen2~: error parsing option %s:%s", k, v);
+          }
+        }
+        s += n;
+        while (isspace(*s)) ++s;
       }
       while (isspace(*s)) ++s;
       if (*s) {
-	if (!x->f_quiet) pd_error(x->f_owner, "faustgen2~: error parsing option %s", s);
+        if (!x->f_quiet) pd_error(x->f_owner, "faustgen2~: error parsing option %s", s);
       }
     }
 }
@@ -1014,14 +1014,14 @@ t_faust_ui_manager* faust_ui_manager_new(t_object* owner)
         ui_manager->f_midi = ui_manager->f_osc = true;
         ui_manager->f_nvoices   = 0;
         ui_manager->f_npoly     = 0;
-	ui_manager->freq_c = ui_manager->gain_c = ui_manager->gate_c = NULL;
+        ui_manager->freq_c = ui_manager->gain_c = ui_manager->gate_c = NULL;
         ui_manager->f_keys = NULL;
         ui_manager->f_voices = ui_manager->f_free = ui_manager->f_used = NULL;
         ui_manager->f_panic_recv = NULL;
         ui_manager->f_init_recv = NULL;
         ui_manager->f_active_recv = NULL;
         ui_manager->f_tuning = NULL;
-	ui_manager->f_quiet = false;
+        ui_manager->f_quiet = false;
         
         ui_manager->f_meta_glue.metaInterface = ui_manager;
         ui_manager->f_meta_glue.declare       = (metaDeclareFun)faust_ui_manager_meta_declare;
@@ -1057,7 +1057,7 @@ void faust_ui_manager_clear(t_faust_ui_manager *x)
 }
 
 char faust_ui_manager_get_polyphony(t_faust_ui_manager *x, char *midi, int *npoly,
-				    FAUSTFLOATX** freq, FAUSTFLOATX** gain, FAUSTFLOATX** gate)
+                                    FAUSTFLOATX** freq, FAUSTFLOATX** gain, FAUSTFLOATX** gate)
 {
   *midi = x->f_midi;
   *freq = *gain = *gate = NULL;
@@ -1142,8 +1142,8 @@ static double round_near(double x, double x0, double min, double max)
 }
 
 static FAUSTFLOAT translate_from_midi(int val, int min, int max, int p_type,
-				      FAUSTFLOAT p_min, FAUSTFLOAT p_max,
-				      FAUSTFLOAT p_step)
+                                      FAUSTFLOAT p_min, FAUSTFLOAT p_max,
+                                      FAUSTFLOAT p_step)
 {
   // clamp val in the prescribed range
   if (val < min) val = min;
@@ -1187,7 +1187,7 @@ static void faust_ui_midi_init(void)
     // populate the midi_sym table
     for (int i = 1; i < N_MIDI; i++)
       if (midi_sym_s[i])
-	midi_sym[i] = gensym(midi_sym_s[i]);
+        midi_sym[i] = gensym(midi_sym_s[i]);
   }
 }
 
@@ -1278,29 +1278,29 @@ static void voices_noteoff(t_faust_ui_manager *x, int num, int chan)
     if (x->f_keys) {
       t_faust_key *n = x->f_keys, *p = NULL;
       while (n && n->num != num) {
-	p = n;
-	n = n->next;
+        p = n;
+        n = n->next;
       }
       if (n) {
-	if (p) {
-	  // not the currently sounding note; simply remove it
-	  p->next = n->next;
-	  freebytes(n, sizeof(t_faust_key));
-	} else {
-	  // currently sounding note, change to the previous one (if any)
-	  t_faust_voice *v = x->f_voices;
-	  p = n->next;
-	  freebytes(n, sizeof(t_faust_key));
-	  if (p) {
-	    // legato (change to the previous frequency); note that if you
-	    // want portamento, you'll have to do this in the Faust source
-	    if (v->freq_c) setfaustflt(x, v->freq_c->p_zone, note2cps(x, p->num));
-	  } else {
-	    // note off
-	    if (v->gate_c) setfaustflt(x, v->gate_c->p_zone, 0.0);
-	  }
-	  x->f_keys = p;
-	}
+        if (p) {
+          // not the currently sounding note; simply remove it
+          p->next = n->next;
+          freebytes(n, sizeof(t_faust_key));
+        } else {
+          // currently sounding note, change to the previous one (if any)
+          t_faust_voice *v = x->f_voices;
+          p = n->next;
+          freebytes(n, sizeof(t_faust_key));
+          if (p) {
+            // legato (change to the previous frequency); note that if you
+            // want portamento, you'll have to do this in the Faust source
+            if (v->freq_c) setfaustflt(x, v->freq_c->p_zone, note2cps(x, p->num));
+          } else {
+            // note off
+            if (v->gate_c) setfaustflt(x, v->gate_c->p_zone, 0.0);
+          }
+          x->f_keys = p;
+        }
       }
     }
     return;
@@ -1397,16 +1397,16 @@ int faust_ui_manager_get_midi(t_faust_ui_manager *x, t_symbol const *s, int argc
       chan = (int)argv[midi_argc[i]].a_w.w_float;
       // check validity
       if (chan >= 1) {
-	// Subtract 1 since channels are zero-based in Faust meta data, but
-	// 1-based in Pd. NOTE: Pd allows more than the usual 16 channels,
-	// since it treats each MIDI device as a separate block of 16 MIDI
-	// channels. Thus 0..15 will denote the channels of the first MIDI
-	// device, 16..31 the channels of the second one, etc.
-	chan--;
-	// match against the object's channel mask
-	if (!midichan_check(midichanmsk, chan)) return i;
+        // Subtract 1 since channels are zero-based in Faust meta data, but
+        // 1-based in Pd. NOTE: Pd allows more than the usual 16 channels,
+        // since it treats each MIDI device as a separate block of 16 MIDI
+        // channels. Thus 0..15 will denote the channels of the first MIDI
+        // device, 16..31 the channels of the second one, etc.
+        chan--;
+        // match against the object's channel mask
+        if (!midichan_check(midichanmsk, chan)) return i;
       } else
-	chan = -1;
+        chan = -1;
     }
     // Note messages have their arguments the other way round.
     if (i == MIDI_KEY || i == MIDI_KEYON || i == MIDI_KEYOFF) {
@@ -1418,67 +1418,67 @@ int faust_ui_manager_get_midi(t_faust_ui_manager *x, t_symbol const *s, int argc
     // corresponding midi:keyon/off meta data and are handled below.
     if (x->f_voices && i == MIDI_KEY) {
       if (val)
-	voices_noteon(x, num, val, chan);
+        voices_noteon(x, num, val, chan);
       else
-	voices_noteoff(x, num, chan);
+        voices_noteoff(x, num, chan);
     }
     // Run through all the active UI elements with MIDI bindings and update
     // the elements that match.
     t_faust_ui *c = x->f_uis;
     while (c) {
       for (size_t j = 0; j < c->p_nmidi; j++) {
-	if (c->p_midi[j].msg == i &&
-	    (c->p_midi[j].chan < 0 || c->p_midi[j].chan == chan) &&
-	    c->p_type != FAUST_UI_TYPE_BARGRAPH) {
-	  bool log = true;
-	  switch (i) {
-	  case MIDI_START:
-	    setfaustflt(x, c->p_zone,
-	      translate_from_midi(1, 0, 1,
-				  c->p_type, c->p_min, c->p_max, c->p_step));
-	    break;
-	  case MIDI_STOP:
-	    setfaustflt(x, c->p_zone,
-	      translate_from_midi(0, 0, 1,
-				  c->p_type, c->p_min, c->p_max, c->p_step));
-	    break;
-	  case MIDI_CLOCK:
-	    // square signal which toggles at each clock
-	    if (c->p_type == FAUST_UI_TYPE_BUTTON ||
-		c->p_type == FAUST_UI_TYPE_TOGGLE)
-	      val = faustflt(x, c->p_zone) == 0.0;
-	    else
-	      val = faustflt(x, c->p_zone) == c->p_min;
-	    setfaustflt(x, c->p_zone,
-	      translate_from_midi(val, 0, 1,
-				  c->p_type, c->p_min, c->p_max, c->p_step));
-	    break;
-	  case MIDI_PITCHWHEEL:
-	    setfaustflt(x, c->p_zone,
-	      translate_from_midi(val, 0, 16384,
-				  c->p_type, c->p_min, c->p_max, c->p_step));
-	    break;
-	  default:
-	    if (midi_argc[i] == 1) {
-	      // Pd counts program changes starting at 1
-	      if (i == MIDI_PGM) val--;
-	      setfaustflt(x, c->p_zone,
-		translate_from_midi(val, 0, 128,
-				    c->p_type, c->p_min, c->p_max, c->p_step));
-	    } else if (c->p_midi[j].num == num) {
-	      setfaustflt(x, c->p_zone,
-		translate_from_midi(val, 0, 128,
-				    c->p_type, c->p_min, c->p_max, c->p_step));
-	    } else {
-	      log = false;
-	    }
-	    break;
-	  }
-	  if (log) {
-	    //logpost(x->f_owner, 3, "%s = %g", c->p_name->s_name, *c->p_zone);
-	    gui_update(faustflt(x, c->p_zone), c->p_uirecv);
-	  }
-	}
+        if (c->p_midi[j].msg == i &&
+            (c->p_midi[j].chan < 0 || c->p_midi[j].chan == chan) &&
+            c->p_type != FAUST_UI_TYPE_BARGRAPH) {
+          bool log = true;
+          switch (i) {
+          case MIDI_START:
+            setfaustflt(x, c->p_zone,
+              translate_from_midi(1, 0, 1,
+                                  c->p_type, c->p_min, c->p_max, c->p_step));
+            break;
+          case MIDI_STOP:
+            setfaustflt(x, c->p_zone,
+              translate_from_midi(0, 0, 1,
+                                  c->p_type, c->p_min, c->p_max, c->p_step));
+            break;
+          case MIDI_CLOCK:
+            // square signal which toggles at each clock
+            if (c->p_type == FAUST_UI_TYPE_BUTTON ||
+                c->p_type == FAUST_UI_TYPE_TOGGLE)
+              val = faustflt(x, c->p_zone) == 0.0;
+            else
+              val = faustflt(x, c->p_zone) == c->p_min;
+            setfaustflt(x, c->p_zone,
+              translate_from_midi(val, 0, 1,
+                                  c->p_type, c->p_min, c->p_max, c->p_step));
+            break;
+          case MIDI_PITCHWHEEL:
+            setfaustflt(x, c->p_zone,
+              translate_from_midi(val, 0, 16384,
+                                  c->p_type, c->p_min, c->p_max, c->p_step));
+            break;
+          default:
+            if (midi_argc[i] == 1) {
+              // Pd counts program changes starting at 1
+              if (i == MIDI_PGM) val--;
+              setfaustflt(x, c->p_zone,
+                translate_from_midi(val, 0, 128,
+                                    c->p_type, c->p_min, c->p_max, c->p_step));
+            } else if (c->p_midi[j].num == num) {
+              setfaustflt(x, c->p_zone,
+                translate_from_midi(val, 0, 128,
+                                    c->p_type, c->p_min, c->p_max, c->p_step));
+            } else {
+              log = false;
+            }
+            break;
+          }
+          if (log) {
+            //logpost(x->f_owner, 3, "%s = %g", c->p_name->s_name, *c->p_zone);
+            gui_update(faustflt(x, c->p_zone), c->p_uirecv);
+          }
+        }
       }
       c = c->p_next;
     }
@@ -1488,9 +1488,9 @@ int faust_ui_manager_get_midi(t_faust_ui_manager *x, t_symbol const *s, int argc
 }
 
 static FAUSTFLOAT translate_from_osc(double val, double min, double max,
-				     int p_type,
-				     FAUSTFLOAT p_min, FAUSTFLOAT p_max,
-				     FAUSTFLOAT p_step)
+                                     int p_type,
+                                     FAUSTFLOAT p_min, FAUSTFLOAT p_max,
+                                     FAUSTFLOAT p_step)
 {
   double sign = max>min ? 1.0 : max<min ? -1.0 : 0.0;
   if (sign < 0) {
@@ -1532,7 +1532,7 @@ static FAUSTFLOAT translate_from_osc(double val, double min, double max,
 }
 
 static double translate_to_osc(FAUSTFLOAT z, FAUSTFLOAT p_min, FAUSTFLOAT p_max,
-			       int p_type, double min, double max);
+                               int p_type, double min, double max);
 
 const t_symbol *faust_ui_manager_get_osc(t_faust_ui_manager *x, t_symbol const *s, int argc, t_atom* argv, t_symbol *oscrecv, t_outlet *out)
 {
@@ -1549,29 +1549,29 @@ const t_symbol *faust_ui_manager_get_osc(t_faust_ui_manager *x, t_symbol const *
     t_faust_ui *c = x->f_uis;
     while (c) {
       for (size_t j = 0; j < c->p_nosc; j++) {
-	int ac = 0;
-	t_atom av[4];
-	double val = translate_to_osc(faustflt(x, c->p_zone),
-				      c->p_min, c->p_max,
-				      c->p_type, c->p_osc[j].a, c->p_osc[j].b);
-	if (r) {
-	  SETSYMBOL(av+ac, c->p_osc[j].msg); ac++;
-	}
-	SETFLOAT(av+ac, val); ac++;
-	if (r) {
-	  SETFLOAT(av+ac, c->p_osc[j].a); ac++;
-	  SETFLOAT(av+ac, c->p_osc[j].b); ac++;
-	  if (out) outlet_anything(out, r, ac, av);
-	  if (oscrecv && oscrecv->s_thing)
-	    typedmess(oscrecv->s_thing, r, ac, av);
-	} else {
-	  // Ranges are only sent if a reply symbol is given, here we only
-	  // report the current value of an element.
-	  t_symbol *t = c->p_osc[j].msg;
-	  if (out) outlet_anything(out, t, ac, av);
-	  if (oscrecv && oscrecv->s_thing)
-	    typedmess(oscrecv->s_thing, t, ac, av);
-	}
+        int ac = 0;
+        t_atom av[4];
+        double val = translate_to_osc(faustflt(x, c->p_zone),
+                                      c->p_min, c->p_max,
+                                      c->p_type, c->p_osc[j].a, c->p_osc[j].b);
+        if (r) {
+          SETSYMBOL(av+ac, c->p_osc[j].msg); ac++;
+        }
+        SETFLOAT(av+ac, val); ac++;
+        if (r) {
+          SETFLOAT(av+ac, c->p_osc[j].a); ac++;
+          SETFLOAT(av+ac, c->p_osc[j].b); ac++;
+          if (out) outlet_anything(out, r, ac, av);
+          if (oscrecv && oscrecv->s_thing)
+            typedmess(oscrecv->s_thing, r, ac, av);
+        } else {
+          // Ranges are only sent if a reply symbol is given, here we only
+          // report the current value of an element.
+          t_symbol *t = c->p_osc[j].msg;
+          if (out) outlet_anything(out, t, ac, av);
+          if (oscrecv && oscrecv->s_thing)
+            typedmess(oscrecv->s_thing, t, ac, av);
+        }
       }
       c = c->p_next;
     }
@@ -1582,7 +1582,7 @@ const t_symbol *faust_ui_manager_get_osc(t_faust_ui_manager *x, t_symbol const *
       SETSYMBOL(&av, gensym("done"));
       if (out) outlet_anything(out, r, 1, &av);
       if (oscrecv && oscrecv->s_thing)
-	typedmess(oscrecv->s_thing, r, 1, &av);
+        typedmess(oscrecv->s_thing, r, 1, &av);
     }
     return s;
   }
@@ -1592,43 +1592,43 @@ const t_symbol *faust_ui_manager_get_osc(t_faust_ui_manager *x, t_symbol const *
   while (c) {
     if (c->p_type != FAUST_UI_TYPE_BARGRAPH) {
       for (size_t j = 0; j < c->p_nosc; j++) {
-	bool log = true;
-	if (argc > 1) {
-	  int k, n;
-	  // Multiple arguments are handled by tacking on /0, /1 etc. to the
-	  // message selector, following the OSC Support section in the Faust
-	  // manual. First check whether the symbol actually matches a proper
-	  // prefix of the current message selector.
-	  size_t l = strlen(s->s_name);
-	  if (strncmp(s->s_name, c->p_osc[j].msg->s_name, l) == 0 &&
-	      c->p_osc[j].msg->s_name[l] == '/' &&
-	      sscanf(c->p_osc[j].msg->s_name+l+1, "%d%n", &k, &n) == 1 &&
-	      c->p_osc[j].msg->s_name[n+l+1] == 0 && k>=0 && k<argc &&
-	      argv[k].a_type == A_FLOAT) {
-	    double val = argv[k].a_w.w_float;
-	    // Translate the value to the target range.
-	    setfaustflt(x, c->p_zone,
-	      translate_from_osc(val, c->p_osc[j].a, c->p_osc[j].b,
-				 c->p_type, c->p_min, c->p_max, c->p_step));
-	  } else {
-	    log = false;
-	  }
-	} else if (c->p_osc[j].msg == s &&
-		   (argc == 0 || argv[0].a_type == A_FLOAT)) {
-	  // The Faust manual doesn't say how to handle the case of no
-	  // arguments. Here we just assume a default value of b in that case.
-	  double val = argc > 0 ? argv[0].a_w.w_float : c->p_osc[j].b;
-	  // Translate the value to the target range.
-	  setfaustflt(x, c->p_zone,
-	    translate_from_osc(val, c->p_osc[j].a, c->p_osc[j].b,
-			       c->p_type, c->p_min, c->p_max, c->p_step));
-	} else {
-	  log = false;
-	}
-	if (log) {
-	  //logpost(x->f_owner, 3, "%s = %g", c->p_name->s_name, *c->p_zone);
-	  gui_update(faustflt(x, c->p_zone), c->p_uirecv);
-	}
+        bool log = true;
+        if (argc > 1) {
+          int k, n;
+          // Multiple arguments are handled by tacking on /0, /1 etc. to the
+          // message selector, following the OSC Support section in the Faust
+          // manual. First check whether the symbol actually matches a proper
+          // prefix of the current message selector.
+          size_t l = strlen(s->s_name);
+          if (strncmp(s->s_name, c->p_osc[j].msg->s_name, l) == 0 &&
+              c->p_osc[j].msg->s_name[l] == '/' &&
+              sscanf(c->p_osc[j].msg->s_name+l+1, "%d%n", &k, &n) == 1 &&
+              c->p_osc[j].msg->s_name[n+l+1] == 0 && k>=0 && k<argc &&
+              argv[k].a_type == A_FLOAT) {
+            double val = argv[k].a_w.w_float;
+            // Translate the value to the target range.
+            setfaustflt(x, c->p_zone,
+              translate_from_osc(val, c->p_osc[j].a, c->p_osc[j].b,
+                                 c->p_type, c->p_min, c->p_max, c->p_step));
+          } else {
+            log = false;
+          }
+        } else if (c->p_osc[j].msg == s &&
+                   (argc == 0 || argv[0].a_type == A_FLOAT)) {
+          // The Faust manual doesn't say how to handle the case of no
+          // arguments. Here we just assume a default value of b in that case.
+          double val = argc > 0 ? argv[0].a_w.w_float : c->p_osc[j].b;
+          // Translate the value to the target range.
+          setfaustflt(x, c->p_zone,
+            translate_from_osc(val, c->p_osc[j].a, c->p_osc[j].b,
+                               c->p_type, c->p_min, c->p_max, c->p_step));
+        } else {
+          log = false;
+        }
+        if (log) {
+          //logpost(x->f_owner, 3, "%s = %g", c->p_name->s_name, *c->p_zone);
+          gui_update(faustflt(x, c->p_zone), c->p_uirecv);
+        }
       }
     }
     c = c->p_next;
@@ -1686,10 +1686,10 @@ void faust_ui_manager_print(t_faust_ui_manager const *x, char const log)
     {
       if (!c->p_voice) {
         const t_symbol *name = c->p_name, *lname = c->p_longname;
-	logpost(x->f_owner, 2+log, "parameter: %s [path:%s - type:%s - init:%g - min:%g - max:%g - current:%g]",
-		name->s_name, lname->s_name,
-		faust_ui_manager_get_parameter_char(c->p_type),
-		c->p_default, c->p_min, c->p_max, faustflt(x, c->p_zone));
+        logpost(x->f_owner, 2+log, "parameter: %s [path:%s - type:%s - init:%g - min:%g - max:%g - current:%g]",
+                name->s_name, lname->s_name,
+                faust_ui_manager_get_parameter_char(c->p_type),
+                c->p_default, c->p_min, c->p_max, faustflt(x, c->p_zone));
         if (c->p_midi) {
           for (size_t i = 0; i < c->p_nmidi; i++) {
             if (c->p_midi[i].chan >= 0) {
@@ -1712,10 +1712,10 @@ void faust_ui_manager_print(t_faust_ui_manager const *x, char const log)
         }
         if (c->p_osc) {
           for (size_t i = 0; i < c->p_nosc; i++) {
-	    logpost(x->f_owner, 3, "parameter: %s [osc:%s %lg %lg]",
-		    name->s_name,
-		    c->p_osc[i].msg->s_name, c->p_osc[i].a,
-		    c->p_osc[i].b);
+            logpost(x->f_owner, 3, "parameter: %s [osc:%s %lg %lg]",
+                    name->s_name,
+                    c->p_osc[i].msg->s_name, c->p_osc[i].a,
+                    c->p_osc[i].b);
           }
         }
       }
@@ -1734,46 +1734,46 @@ int faust_ui_manager_dump(t_faust_ui_manager const *x, t_symbol *s, t_outlet *ou
     while(c)
     {
       if (!c->p_voice) {
-	SETSYMBOL(argv+argc, c->p_name); argc++;
-	SETSYMBOL(argv+argc, c->p_longname); argc++;
-	SETSYMBOL(argv+argc, gensym(faust_ui_manager_get_parameter_char(c->p_type))); argc++;
-	SETFLOAT(argv+argc, c->p_default); argc++;
-	SETFLOAT(argv+argc, c->p_min); argc++;
-	SETFLOAT(argv+argc, c->p_max); argc++;
-	SETFLOAT(argv+argc, faustflt(x, c->p_zone)); argc++;
-	if (c->p_midi) {
-	  for (size_t i = 0; i < c->p_nmidi && argc+3 < DUMP_MAX_ARGS; i++) {
-	    char buf[MAXPDSTRING];
-	    snprintf(buf, MAXPDSTRING, "midi:%s",
-		     midi_key[c->p_midi[i].msg]);
-	    SETSYMBOL(argv+argc, gensym(buf)); argc++;
-	    if (c->p_midi[i].chan >= 0) {
-	      if (midi_argc[c->p_midi[i].msg] > 1) {
-		SETFLOAT(argv+argc, c->p_midi[i].num); argc++;
-		SETFLOAT(argv+argc, c->p_midi[i].chan); argc++;
-	      } else {
-		SETFLOAT(argv+argc, c->p_midi[i].chan); argc++;
-	      }
-	    } else if (midi_argc[c->p_midi[i].msg] > 1) {
-	      SETFLOAT(argv+argc, c->p_midi[i].num); argc++;
-	    }
-	  }
-	}
-	if (c->p_midi) {
-	  for (size_t i = 0; i < c->p_nosc && argc+3 < DUMP_MAX_ARGS; i++) {
-	    char buf[MAXPDSTRING];
-	    snprintf(buf, MAXPDSTRING, "osc:%s",
-		     c->p_osc[i].msg->s_name);
-	    SETSYMBOL(argv+argc, gensym(buf)); argc++;
-	    SETFLOAT(argv+argc, c->p_osc[i].a); argc++;
-	    SETFLOAT(argv+argc, c->p_osc[i].b); argc++;
-	  }
-	}
-	if (outsym)
-	  typedmess(outsym->s_thing, s, argc, argv);
-	else
-	  outlet_anything(out, s, argc, argv);
-	++n; argc = 0;
+        SETSYMBOL(argv+argc, c->p_name); argc++;
+        SETSYMBOL(argv+argc, c->p_longname); argc++;
+        SETSYMBOL(argv+argc, gensym(faust_ui_manager_get_parameter_char(c->p_type))); argc++;
+        SETFLOAT(argv+argc, c->p_default); argc++;
+        SETFLOAT(argv+argc, c->p_min); argc++;
+        SETFLOAT(argv+argc, c->p_max); argc++;
+        SETFLOAT(argv+argc, faustflt(x, c->p_zone)); argc++;
+        if (c->p_midi) {
+          for (size_t i = 0; i < c->p_nmidi && argc+3 < DUMP_MAX_ARGS; i++) {
+            char buf[MAXPDSTRING];
+            snprintf(buf, MAXPDSTRING, "midi:%s",
+                     midi_key[c->p_midi[i].msg]);
+            SETSYMBOL(argv+argc, gensym(buf)); argc++;
+            if (c->p_midi[i].chan >= 0) {
+              if (midi_argc[c->p_midi[i].msg] > 1) {
+                SETFLOAT(argv+argc, c->p_midi[i].num); argc++;
+                SETFLOAT(argv+argc, c->p_midi[i].chan); argc++;
+              } else {
+                SETFLOAT(argv+argc, c->p_midi[i].chan); argc++;
+              }
+            } else if (midi_argc[c->p_midi[i].msg] > 1) {
+              SETFLOAT(argv+argc, c->p_midi[i].num); argc++;
+            }
+          }
+        }
+        if (c->p_midi) {
+          for (size_t i = 0; i < c->p_nosc && argc+3 < DUMP_MAX_ARGS; i++) {
+            char buf[MAXPDSTRING];
+            snprintf(buf, MAXPDSTRING, "osc:%s",
+                     c->p_osc[i].msg->s_name);
+            SETSYMBOL(argv+argc, gensym(buf)); argc++;
+            SETFLOAT(argv+argc, c->p_osc[i].a); argc++;
+            SETFLOAT(argv+argc, c->p_osc[i].b); argc++;
+          }
+        }
+        if (outsym)
+          typedmess(outsym->s_thing, s, argc, argv);
+        else
+          outlet_anything(out, s, argc, argv);
+        ++n; argc = 0;
       }
       c = c->p_next;
     }
@@ -1806,7 +1806,7 @@ void faust_ui_manager_clear_tuning(t_faust_ui_manager *x)
 }
 
 static int translate_to_midi(FAUSTFLOAT z, FAUSTFLOAT p_min, FAUSTFLOAT p_max,
-			     int min, int max)
+                             int min, int max)
 {
   if (p_min == p_max)
     // assert(z == p_min)
@@ -1826,7 +1826,7 @@ static int translate_to_midi(FAUSTFLOAT z, FAUSTFLOAT p_min, FAUSTFLOAT p_max,
 }
 
 static int midi_defaultval(FAUSTFLOAT z, FAUSTFLOAT p_min, FAUSTFLOAT p_max,
-			   int p_type, int msg)
+                           int p_type, int msg)
 {
   if (p_type == FAUST_UI_TYPE_BARGRAPH)
     switch (msg) {
@@ -1845,7 +1845,7 @@ static int midi_defaultval(FAUSTFLOAT z, FAUSTFLOAT p_min, FAUSTFLOAT p_max,
 }
 
 void faust_ui_manager_midiout(t_faust_ui_manager const *x, int midichan,
-			      t_symbol *midirecv, t_outlet *out)
+                              t_symbol *midirecv, t_outlet *out)
 {
   faust_ui_midi_init();
   if (!x->f_midi || (!midirecv && !out)) return; // nothing to do
@@ -1854,67 +1854,67 @@ void faust_ui_manager_midiout(t_faust_ui_manager const *x, int midichan,
   while (c) {
     if (c->p_type == FAUST_UI_TYPE_BARGRAPH) {
       for (size_t j = 0; j < c->p_nmidi; j++) {
-	int i = c->p_midi[j].msg;
-	int num = -1, chan = -1, val = 0, oldval = c->p_midi[j].val;
+        int i = c->p_midi[j].msg;
+        int num = -1, chan = -1, val = 0, oldval = c->p_midi[j].val;
         t_symbol *s = midi_sym[i];
-	int argc = midi_argc[i];
-	t_atom argv[3];
-	switch (i) {
-	case MIDI_START:
-	  // val means output a start message
-	  val = faustflt(x, c->p_zone) > c->p_min;
-	  if (!val) s = NULL;
-	  break;
-	case MIDI_STOP:
-	  // !val means output a stop message
-	  val = faustflt(x, c->p_zone) > c->p_min;
-	  if (val) s = NULL;
-	  break;
-	case MIDI_CLOCK:
-	  // change in val means output a clock message
-	  val = faustflt(x, c->p_zone) > c->p_min;
-	  break;
-	case MIDI_PITCHWHEEL:
-	  val = translate_to_midi(faustflt(x, c->p_zone), c->p_min, c->p_max, 0, 16384);
-	  // voice message, add channel
-	  argc++;
-	  chan = c->p_midi[j].chan;
-	  break;
-	default:
-	  if (argc == 1) {
-	    val = translate_to_midi(faustflt(x, c->p_zone), c->p_min, c->p_max, 0, 128);
-	    // Pd counts program changes starting at 1
-	    if (i == MIDI_PGM) val++;
-	  } else {
-	    val = translate_to_midi(faustflt(x, c->p_zone), c->p_min, c->p_max, 0, 128);
-	    num = c->p_midi[j].num;
-	  }
-	  // voice message, add channel
-	  argc++;
-	  chan = c->p_midi[j].chan;
-	  break;
-	}
-	// only output changed values
-	if (s && val != oldval) {
-	  c->p_midi[j].val = val;
-	  // Note messages have their arguments the other way round.
-	  if (i == MIDI_KEY || i == MIDI_KEYON || i == MIDI_KEYOFF) {
-	    int temp = num;
-	    num = val; val = temp;
-	  }
-	  if (midi_argc[i] > 0) SETFLOAT(argv+0, val);
-	  if (midi_argc[i] > 1) SETFLOAT(argv+1, num);
-	  if (midi_argc[i] < argc) {
-	    // voice message, add channel (either the object's default MIDI
-	    // channel, or 0 by default)
-	    if (chan < 0) chan = midichan>=0?midichan:0;
-	    // Pd MIDI channels are 1-based
-	    SETFLOAT(argv+(argc-1), chan+1);
-	  }
-	  if (out) outlet_anything(out, s, argc, argv);
-	  if (midirecv && midirecv->s_thing)
-	    typedmess(midirecv->s_thing, s, argc, argv);
-	}
+        int argc = midi_argc[i];
+        t_atom argv[3];
+        switch (i) {
+        case MIDI_START:
+          // val means output a start message
+          val = faustflt(x, c->p_zone) > c->p_min;
+          if (!val) s = NULL;
+          break;
+        case MIDI_STOP:
+          // !val means output a stop message
+          val = faustflt(x, c->p_zone) > c->p_min;
+          if (val) s = NULL;
+          break;
+        case MIDI_CLOCK:
+          // change in val means output a clock message
+          val = faustflt(x, c->p_zone) > c->p_min;
+          break;
+        case MIDI_PITCHWHEEL:
+          val = translate_to_midi(faustflt(x, c->p_zone), c->p_min, c->p_max, 0, 16384);
+          // voice message, add channel
+          argc++;
+          chan = c->p_midi[j].chan;
+          break;
+        default:
+          if (argc == 1) {
+            val = translate_to_midi(faustflt(x, c->p_zone), c->p_min, c->p_max, 0, 128);
+            // Pd counts program changes starting at 1
+            if (i == MIDI_PGM) val++;
+          } else {
+            val = translate_to_midi(faustflt(x, c->p_zone), c->p_min, c->p_max, 0, 128);
+            num = c->p_midi[j].num;
+          }
+          // voice message, add channel
+          argc++;
+          chan = c->p_midi[j].chan;
+          break;
+        }
+        // only output changed values
+        if (s && val != oldval) {
+          c->p_midi[j].val = val;
+          // Note messages have their arguments the other way round.
+          if (i == MIDI_KEY || i == MIDI_KEYON || i == MIDI_KEYOFF) {
+            int temp = num;
+            num = val; val = temp;
+          }
+          if (midi_argc[i] > 0) SETFLOAT(argv+0, val);
+          if (midi_argc[i] > 1) SETFLOAT(argv+1, num);
+          if (midi_argc[i] < argc) {
+            // voice message, add channel (either the object's default MIDI
+            // channel, or 0 by default)
+            if (chan < 0) chan = midichan>=0?midichan:0;
+            // Pd MIDI channels are 1-based
+            SETFLOAT(argv+(argc-1), chan+1);
+          }
+          if (out) outlet_anything(out, s, argc, argv);
+          if (midirecv && midirecv->s_thing)
+            typedmess(midirecv->s_thing, s, argc, argv);
+        }
       }
     }
     c = c->p_next;
@@ -1922,7 +1922,7 @@ void faust_ui_manager_midiout(t_faust_ui_manager const *x, int midichan,
 }
 
 static double translate_to_osc(FAUSTFLOAT z, FAUSTFLOAT p_min, FAUSTFLOAT p_max,
-			       int p_type, double min, double max)
+                               int p_type, double min, double max)
 {
   // We must also consider the UI element type here, since this function may
   // also be called for *active* UI elements when processing /dump messages.
@@ -1958,7 +1958,7 @@ static double translate_to_osc(FAUSTFLOAT z, FAUSTFLOAT p_min, FAUSTFLOAT p_max,
 }
 
 static int osc_defaultval(FAUSTFLOAT z, FAUSTFLOAT p_min, FAUSTFLOAT p_max,
-			  int p_type, double a, double b)
+                          int p_type, double a, double b)
 {
   if (p_type == FAUST_UI_TYPE_BARGRAPH)
     return translate_to_osc(z, p_min, p_max, p_type, a, b);
@@ -1967,7 +1967,7 @@ static int osc_defaultval(FAUSTFLOAT z, FAUSTFLOAT p_min, FAUSTFLOAT p_max,
 }
 
 void faust_ui_manager_oscout(t_faust_ui_manager const *x,
-			     t_symbol *oscrecv, t_outlet *out)
+                             t_symbol *oscrecv, t_outlet *out)
 {
   if (!x->f_osc || (!oscrecv && !out)) return; // nothing to do
   // Run through all the passive UI elements with OSC bindings.
@@ -1975,19 +1975,19 @@ void faust_ui_manager_oscout(t_faust_ui_manager const *x,
   while (c) {
     if (c->p_type == FAUST_UI_TYPE_BARGRAPH) {
       for (size_t j = 0; j < c->p_nosc; j++) {
-	t_symbol *s = c->p_osc[j].msg;
-	double val = 0.0, oldval = c->p_osc[j].val;
-	t_atom argv[1];
-	val = translate_to_osc(faustflt(x, c->p_zone), c->p_min, c->p_max,
-			       c->p_type, c->p_osc[j].a, c->p_osc[j].b);
-	// only output changed values
-	if (val != oldval) {
-	  c->p_osc[j].val = val;
-	  SETFLOAT(argv+0, val);
-	  if (out) outlet_anything(out, s, 1, argv);
-	  if (oscrecv && oscrecv->s_thing)
-	    typedmess(oscrecv->s_thing, s, 1, argv);
-	}
+        t_symbol *s = c->p_osc[j].msg;
+        double val = 0.0, oldval = c->p_osc[j].val;
+        t_atom argv[1];
+        val = translate_to_osc(faustflt(x, c->p_zone), c->p_min, c->p_max,
+                               c->p_type, c->p_osc[j].a, c->p_osc[j].b);
+        // only output changed values
+        if (val != oldval) {
+          c->p_osc[j].val = val;
+          SETFLOAT(argv+0, val);
+          if (out) outlet_anything(out, s, 1, argv);
+          if (oscrecv && oscrecv->s_thing)
+            typedmess(oscrecv->s_thing, s, 1, argv);
+        }
       }
     }
     c = c->p_next;
@@ -2000,12 +2000,12 @@ void faust_ui_manager_gui_update(t_faust_ui_manager const *x)
   t_faust_ui *c = x->f_uis;
   while (c) {
     if (c->p_type == FAUST_UI_TYPE_BARGRAPH &&
-	c->p_uisym && c->p_uisym->s_thing) {
+        c->p_uisym && c->p_uisym->s_thing) {
       // only output changed values
       if (faustflt(x, c->p_zone) != c->p_uival) {
-	FAUSTFLOAT val = faustflt(x, c->p_zone);
-	gui_update(val, c->p_uirecv);
-	c->p_uival = val;
+        FAUSTFLOAT val = faustflt(x, c->p_zone);
+        gui_update(val, c->p_uirecv);
+        c->p_uival = val;
       }
     }
     c = c->p_next;
@@ -2020,7 +2020,7 @@ static t_symbol *make_sym(t_symbol *dsp_name, t_symbol *longname)
 }
 
 void faust_ui_manager_gui(t_faust_ui_manager *x,
-			  t_symbol *unique_name, t_symbol *instance_name)
+                          t_symbol *unique_name, t_symbol *instance_name)
 {
   // Check that the target subpatch exists.
   char ui_name[MAXPDSTRING];
@@ -2106,12 +2106,12 @@ void faust_ui_manager_gui(t_faust_ui_manager *x,
       typedmess(ui->s_thing, gensym("obj"), argc, argv);
       argc = 0;
       if (s->s_thing) {
-	FAUSTFLOAT val = faustflt(x, c->p_zone);
-	gui_update(val, c->p_uirecv);
-	c->p_uival = val;
+        FAUSTFLOAT val = faustflt(x, c->p_zone);
+        gui_update(val, c->p_uirecv);
+        c->p_uival = val;
       } else {
-	// this shouldn't happen
-	pd_error(x->f_owner, "faustgen2~: can't initialize %s - gui", s->s_name);
+        // this shouldn't happen
+        pd_error(x->f_owner, "faustgen2~: can't initialize %s - gui", s->s_name);
       }
       break;
     case FAUST_UI_TYPE_NUMBER:
@@ -2164,12 +2164,12 @@ void faust_ui_manager_gui(t_faust_ui_manager *x,
       SETFLOAT(argv+argc, 256); argc++;
       typedmess(ui->s_thing, gensym("obj"), argc, argv);
       if (s->s_thing) {
-	FAUSTFLOAT val = faustflt(x, c->p_zone);
-	gui_update(val, c->p_uirecv);
-	c->p_uival = val;
+        FAUSTFLOAT val = faustflt(x, c->p_zone);
+        gui_update(val, c->p_uirecv);
+        c->p_uival = val;
       } else {
-	// this shouldn't happen
-	pd_error(x->f_owner, "faustgen2~: can't initialize %s - gui", s->s_name);
+        // this shouldn't happen
+        pd_error(x->f_owner, "faustgen2~: can't initialize %s - gui", s->s_name);
       }
       argc = 0;
       break;
@@ -2264,7 +2264,7 @@ void faust_ui_manager_gui(t_faust_ui_manager *x,
 // Stripped-down version of the above which just creates the receivers without
 // touching the GUI. To be used for secondary instances in old-style polyphony.
 void faust_ui_manager_gui2(t_faust_ui_manager *x,
-			   t_symbol *unique_name, t_symbol *instance_name)
+                           t_symbol *unique_name, t_symbol *instance_name)
 {
   t_faust_ui *c = x->f_uis;
   while (c) {
