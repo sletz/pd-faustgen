@@ -6,7 +6,10 @@ declare name "chimes";
 declare description "chimes synth using a bank of resonz filters";
 declare author "Albert Graef";
 declare version "2.0";
-declare nvoices "8";
+// Old-style polyphony declaration:
+//declare nvoices "8";
+// This is described in the Faust manual and will also work:
+declare options "[nvoices:8]";
 
 import("music.lib");
 

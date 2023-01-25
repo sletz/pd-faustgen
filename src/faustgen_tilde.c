@@ -402,7 +402,7 @@ static void faustgen_tilde_compile(t_faustgen_tilde *x)
                 return;
               }
               //logpost(x, 3, "             npoly = %d (freq = %p, gain = %p, gate = %p)", npoly, freq, gain, gate);
-              logpost(x, 3, "             [%d voice polyphony (declare nvoices)]", npoly);
+              logpost(x, 3, "             [%d voice polyphony (nvoices:%d)]", npoly, npoly);
               x->f_voices[0].freq = freq;
               x->f_voices[0].gain = gain;
               x->f_voices[0].gate = gate;

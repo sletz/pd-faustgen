@@ -934,14 +934,18 @@ static void faust_ui_manager_meta_declare(t_faust_ui_manager* x, const char* key
 #if 0
     if (!x->f_quiet) logpost(x->f_owner, 3, "             %s: %s", key, value);
 #endif
+    // The nvoices declaration is *really* old-school, but still used in some
+    // older Faust programs (specifically the pd-faust examples), so we
+    // support it here. Modern Faust source uses the nvoices option instead,
+    // as described in the Faust manual. We also recognize that, see below.
     int npoly = 0;
     if (strcmp(key, "nvoices") == 0 && sscanf(value, "%d", &npoly) == 1 && npoly > 0) {
       x->f_npoly = npoly;
     }
     if (strcmp(key, "options") == 0 && value) {
-      // Currently we recognize the standard Faust options 'midi' and 'osc',
-      // which are both enabled by default, but you can disable them by
-      // specifying an 'off' value.
+      // Currently we recognize the standard Faust options 'nvoices', 'midi',
+      // and 'osc'. The latter two are both enabled by default, but you can
+      // disable them by specifying an 'off' value.
       const char *s = value;
       char k[128], v[128];
       int n;
@@ -967,6 +971,8 @@ static void faust_ui_manager_meta_declare(t_faust_ui_manager* x, const char* key
           } else if (!x->f_quiet) {
             pd_error(x->f_owner, "faustgen2~: error parsing option %s:%s", k, v);
           }
+        } else if (strcmp(k, "nvoices") == 0 && sscanf(v, "%d", &npoly) == 1 && npoly > 0) {
+	  x->f_npoly = npoly;
         }
         s += n;
         while (isspace(*s)) ++s;
@@ -1061,8 +1067,8 @@ char faust_ui_manager_get_polyphony(t_faust_ui_manager *x, char *midi, int *npol
 {
   *midi = x->f_midi;
   *freq = *gain = *gate = NULL;
-  if (x->f_nvoices > 0) {
-    // we prefer new-style polyphony if we have both
+  // we prefer new-style polyphony if we have both
+  if (x->f_nvoices > 0 || x->f_npoly == 0) {
     *npoly = 0;
   } else {
     *npoly = x->f_npoly;
