@@ -28,7 +28,7 @@ Ready-made binary packages for Mac, Windows, and Ubuntu can be found at <https:/
 
 To compile faustgen2~ you'll need [LLVM](http://llvm.org), [Faust](https://github.com/grame-cncm/faust.git), [Pd](https://github.com/pure-data/pure-data.git), and [CMake](https://cmake.org/). The sources for Faust and Pd are included in the faustgen2~ source, so you don't have to install these beforehand, but of course you'll want to install Pd (or one of its flavors, such as [Purr Data](https://agraef.github.io/purr-data/)) to use faustgen2~. If you already have an installation of the Faust compiler (including libfaust), you can use that version instead of the included Faust source, which will make the installation much easier and faster. Make sure that you have Faust 2.27.2 or later (older versions may or may not work with faustgen2~, use at your own risk), and LLVM 9.0.0 or later.
 
-If you're running Linux, recent versions of LLVM and cmake should be readily available in your distribution's package repositories. On the Mac, they are available in MacPorts or Homebrew, and there's a binary LLVM package available on <http://llvm.org>. At the time of this writing, the LLVM packages for Windows available through Visual Studio or <http://llvm.org> can't be used for installing faustgen2~, because they do not contain the LLVM development tools and libraries. Thus you might want to grab the [binaries](https://github.com/agraef/pd-faustgen/releases/tag/llvm-9.0.0-windows-build) we provide on Github, or compile LLVM yourself (instructions can be found in the [original CICM README](README-CICM.md)).
+If you're running Linux, recent versions of LLVM and cmake should be readily available in your distribution's package repositories. On the Mac, they are available in MacPorts or Homebrew, and there's a binary LLVM package available on <http://llvm.org>.
 
 ## Getting the Source Code
 
@@ -50,20 +50,7 @@ cmake ..
 cmake --build .
 ~~~
 
-This should work on Linux and Mac, where you can also just run `make` instead of `cmake --build`.
-
-----
-
-In principle, on Windows you can do the same using MSVC (MSYS/MSYS2 doesn't work at present). But as usual on Windows most defaults will be wrong, and so you'll most likely have to add a bunch of options to tell cmake about the MSVC version you want to use, the architecture you want to build for, the path to your LLVM installation, and the build type. The following works for me, but YMMV:
-
-~~~shell
-cmake .. -G "Visual Studio 16 2019" -A x64 -DUSE_LLVM_CONFIG=off -DCMAKE_PREFIX_PATH=/path/to/llvm
-cmake --build . --config Release
-~~~
-
-----
-
-The above will compile the included Faust source and use that to build the external. This may take a while. To use an installed Faust library, you can run cmake as follows:
+This should work on Linux and Mac, where you can also just run `make` instead of `cmake --build`. The above will compile the included Faust source and use that to build the external. This may take a while. To use an installed Faust library, you can run cmake as follows:
 
 ~~~shell
 cmake .. -DINSTALLED_FAUST=ON
@@ -83,29 +70,15 @@ cmake .. -DFAUST_LIBRARY=/some/path/to/libfaust.a
 
 cmake should then be able to find the other required files (include and dsp library files) on its own. If all else fails, just use the included Faust source, this should always work.
 
+----
+
+In principle, on Windows you can do the same using MSVC (MSYS/MSYS2 doesn't work at present). But this usually requires a lot of fiddling, and it also doesn't help that the LLVM Windows binaries which are available from llvm.org or as part of Visual Studio lack the development tools and libraries needed to do any serious LLVM development. So I really recommend that you use the builds that we provide on GitHub. If you still want to give it a go, check the Windows build in the makefile.yml file in this repository, it will tell you exactly what to do. You'll also need the [LLVM binaries](https://github.com/agraef/pd-faustgen/releases/tag/llvm-9.0.0-windows-build) we provide on GitHub, or compile LLVM yourself (instructions can be found in the [original CICM README](README-CICM.md)).
+
+----
+
 ## Install
 
-Once the compilation finishes, you can install the external by running `make install` or `cmake --install .` from the build directory. By default, installation will go into the lib/pd/extra/faustgen2~ directory on Linux, and to just faustgen2~ on Mac and Windows, but this directory can be changed by setting the INSTALL_DIR variable at configuration time (`cmake .. -DINSTALL_DIR=some/path`). In any case, this directory is taken relative to cmake's CMAKE_INSTALL_PREFIX, which has an OS-specific default (e.g., on Linux it is /usr/local), but can be set with the `--prefix` option at installation time when running `cmake --install .`, see below.
-
-### The TL;DR
-
-Follow this cheat sheet and adjust the paths accordingly:
-
-#### Linux
-
-Either just `sudo make install` or `sudo cmake --install . --prefix /usr` (depending on whether you have Pd under /usr/local or /usr) should hopefully do the trick. This will do a system-wide installation. You can also do a personal installation if you perform a staged install as described below and manually copy the faustgen2~ folder to some directory Pd searches for externals (such as ~/pd-externals).
-
-#### Mac
-
-Use `cmake --install . --prefix ~/Library/Pd` for personal or `sudo cmake --install . --prefix /Library/Pd` for system-wide installation. That should be the safest option, since your Pd extra directory most likely lives somewhere in the Pd application bundle, which you usually don't want to touch.
-
-#### Windows
-
-Try `cmake --install . --prefix "/Users/Your Name/AppData/Roaming/Pd"` for personal or `cmake --install . --prefix "/Program Files/Pd/extra"` for system-wide installation. The prefix for the latter may vary *a lot* depending on which package you use and how you installed it. If you installed Pd from a zip package then all bets are off, and you should go look where your extra directory is and adjust the prefix path accordingly.
-
-### Staged Installation
-
-It's also possible (and recommended) to do a "staged install" first. You can do that in a platform-independent way as follows:
+Once the compilation finishes, you can install the external by running `make install` or `cmake --install .` from the build directory. It's also possible (and recommended) to do a "staged install" first. You can do that in a platform-independent way as follows:
 
 ~~~shell
 cmake --install . --prefix staging
@@ -137,7 +110,7 @@ The `faustgen2~` prefix actually isn't needed, if you add `faustgen2~` to your s
 
 ### A Simple Example
 
-Let's try a fun little example. Here's the mynoise.dsp program:
+Let's try a little example. Here's the mynoise.dsp program:
 
 ~~~faust
 random  = +(12345)~*(1103515245);
