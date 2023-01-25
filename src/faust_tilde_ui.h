@@ -21,11 +21,15 @@ typedef uint64_t t_channelmask;
 
 t_faust_ui_manager* faust_ui_manager_new(t_object* owner);
 
-void faust_ui_manager_init(t_faust_ui_manager *x, void* dspinstance, int isdbl);
+void faust_ui_manager_init(t_faust_ui_manager *x, void* dspinstance, int isdbl, char quiet);
 
 void faust_ui_manager_free(t_faust_ui_manager *x);
 
 void faust_ui_manager_clear(t_faust_ui_manager *x);
+
+typedef void FAUSTFLOATX; // can be either float or double
+char faust_ui_manager_get_polyphony(t_faust_ui_manager *x, char *midi, int *npoly,
+				    FAUSTFLOATX** freq, FAUSTFLOATX** gain, FAUSTFLOATX** gate);
 
 char faust_ui_manager_set_value(t_faust_ui_manager *x, t_symbol const *name, t_float const f);
 
@@ -59,6 +63,8 @@ void faust_ui_manager_gui_update(t_faust_ui_manager const *x);
 
 void faust_ui_manager_gui(t_faust_ui_manager *x,
 			  t_symbol *unique_name, t_symbol *instance_name);
+void faust_ui_manager_gui2(t_faust_ui_manager *x,
+			   t_symbol *unique_name, t_symbol *instance_name);
 
 void faust_ui_receive_setup(void);
 

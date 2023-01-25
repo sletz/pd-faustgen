@@ -30,6 +30,7 @@
 #include "faust_tilde_ui.h"
 #include "faust_tilde_io.h"
 #include "faust_tilde_options.h"
+#include <assert.h>
 
 #define FAUSTGEN_VERSION_STR "2.1.1"
 #define MAXFAUSTSTRING 4096
@@ -45,6 +46,18 @@
 // still generated for each dsp cycle whenever the corresponding controls
 // change their values.
 const double gui_update_time = 40;
+
+// keep track of voice controls
+typedef struct _faust_voice {
+  int num; // current note playing, if any
+  FAUSTFLOATX *freq, *gain, *gate;
+  struct _faust_voice *next_free, *next_used;
+} t_faust_voice;
+
+typedef struct _faust_key {
+  int num;
+  struct _faust_key *next;
+} t_faust_key;
 
 typedef struct _faustgen_tilde
 {
@@ -70,6 +83,7 @@ typedef struct _faustgen_tilde
     bool                f_active;
     t_symbol*           f_activesym;
 
+    bool                f_isdouble;
     bool                f_midiout;
     int                 f_midichan;
     t_channelmask       f_midichanmsk;
@@ -80,9 +94,227 @@ typedef struct _faustgen_tilde
     t_symbol*           f_unique_name;
     double              f_next_tick;
     t_canvas*           f_canvas;
+
+    // old-style polyphony
+    int                  f_npoly;
+    bool                 f_midiin;
+    llvm_dsp**           f_dsps;
+    t_faust_ui_manager** f_uis;
+    t_faust_voice *f_voices, *f_free, *f_used;
+    t_faust_key *f_keys;
 } t_faustgen_tilde;
 
+static void faust_free_voices(t_faustgen_tilde *x)
+{
+  if (x->f_voices) {
+    freebytes(x->f_voices, x->f_npoly*sizeof(t_faust_voice));
+    while (x->f_keys) {
+      t_faust_key *next = x->f_keys->next;
+      freebytes(x->f_keys, sizeof(t_faust_key));
+      x->f_keys = next;
+    }
+    x->f_voices = x->f_free = x->f_used = NULL;
+  }
+}
+
+static void faust_new_voices(t_faustgen_tilde *x, int npoly)
+{
+  // make sure not to leak any memory on these
+  if (x->f_voices) faust_free_voices(x);
+  x->f_keys = NULL;
+  x->f_voices = getzbytes(npoly*sizeof(t_faust_voice));
+  if (!x->f_voices) {
+    pd_error(x, "faustgen2~: memory allocation failed - voice controls");
+    return;
+  }
+  // Initialize the free and used lists.
+  x->f_free = x->f_voices;
+  x->f_used = NULL;
+  for (int i = 0; i < npoly; i++) {
+    // these will be initialized later
+    x->f_voices[i].freq = x->f_voices[i].gain = x->f_voices[i].gate = NULL;
+    if (i+1 < npoly)
+      x->f_voices[i].next_free = x->f_voices+i+1;
+    else
+      x->f_voices[i].next_free = NULL;
+    x->f_voices[i].next_used = NULL;
+  }
+}
+
 static t_class *faustgen_tilde_class;
+
+// This is basically the same algorithms as in faust_tilde_ui.c, just
+// implemented in terms of cloned rather than internal voices.
+#define VOICE_STEALING 1
+#define MONOPHONIC 1
+
+// simple MTS-like tuning facility (octave-based tunings only for now)
+static t_float note2cps(t_faustgen_tilde *x, int num)
+{
+  t_float f = num;
+  // tuning offset in cents
+  t_float *tuning = faust_ui_manager_get_tuning(x->f_ui_manager);
+  if (tuning) f += tuning[num%12]/100.0;
+  // Pd's mtof() function does the rest
+  return mtof(f);
+}
+
+static FAUSTFLOAT setfaustflt(t_faustgen_tilde *x, FAUSTFLOATX *z, FAUSTFLOAT v)
+{
+  if (x->f_isdouble)
+    return (*(double*)z = v);
+  else
+    return (*(float*)z = v);
+}
+
+static void voices_noteon(t_faustgen_tilde *x, int num, int val, int chan)
+{
+  //post("noteon %d %d %d", num, val, chan);
+#if MONOPHONIC
+  if (x->f_npoly == 1) {
+    // monophonic/legato mode, like ye synths of old. Here we simply ignore
+    // the free and used lists and keep track of which keys are pressed at any
+    // one time.
+    t_faust_key *n = getbytes(sizeof(t_faust_key));
+    if (n) {
+      n->num = num;
+      n->next = x->f_keys;
+      x->f_keys = n;
+    } else {
+      pd_error(x, "faustgen2~: memory allocation failed - monophony");
+    }
+    t_faust_voice *v = x->f_voices;
+    //post("monophonic: %d", v-x->f_voices);
+    if (v->freq) setfaustflt(x, v->freq, note2cps(x, num));
+    if (v->gain) setfaustflt(x, v->gain, ((double)val)/127.0);
+    if (v->gate) setfaustflt(x, v->gate, 1.0);
+    return;
+  }
+#endif
+#if VOICE_STEALING
+  if (!x->f_free) {
+    // no more voices, let's "borrow" one (we can just grab it from the
+    // beginning of the used list, that's the longest sounding note)
+    t_faust_voice *u = x->f_used;
+    //post("steal: %d", u-x->f_voices);
+    if (!u) return; // this can't happen
+    x->f_used = u->next_used;
+    x->f_free = u;
+    u->next_used = u->next_free = NULL;
+  }
+#endif
+  if (x->f_free) {
+    // Move this voice to the end of the used list and update the voice
+    // controls to kick off the new voice.
+    t_faust_voice *v = x->f_free;
+    //post("free: %d", v-x->f_voices);
+    x->f_free = x->f_free->next_free;
+    v->next_free = v->next_used = NULL;
+    if (x->f_used) {
+      t_faust_voice *u = x->f_used;
+      while (u->next_used) u = u->next_used;
+      u->next_used = v;
+    } else {
+      x->f_used = v;
+    }
+    v->num = num;
+    // Simply bypass all checking of control ranges and steps for now. We
+    // might want to do something more comprehensive later. Also, having MTS
+    // support would be nice. :)
+    if (v->freq) setfaustflt(x, v->freq, note2cps(x, num));
+    if (v->gain) setfaustflt(x, v->gain, ((double)val)/127.0);
+    if (v->gate) setfaustflt(x, v->gate, 1.0);
+  }
+}
+
+static void voices_noteoff(t_faustgen_tilde *x, int num, int chan)
+{
+#if MONOPHONIC
+  if (x->f_npoly == 1) {
+    if (x->f_keys) {
+      t_faust_key *n = x->f_keys, *p = NULL;
+      while (n && n->num != num) {
+	p = n;
+	n = n->next;
+      }
+      if (n) {
+	if (p) {
+	  // not the currently sounding note; simply remove it
+	  p->next = n->next;
+	  freebytes(n, sizeof(t_faust_key));
+	} else {
+	  // currently sounding note, change to the previous one (if any)
+	  t_faust_voice *v = x->f_voices;
+	  p = n->next;
+	  freebytes(n, sizeof(t_faust_key));
+	  if (p) {
+	    // legato (change to the previous frequency); note that if you
+	    // want portamento, you'll have to do this in the Faust source
+	    if (v->freq) setfaustflt(x, v->freq, note2cps(x, p->num));
+	  } else {
+	    // note off
+	    if (v->gate) setfaustflt(x, v->gate, 0.0);
+	  }
+	  x->f_keys = p;
+	}
+      }
+    }
+    return;
+  }
+#endif
+  t_faust_voice *u = x->f_used, *v = NULL;
+  while (u && u->num != num) {
+    v = u;
+    u = u->next_used;
+  }
+  if (u) {
+    if (v)
+      v->next_used = u->next_used;
+    else
+      x->f_used = u->next_used;
+    u->next_free = u->next_used = NULL;
+    // Move this voice to the end of the free list and update the gate
+    // control to release the voice.
+    if (x->f_free) {
+      v = x->f_free;
+      while (v->next_free) v = v->next_free;
+      v->next_free = u;
+    } else {
+      x->f_free = u;
+    }
+    if (u->gate) setfaustflt(x, u->gate, 0.0);
+  }
+}
+
+static void voices_all_notes_off(t_faustgen_tilde *x)
+{
+#if MONOPHONIC
+  if (x->f_npoly == 1) {
+    t_faust_voice *v = x->f_voices;
+    if (v->gate) setfaustflt(x, v->gate, 0.0);
+    while (x->f_keys) {
+      t_faust_key *next = x->f_keys->next;
+      freebytes(x->f_keys, sizeof(t_faust_key));
+      x->f_keys = next;
+    }
+    return;
+  }
+#endif
+  for (t_faust_voice *u = x->f_used; u; u = u->next_free) {
+    if (u->gate) setfaustflt(x, u->gate, 0.0);
+    u->next_free = u->next_used;
+    u->next_used = NULL;
+  }
+  // Move all used voices to the end of the free list.
+  if (x->f_free) {
+    t_faust_voice *v = x->f_free;
+    while (v->next_free) v = v->next_free;
+    v->next_free = x->f_used;
+  } else {
+    x->f_free = x->f_used;
+  }
+  x->f_used = NULL;
+}
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -91,11 +323,17 @@ static t_class *faustgen_tilde_class;
 
 static void faustgen_tilde_delete_instance(t_faustgen_tilde *x)
 {
-    if(x->f_dsp_instance)
-    {
-        deleteCDSPInstance(x->f_dsp_instance);
+  if (x->f_dsps) {
+    for (int i = 0; i < x->f_npoly; i++) {
+      deleteCDSPInstance(x->f_dsps[i]);
     }
-    x->f_dsp_instance = NULL;
+    free(x->f_dsps);
+    x->f_dsps = NULL;
+    faust_free_voices(x);
+  } else if (x->f_dsp_instance) {
+    deleteCDSPInstance(x->f_dsp_instance);
+  }
+  x->f_dsp_instance = NULL;
 }
 
 static void faustgen_tilde_delete_factory(t_faustgen_tilde *x)
@@ -124,6 +362,8 @@ static void faustgen_tilde_compile(t_faustgen_tilde *x)
         char errors[MAXFAUSTSTRING];
         int noptions            = (int)faust_opt_manager_get_noptions(x->f_opt_manager);
         char const** options    = faust_opt_manager_get_options(x->f_opt_manager);
+	int npoly = 0; char midi;
+	FAUSTFLOATX *freq = NULL, *gain = NULL, *gate = NULL;
         
         factory = createCDSPFactoryFromFile(filepath, noptions, options, "", errors, -1);
         if(strnlen(errors, MAXFAUSTSTRING))
@@ -141,8 +381,10 @@ static void faustgen_tilde_compile(t_faustgen_tilde *x)
         {
             const int ninputs = getNumInputsCDSPInstance(instance);
             const int noutputs = getNumOutputsCDSPInstance(instance);
+	    const bool isdbl = faust_opt_has_double_precision(x->f_opt_manager);
+	    x->f_isdouble = isdbl;
             logpost(x, 3, "faustgen2~ %s (%d/%d)", x->f_dsp_name->s_name, ninputs, noutputs);
-            faust_ui_manager_init(x->f_ui_manager, instance, faust_opt_has_double_precision(x->f_opt_manager));
+            faust_ui_manager_init(x->f_ui_manager, instance, isdbl, false);
             faust_io_manager_init(x->f_io_manager, ninputs, noutputs);
             
             faustgen_tilde_delete_instance(x);
@@ -150,10 +392,67 @@ static void faustgen_tilde_compile(t_faustgen_tilde *x)
             
             x->f_dsp_factory  = factory;
             x->f_dsp_instance = instance;
-            if (x->f_unique_name && x->f_instance_name)
+
+	    if (faust_ui_manager_get_polyphony(x->f_ui_manager, &midi, &npoly,
+					       &freq, &gain, &gate)) {
+	      faust_new_voices(x, npoly);
+	      if (!x->f_voices) {
+		// memory allocation error, error message is already printed
+		canvas_resume_dsp(dspstate);
+		return;
+	      }
+	      //logpost(x, 3, "             npoly = %d (freq = %p, gain = %p, gate = %p)", npoly, freq, gain, gate);
+	      logpost(x, 3, "             [%d voice polyphony (declare nvoices)]", npoly);
+	      x->f_voices[0].freq = freq;
+	      x->f_voices[0].gain = gain;
+	      x->f_voices[0].gate = gate;
+	      // get rid of the old uis
+	      if (x->f_uis) {
+		for (int i = 1; i < x->f_npoly; i++)
+		  faust_ui_manager_free(x->f_uis[i]);
+	      }
+	      // clone as many dsps as we need, and clone the uis as we go along
+	      x->f_dsps = malloc(npoly*sizeof(llvm_dsp*));
+	      x->f_uis = realloc(x->f_uis, npoly*sizeof(t_faust_ui_manager*));
+	      assert(x->f_dsps && x->f_uis);
+	      x->f_dsps[0] = x->f_dsp_instance;
+	      x->f_uis[0] = x->f_ui_manager;
+	      for (int i = 1; i < npoly; i++) {
+		x->f_dsps[i] = cloneCDSPInstance(x->f_dsp_instance);
+		// XXXFIXME: We'd really like to clone the existing ui here:
+		//x->f_uis[i] = faust_ui_manager_clone(x->f_ui_manager);
+		// That would let us keep as much of the existing control
+		// values as possible, as is done with the new-style
+		// polyphony. But alas, there's currently no way of doing
+		// that, so instead we resort to creating a new ui from
+		// scratch.
+		x->f_uis[i] = faust_ui_manager_new((t_object*)x);
+		faust_ui_manager_init(x->f_uis[i], x->f_dsps[i], isdbl, true);
+		char _midi; int _npoly;
+		bool ret =
+		  faust_ui_manager_get_polyphony(x->f_uis[i], &_midi, &_npoly,
+						 &freq, &gain, &gate);
+		assert(ret && midi == _midi && npoly == _npoly);
+		x->f_voices[i].freq = freq;
+		x->f_voices[i].gain = gain;
+		x->f_voices[i].gate = gate;
+	      }
+	      x->f_npoly = npoly;
+	      x->f_midiin = midi;
+	    }
+
+            if (x->f_unique_name && x->f_instance_name) {
               // recreate the Pd GUI
               faust_ui_manager_gui(x->f_ui_manager,
                                    x->f_unique_name, x->f_instance_name);
+	      if (x->f_uis) {
+		// also install receivers on the other instances
+		for (int i = 1; i < x->f_npoly; i++)
+		  faust_ui_manager_gui2(x->f_uis[i],
+					x->f_unique_name, x->f_instance_name);
+	      }
+	    }
+
             canvas_resume_dsp(dspstate);
             return;
         }
@@ -538,14 +837,20 @@ static void faustgen_tilde_tuning(t_faustgen_tilde *x, t_symbol* s, int argc, t_
 
 static void faustgen_tilde_allnotesoff(t_faustgen_tilde *x)
 {
-  if(x->f_dsp_instance) {
+  if (x->f_dsps) {
+    voices_all_notes_off(x);
+  } else if (x->f_dsp_instance) {
     faust_ui_manager_all_notes_off(x->f_ui_manager);
   }
 }
 
 static void faustgen_tilde_defaults(t_faustgen_tilde *x)
 {
-  if(x->f_dsp_instance) {
+  if(x->f_dsps) {
+    for (int i = 0; i < x->f_npoly; i++) {
+      faust_ui_manager_restore_default(x->f_uis[i]);
+    }
+  } else if (x->f_dsp_instance) {
     faust_ui_manager_restore_default(x->f_ui_manager);
   }
 }
@@ -555,6 +860,12 @@ static void faustgen_tilde_gui(t_faustgen_tilde *x)
   if(x->f_dsp_instance) {
     faust_ui_manager_gui(x->f_ui_manager,
 			 x->f_unique_name, x->f_instance_name);
+    if (x->f_uis) {
+      // also install receivers on the other instances
+      for (int i = 1; i < x->f_npoly; i++)
+	faust_ui_manager_gui2(x->f_uis[i],
+			      x->f_unique_name, x->f_instance_name);
+    }
   }
 }
 
@@ -636,7 +947,10 @@ static void faustgen_tilde_midichan(t_faustgen_tilde *x, t_symbol* s, int argc, 
     }
     if (x->f_midichanmsk != oldmsk)
       // prevent hanging notes after change
-      faust_ui_manager_all_notes_off(x->f_ui_manager);
+      if (x->f_dsps)
+        voices_all_notes_off(x);
+      else
+	faust_ui_manager_all_notes_off(x->f_ui_manager);
   }
 }
 
@@ -645,76 +959,149 @@ static void faustgen_tilde_midichan(t_faustgen_tilde *x, t_symbol* s, int argc, 
 //                                  PURE DATA GENERIC INTERFACE                                 //
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
+static bool anything(t_faust_ui_manager *ui, t_symbol* s, int argc, t_atom* argv,
+		     t_symbol *recv, t_outlet* oscout, t_outlet* out,
+		     t_channelmask midichanmsk, t_faustgen_tilde *x, bool quiet)
+{
+  const t_symbol *msg_s = faust_ui_manager_get_osc(ui, s, argc, argv, recv, oscout);
+  if(msg_s) return true;
+
+  int msg = faust_ui_manager_get_midi(ui, s, argc, argv, midichanmsk);
+  if(msg) return true;
+
+  if(!argc)
+  {
+    t_float value;
+    if(!faust_ui_manager_get_value(ui, s, &value))
+    {
+      t_atom av;
+      SETFLOAT(&av, value);
+      outlet_anything(out, s, 1, &av);
+      return true;
+    }
+    if (!quiet) pd_error(x, "faustgen2~: parameter '%s' not defined", s->s_name);
+    return false;
+  }
+  else if(argc == 1)
+  {
+    if(argv[0].a_type != A_FLOAT)
+    {
+      if (!quiet) pd_error(x, "faustgen2~: parameter requires a float value");
+      return false;
+    }
+    if(!faust_ui_manager_set_value(ui, s, argv[0].a_w.w_float))
+    {
+      return true;
+    }
+    if(s == x->f_activesym)
+    // ag: default action for 'active' message, toggles the activation
+    // status of the dsp
+    {
+      x->f_active = argv[0].a_w.w_float != 0;
+      return true;
+    }
+    if (!quiet) pd_error(x, "faustgen2~: parameter '%s' not defined", s->s_name);
+    return false;
+  }
+  else
+  {
+    int i, start;
+    char name[MAXFAUSTSTRING];
+    if(argv[0].a_type != A_FLOAT)
+    {
+      pd_error(x, "faustgen2~: list parameters require a first index");
+      return false;
+    }
+    start = (int)argv[0].a_w.w_float;
+    for(i = 0; i < argc - 1; ++i)
+    {
+      snprintf(name, MAXFAUSTSTRING, "%s%i", s->s_name, start+i);
+      if(argv[i+1].a_type != A_FLOAT)
+      {
+	pd_error(x, "faustgen2~: active parameter requires a float value");
+      }
+      if(faust_ui_manager_set_value(ui, gensym(name), argv[i+1].a_w.w_float))
+      {
+	pd_error(x, "faustgen2~: active parameter '%s' not defined", name);
+	return false;
+      }
+    }
+    return true;
+  }
+}
+
+static bool midichan_check(t_channelmask msk, int chan)
+{
+  if (chan >= 0 && chan < 64)
+    return ((1UL<<chan) & msk) != 0UL;
+  else
+    return false;
+}
+
 static void faustgen_tilde_anything(t_faustgen_tilde *x, t_symbol* s, int argc, t_atom* argv)
 {
-    if(x->f_dsp_instance)
-    {
-        const t_symbol *msg_s = faust_ui_manager_get_osc(x->f_ui_manager, s, argc, argv, x->f_oscrecv, x->f_oscout ? faust_io_manager_get_extra_output(x->f_io_manager) : NULL);
-        if(msg_s) return;
-
-        int msg = faust_ui_manager_get_midi(x->f_ui_manager, s, argc, argv, x->f_midichanmsk);
-        if(msg) return;
-
-        if(!argc)
-        {
-            t_float value;
-            if(!faust_ui_manager_get_value(x->f_ui_manager, s, &value))
-            {
-                t_atom av;
-                SETFLOAT(&av, value);
-                outlet_anything(faust_io_manager_get_extra_output(x->f_io_manager), s, 1, &av);
-                return;
-            }
-            pd_error(x, "faustgen2~: parameter '%s' not defined", s->s_name);
-            return;
-        }
-        else if(argc == 1)
-        {
-            if(argv[0].a_type != A_FLOAT)
-            {
-                pd_error(x, "faustgen2~: parameter requires a float value");
-                return;
-            }
-            if(!faust_ui_manager_set_value(x->f_ui_manager, s, argv[0].a_w.w_float))
-            {
-                return;
-            }
-            if(s == x->f_activesym)
-            // ag: default action for 'active' message, toggles the activation
-            // status of the dsp
-            {
-                x->f_active = argv[0].a_w.w_float != 0;
-                return;
-            }
-            pd_error(x, "faustgen2~: parameter '%s' not defined", s->s_name);
-            return;
-        }
-        else
-        {
-            int i, start;
-            char name[MAXFAUSTSTRING];
-            if(argv[0].a_type != A_FLOAT)
-            {
-                pd_error(x, "faustgen2~: list parameters require a first index");
-                return;
-            }
-            start = (int)argv[0].a_w.w_float;
-            for(i = 0; i < argc - 1; ++i)
-            {
-                snprintf(name, MAXFAUSTSTRING, "%s%i", s->s_name, start+i);
-                if(argv[i+1].a_type != A_FLOAT)
-                {
-                    pd_error(x, "faustgen2~: active parameter requires a float value");
-                }
-                if(faust_ui_manager_set_value(x->f_ui_manager, gensym(name), argv[i+1].a_w.w_float))
-                {
-                    pd_error(x, "faustgen2~: active parameter '%s' not defined", name);
-                    return;
-                }
-            }
-            return;
-        }
+  if(x->f_dsps) {
+    // multiple instances, old-style polyphony processing
+    /* We only handle the note messages here, since we have to dispatch them
+       to the right dsp instance using voice allocation. Anything else is simply
+       passed on to all of the ui managers. XXXFIXME: It isn't terribly clear
+       how to handle the OSC and MIDI output of all the instances. Should we
+       aggregate them in some way? Currently we only enable output for the
+       first instance and ignore all the rest to prevent duplicated messages. */
+    if (strcmp(s->s_name, "note")) {
+      // any errors should be caught on the first run
+      bool res =
+	anything(x->f_ui_manager, s, argc, argv, x->f_oscrecv,
+		 x->f_oscout ? faust_io_manager_get_extra_output(x->f_io_manager) : NULL, faust_io_manager_get_extra_output(x->f_io_manager), x->f_midichanmsk, x, false);
+      if (res) {
+	// now go ahead and feed the same message to all the other instances,
+	// silence output
+	for (int i = 1; i < x->f_npoly; i++) {
+	  anything(x->f_uis[i], s, argc, argv, NULL,
+		   NULL, NULL, x->f_midichanmsk, x, true);
+	}
+      }
+    } else {
+      // handle an SMMF style note message
+      int num, val, chan = -1;
+      // Check whether MIDI processing is actually on. If it is off, we just
+      // silently ignore it.
+      if (!x->f_midiin) return;
+      // Process the message arguments.
+      if (argc < 2) return;
+      if (argv[0].a_type != A_FLOAT) return;
+      num = (int)argv[0].a_w.w_float;
+      if (argv[1].a_type != A_FLOAT) return;
+      val = (int)argv[1].a_w.w_float;
+      if (argc > 2 && argv[2].a_type == A_FLOAT) {
+	// channel argument
+	chan = (int)argv[2].a_w.w_float;
+	// check validity
+	if (chan >= 1) {
+	  // Subtract 1 since channels are zero-based in Faust meta data, but
+	  // 1-based in Pd. NOTE: Pd allows more than the usual 16 channels,
+	  // since it treats each MIDI device as a separate block of 16 MIDI
+	  // channels. Thus 0..15 will denote the channels of the first MIDI
+	  // device, 16..31 the channels of the second one, etc.
+	  chan--;
+	  // match against the object's channel mask
+	  if (!midichan_check(x->f_midichanmsk, chan)) return;
+	} else
+	  chan = -1;
+      }
+      if (val)
+	voices_noteon(x, num, val, chan);
+      else
+	voices_noteoff(x, num, chan);
     }
+  }
+  else if(x->f_dsp_instance)
+  {
+    // single instance, new-style polyphony (if any)
+    anything(x->f_ui_manager, s, argc, argv, x->f_oscrecv,
+	     x->f_oscout ? faust_io_manager_get_extra_output(x->f_io_manager) : NULL, faust_io_manager_get_extra_output(x->f_io_manager), x->f_midichanmsk, x, false);
+  }
+  else
     pd_error(x, "faustgen2~: no dsp instance");
 }
 
@@ -761,6 +1148,23 @@ static t_int *faustgen_tilde_perform_single(t_int *w)
             realoutputs[i][j] = (t_sample)faustsigs[ninputs+i][j];
         }
     }
+    if (x->f_dsps) {
+      // sum up the outputs from all dsp instances
+      for (int k = 1; k < x->f_npoly; k++) {
+	computeCDSPInstance(x->f_dsps[k], nsamples, (FAUSTFLOAT**)faustsigs, (FAUSTFLOAT**)(faustsigs+ninputs));
+	for(i = 0; i < noutputs; ++i)
+	{
+	  for(j = 0; j < nsamples; ++j)
+	  {
+            realoutputs[i][j] += (t_sample)faustsigs[ninputs+i][j];
+	  }
+	}
+      }
+    }
+    // XXXFIXME: If we have multiple dsps (in old-style polyphony), we only
+    // output MIDI and OSC data from the first instance here, to prevent
+    // duplicate messages. Maybe they should be aggregated instead. (See the
+    // remarks in faustgen_tilde_anything.)
     if (x->f_midiout || x->f_midirecv) {
       t_outlet *out = x->f_midiout?faust_io_manager_get_extra_output(x->f_io_manager):NULL;
       faust_ui_manager_midiout(x->f_ui_manager, x->f_midichan, x->f_midirecv, out);
@@ -820,6 +1224,23 @@ static t_int *faustgen_tilde_perform_double(t_int *w)
             realoutputs[i][j] = (t_sample)faustsigs[ninputs+i][j];
         }
     }
+    if (x->f_dsps) {
+      // sum up the outputs from all dsp instances
+      for (int k = 1; k < x->f_npoly; k++) {
+	computeCDSPInstance(x->f_dsps[k], nsamples, (FAUSTFLOAT**)faustsigs, (FAUSTFLOAT**)(faustsigs+ninputs));
+	for(i = 0; i < noutputs; ++i)
+	{
+	  for(j = 0; j < nsamples; ++j)
+	  {
+            realoutputs[i][j] += (t_sample)faustsigs[ninputs+i][j];
+	  }
+	}
+      }
+    }
+    // XXXFIXME: If we have multiple dsps (in old-style polyphony), we only
+    // output MIDI and OSC data from the first instance here, to prevent
+    // duplicate messages. Maybe they should be aggregated instead. (See the
+    // remarks in faustgen_tilde_anything.)
     if (x->f_midiout || x->f_midirecv) {
       t_outlet *out = x->f_midiout?faust_io_manager_get_extra_output(x->f_io_manager):NULL;
       faust_ui_manager_midiout(x->f_ui_manager, x->f_midichan, x->f_midirecv, out);
@@ -912,8 +1333,17 @@ static void faustgen_tilde_dsp(t_faustgen_tilde *x, t_signal **sp)
         char initialized = getSampleRateCDSPInstance(x->f_dsp_instance) != sp[0]->s_sr;
         if(initialized)
         {
+	  if (x->f_dsps) {
+	    for (int i = 0; i < x->f_npoly; i++) {
+	      // not sure whether we really need to save all of the instances,
+	      // but to be on the safe side...
+	      faust_ui_manager_save_states(x->f_uis[i]);
+	      initCDSPInstance(x->f_dsps[i], sp[0]->s_sr);
+	    }
+	  } else {
             faust_ui_manager_save_states(x->f_ui_manager);
             initCDSPInstance(x->f_dsp_instance, sp[0]->s_sr);
+	  }
         }
         if(!faust_io_manager_prepare(x->f_io_manager, sp))
         {
@@ -921,7 +1351,7 @@ static void faustgen_tilde_dsp(t_faustgen_tilde *x, t_signal **sp)
             size_t const noutputs = faust_io_manager_get_noutputs(x->f_io_manager);
             size_t const nsamples = (size_t)sp[0]->s_n;
 
-            if(faust_opt_has_double_precision(x->f_opt_manager))
+            if(x->f_isdouble)
             {
                 faustgen_tilde_alloc_signals_double(x, ninputs, noutputs, nsamples);
                 dsp_add((t_perfroutine)faustgen_tilde_perform_double, 8,
@@ -944,7 +1374,13 @@ static void faustgen_tilde_dsp(t_faustgen_tilde *x, t_signal **sp)
         }
         if(initialized)
         {
+	  if (x->f_dsps) {
+	    for (int i = 0; i < x->f_npoly; i++) {
+	      faust_ui_manager_restore_states(x->f_uis[i]);
+	    }
+	  } else {
             faust_ui_manager_restore_states(x->f_ui_manager);
+	  }
         }
     }
 }
@@ -989,7 +1425,12 @@ static void faustgen_tilde_free(t_faustgen_tilde *x)
     }
     faustgen_tilde_delete_instance(x);
     faustgen_tilde_delete_factory(x);
-    faust_ui_manager_free(x->f_ui_manager);
+    if (x->f_uis) {
+      for (int i = 0; i < x->f_npoly; i++)
+	faust_ui_manager_free(x->f_uis[i]);
+    } else {
+      faust_ui_manager_free(x->f_ui_manager);
+    }
     faust_io_manager_free(x->f_io_manager);
     faust_opt_manager_free(x->f_opt_manager);
     faustgen_tilde_free_signals(x);
@@ -1021,6 +1462,7 @@ static void *faustgen_tilde_new(t_symbol* s, int argc, t_atom* argv)
         sprintf(default_file, "%s/default", class_gethelpdir(faustgen_tilde_class));
         x->f_dsp_factory    = NULL;
         x->f_dsp_instance   = NULL;
+	x->f_dsps = NULL; x->f_uis = NULL;
         
         x->f_signal_matrix_single  = NULL;
         x->f_signal_aligned_single = NULL;
@@ -1033,13 +1475,16 @@ static void *faustgen_tilde_new(t_symbol* s, int argc, t_atom* argv)
         x->f_dsp_name       = is_loader_obj ? real_dsp_name(s) :
 	  argc ? atom_getsymbolarg(0, argc, argv) : gensym(default_file);
         x->f_clock          = clock_new(x, (t_method)faustgen_tilde_autocompile_tick);
-        x->f_midiout = x->f_oscout = false;
+        x->f_midiin = x->f_midiout = x->f_oscout = false;
         x->f_midichan = -1;
         x->f_midichanmsk = ALL_CHANNELS;
 	x->f_midirecv = x->f_oscrecv = NULL;
         x->f_unique_name = x->f_instance_name = NULL;
         x->f_activesym = gensym("active");
         x->f_active = true;
+	x->f_isdouble = false;
+	x->f_npoly = 0;
+	x->f_voices = NULL;
         // parse the remaining creation arguments
         if (argc > 0 && argv) {
 	  int n_num = 0;
@@ -1121,6 +1566,12 @@ static void *faustgen_tilde_new(t_symbol* s, int argc, t_atom* argv)
 	  // create the Pd GUI
 	  faust_ui_manager_gui(x->f_ui_manager,
 			       x->f_unique_name, x->f_instance_name);
+	  if (x->f_uis) {
+	    // also install receivers on the other instances
+	    for (int i = 1; i < x->f_npoly; i++)
+	      faust_ui_manager_gui2(x->f_uis[i],
+				    x->f_unique_name, x->f_instance_name);
+	  }
 	}
 	// ag: kick off GUI updates every gui_update_time msecs (we do this
 	// even if the GUI wasn't created yet, in case it may created later)

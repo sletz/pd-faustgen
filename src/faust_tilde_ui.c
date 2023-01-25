@@ -155,8 +155,6 @@ void faust_ui_receive_setup(void)
   class_addfloat(faust_ui_proxy_class, faust_ui_receive);
 }
 
-typedef void FAUSTFLOATX; // can be either float or double
-
 typedef struct _faust_ui
 {
     t_symbol*           p_name;
@@ -204,12 +202,17 @@ typedef struct _faust_ui_manager
     size_t      f_nnames;
     MetaGlue    f_meta_glue;
     bool        f_isdouble;
+    bool        f_quiet;
     bool        f_midi, f_osc;
+    // new-style polyphony
     int         f_nvoices;
     t_faust_voice *f_voices, *f_free, *f_used;
     t_faust_key *f_keys;
     t_faust_ui_proxy *f_panic_recv, *f_init_recv, *f_active_recv;
     t_float *f_tuning;
+    // old-style polyphony (nvoices meta data), >0 when set
+    int         f_npoly;
+    struct _faust_ui *freq_c, *gain_c, *gate_c;
 }t_faust_ui_manager;
 
 static void faust_free_voices(t_faust_ui_manager *x)
@@ -255,16 +258,16 @@ static void faust_new_voices(t_faust_ui_manager *x)
     if ((n_freq && n_freq != n_voices) ||
 	(n_gain && n_gain != n_voices) ||
 	(n_gate && n_gate != n_voices)) {
-      pd_error(x->f_owner, "faustgen2~: inconsistent number of voice controls");
+      if (!x->f_quiet) pd_error(x->f_owner, "faustgen2~: inconsistent number of voice controls");
       return;
     }
     x->f_keys = NULL;
     x->f_voices = getzbytes(n_voices*sizeof(t_faust_voice));
     if (!x->f_voices) {
-      pd_error(x->f_owner, "faustgen2~: memory allocation failed - voice controls");
+      if (!x->f_quiet) pd_error(x->f_owner, "faustgen2~: memory allocation failed - voice controls");
       return;
     }
-    logpost(x->f_owner, 3, "             [%d voice polyphony]", n_voices);
+    if (!x->f_quiet) logpost(x->f_owner, 3, "             [%d voice polyphony]", n_voices);
     // Run through the voice controls again and populate the f_voices table.
     n_freq = 0; n_gain = 0; n_gate = 0;
     c = x->f_uis;
@@ -401,7 +404,7 @@ static void faust_ui_manager_sort(t_faust_ui_manager *x)
     t_faust_ui **cv = (t_faust_ui**)getbytes(x->f_nuis*sizeof(t_faust_ui*));
     size_t i, n = 0;
     if (!cv) {
-      pd_error(x->f_owner, "faustgen2~: memory allocation failed - ui sort");
+      if (!x->f_quiet) pd_error(x->f_owner, "faustgen2~: memory allocation failed - ui sort");
       return;
     }
     while (c && n < x->f_nuis) {
@@ -416,7 +419,7 @@ static void faust_ui_manager_sort(t_faust_ui_manager *x)
       cv[i-1]->p_next = NULL;
       x->f_uis = cv[0];
     } else {
-      pd_error(x->f_owner, "faustgen2~: internal error - ui sort");
+      if (!x->f_quiet) pd_error(x->f_owner, "faustgen2~: internal error - ui sort");
     }
     freebytes(cv, x->f_nuis*sizeof(t_faust_ui*));
   }
@@ -569,7 +572,7 @@ static void faust_ui_manager_add_param(t_faust_ui_manager *x, const char* label,
         c = (t_faust_ui *)getbytes(sizeof(*c));
         if(!c)
         {
-            pd_error(x->f_owner, "faustgen2~: memory allocation failed - ui glue");
+            if (!x->f_quiet) pd_error(x->f_owner, "faustgen2~: memory allocation failed - ui glue");
             return;
         }
         c->p_name   = name;
@@ -601,12 +604,13 @@ static void faust_ui_manager_add_param(t_faust_ui_manager *x, const char* label,
 	if (c->p_type != FAUST_UI_TYPE_BARGRAPH) {
 	  c->p_voice = last_meta.voice;
 #if 0
-	  logpost(x->f_owner, 3, "             %s: voice:%s", name->s_name,
-		  voice_key[last_meta.voice]);
+	  if (!x->f_quiet)
+	    logpost(x->f_owner, 3, "             %s: voice:%s", name->s_name,
+		    voice_key[last_meta.voice]);
 #endif
 	} else {
 	  // voice controls can't be passive
-	  pd_error(x->f_owner, "faustgen2~: '%s' can't be used as voice control", name->s_name);
+	  if (!x->f_quiet) pd_error(x->f_owner, "faustgen2~: '%s' can't be used as voice control", name->s_name);
 	}
       }
       if (last_meta.n_midi) {
@@ -614,21 +618,23 @@ static void faust_ui_manager_add_param(t_faust_ui_manager *x, const char* label,
 	if (c->p_midi) {
 	  c->p_nmidi = last_meta.n_midi;
 	  for (size_t i = 0; i < last_meta.n_midi; i++) {
-	    if (last_meta.midi[i].chan >= 0) {
-	      if (midi_argc[last_meta.midi[i].msg] > 1)
-		logpost(x->f_owner, 3, "             %s: midi:%s %d %d", name->s_name,
-			midi_key[last_meta.midi[i].msg], last_meta.midi[i].num,
-			last_meta.midi[i].chan);
-	      else
-		logpost(x->f_owner, 3, "             %s: midi:%s %d", name->s_name,
-			midi_key[last_meta.midi[i].msg], last_meta.midi[i].chan);
-	    } else {
-	      if (midi_argc[last_meta.midi[i].msg] > 1)
-		logpost(x->f_owner, 3, "             %s: midi:%s %d", name->s_name,
-			midi_key[last_meta.midi[i].msg], last_meta.midi[i].num);
-	      else
-		logpost(x->f_owner, 3, "             %s: midi:%s", name->s_name,
-			midi_key[last_meta.midi[i].msg]);
+	    if (!x->f_quiet) {
+	      if (last_meta.midi[i].chan >= 0) {
+		if (midi_argc[last_meta.midi[i].msg] > 1)
+		  logpost(x->f_owner, 3, "             %s: midi:%s %d %d", name->s_name,
+			  midi_key[last_meta.midi[i].msg], last_meta.midi[i].num,
+			  last_meta.midi[i].chan);
+		else
+		  logpost(x->f_owner, 3, "             %s: midi:%s %d", name->s_name,
+			  midi_key[last_meta.midi[i].msg], last_meta.midi[i].chan);
+	      } else {
+		if (midi_argc[last_meta.midi[i].msg] > 1)
+		  logpost(x->f_owner, 3, "             %s: midi:%s %d", name->s_name,
+			  midi_key[last_meta.midi[i].msg], last_meta.midi[i].num);
+		else
+		  logpost(x->f_owner, 3, "             %s: midi:%s", name->s_name,
+			  midi_key[last_meta.midi[i].msg]);
+	      }
 	    }
 	    c->p_midi[i].msg  = last_meta.midi[i].msg;
 	    c->p_midi[i].num  = last_meta.midi[i].num;
@@ -636,7 +642,7 @@ static void faust_ui_manager_add_param(t_faust_ui_manager *x, const char* label,
 	    c->p_midi[i].val  = midi_defaultval(init, min, max, type,
 						c->p_midi[i].msg);
 	  }
-	} else {
+	} else if (!x->f_quiet) {
 	  pd_error(x->f_owner, "faustgen2~: memory allocation failed - ui midi");
 	}
       }
@@ -645,9 +651,10 @@ static void faust_ui_manager_add_param(t_faust_ui_manager *x, const char* label,
 	if (c->p_osc) {
 	  c->p_nosc = last_meta.n_osc;
 	  for (size_t i = 0; i < last_meta.n_osc; i++) {
-	    logpost(x->f_owner, 3, "             %s: osc:%s %g %g",
-		    name->s_name, last_meta.osc[i].msg->s_name,
-		    last_meta.osc[i].a, last_meta.osc[i].b);
+	    if (!x->f_quiet)
+	      logpost(x->f_owner, 3, "             %s: osc:%s %g %g",
+		      name->s_name, last_meta.osc[i].msg->s_name,
+		      last_meta.osc[i].a, last_meta.osc[i].b);
 	    c->p_osc[i].msg = last_meta.osc[i].msg;
 	    c->p_osc[i].a   = last_meta.osc[i].a;
 	    c->p_osc[i].b   = last_meta.osc[i].b;
@@ -655,13 +662,21 @@ static void faust_ui_manager_add_param(t_faust_ui_manager *x, const char* label,
 					     c->p_osc[i].a,
 					     c->p_osc[i].b);
 	  }
-	} else {
+	} else if (!x->f_quiet) {
 	  pd_error(x->f_owner, "faustgen2~: memory allocation failed - ui osc");
 	}
       }
     }
     last_meta.n_osc = last_meta.n_midi = 0;
     last_meta.voice = VOICE_NONE;
+    // old-style polyphony
+    if (strcmp(name->s_name, "freq") == 0) {
+      x->freq_c = c;
+    } else if (strcmp(name->s_name, "gain") == 0) {
+      x->gain_c = c;
+    } else if (strcmp(name->s_name, "gate") == 0) {
+      x->gate_c = c;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -685,7 +700,7 @@ static void faust_ui_manager_ui_open_box(t_faust_ui_manager* x, const char* labe
         }
         else
         {
-            pd_error(x->f_owner, "faustgen2~: memory allocation failed - ui box");
+            if (!x->f_quiet) pd_error(x->f_owner, "faustgen2~: memory allocation failed - ui box");
             return;
         }
     }
@@ -700,7 +715,7 @@ static void faust_ui_manager_ui_open_box(t_faust_ui_manager* x, const char* labe
         }
         else
         {
-            pd_error(x->f_owner, "faustgen2~: memory allocation failed - ui box");
+            if (!x->f_quiet) pd_error(x->f_owner, "faustgen2~: memory allocation failed - ui box");
             return;
         }
     }
@@ -719,7 +734,7 @@ static void faust_ui_manager_ui_close_box(t_faust_ui_manager* x)
         }
         else
         {
-            pd_error(x->f_owner, "faustgen2~: memory de-allocation failed - ui box");
+            if (!x->f_quiet) pd_error(x->f_owner, "faustgen2~: memory de-allocation failed - ui box");
             return;
         }
     }
@@ -762,7 +777,7 @@ static void faust_ui_manager_ui_add_bargraph(t_faust_ui_manager* x, const char* 
 
 static void faust_ui_manager_ui_add_sound_file(t_faust_ui_manager* x, const char* label, const char* filename, struct Soundfile** sf_zone)
 {
-    pd_error(x->f_owner, "faustgen2~: add sound file not supported yet");
+    if (!x->f_quiet) pd_error(x->f_owner, "faustgen2~: add sound file not supported yet");
 }
 
 // DECLARE UIS
@@ -771,7 +786,7 @@ static void faust_ui_manager_ui_add_sound_file(t_faust_ui_manager* x, const char
 static void faust_ui_manager_ui_declare(t_faust_ui_manager* x, FAUSTFLOAT* zone, const char* key, const char* value)
 {
   if (zone && value && *value) {
-    //logpost(x->f_owner, 3, "             %s: %s (%p)", key, value, zone);
+    //if (!x->f_quiet) logpost(x->f_owner, 3, "             %s: %s (%p)", key, value, zone);
     if (strcmp(key, "voice") == 0) {
       if (strcmp(value, "freq") == 0) {
 	last_meta.zone = zone;
@@ -917,11 +932,12 @@ static void faust_ui_manager_ui_declare(t_faust_ui_manager* x, FAUSTFLOAT* zone,
 static void faust_ui_manager_meta_declare(t_faust_ui_manager* x, const char* key, const char* value)
 {
 #if 0
-    logpost(x->f_owner, 3, "             %s: %s", key, value);
-    if (strcmp(key, "nvoices") == 0) {
-      pd_error(x->f_owner, "faustgen2~: warning: nvoices declaration not implemented");
-    }
+    if (!x->f_quiet) logpost(x->f_owner, 3, "             %s: %s", key, value);
 #endif
+    int npoly = 0;
+    if (strcmp(key, "nvoices") == 0 && sscanf(value, "%d", &npoly) == 1 && npoly > 0) {
+      x->f_npoly = npoly;
+    }
     if (strcmp(key, "options") == 0 && value) {
       // Currently we recognize the standard Faust options 'midi' and 'osc',
       // which are both enabled by default, but you can disable them by
@@ -934,21 +950,21 @@ static void faust_ui_manager_meta_declare(t_faust_ui_manager* x, const char* key
 	if (strcmp(k, "midi") == 0) {
 	  if (strcmp(v, "on") == 0) {
 	    x->f_midi = true;
-	    logpost(x->f_owner, 3, "             [%s:%s]", k, v);
+	    if (!x->f_quiet) logpost(x->f_owner, 3, "             [%s:%s]", k, v);
 	  } else if (strcmp(v, "off") == 0) {
 	    x->f_midi = false;
-	    logpost(x->f_owner, 3, "             [%s:%s]", k, v);
-	  } else {
+	    if (!x->f_quiet) logpost(x->f_owner, 3, "             [%s:%s]", k, v);
+	  } else if (!x->f_quiet) {
 	    pd_error(x->f_owner, "faustgen2~: error parsing option %s:%s", k, v);
 	  }
 	} else if (strcmp(k, "osc") == 0) {
 	  if (strcmp(v, "on") == 0) {
 	    x->f_osc = true;
-	    logpost(x->f_owner, 3, "             [%s:%s]", k, v);
+	    if (!x->f_quiet) logpost(x->f_owner, 3, "             [%s:%s]", k, v);
 	  } else if (strcmp(v, "off") == 0) {
 	    x->f_osc = false;
-	    logpost(x->f_owner, 3, "             [%s:%s]", k, v);
-	  } else {
+	    if (!x->f_quiet) logpost(x->f_owner, 3, "             [%s:%s]", k, v);
+	  } else if (!x->f_quiet) {
 	    pd_error(x->f_owner, "faustgen2~: error parsing option %s:%s", k, v);
 	  }
 	}
@@ -957,7 +973,7 @@ static void faust_ui_manager_meta_declare(t_faust_ui_manager* x, const char* key
       }
       while (isspace(*s)) ++s;
       if (*s) {
-	pd_error(x->f_owner, "faustgen2~: error parsing option %s", s);
+	if (!x->f_quiet) pd_error(x->f_owner, "faustgen2~: error parsing option %s", s);
       }
     }
 }
@@ -997,12 +1013,15 @@ t_faust_ui_manager* faust_ui_manager_new(t_object* owner)
         ui_manager->f_isdouble  = false;
         ui_manager->f_midi = ui_manager->f_osc = true;
         ui_manager->f_nvoices   = 0;
+        ui_manager->f_npoly     = 0;
+	ui_manager->freq_c = ui_manager->gain_c = ui_manager->gate_c = NULL;
         ui_manager->f_keys = NULL;
         ui_manager->f_voices = ui_manager->f_free = ui_manager->f_used = NULL;
         ui_manager->f_panic_recv = NULL;
         ui_manager->f_init_recv = NULL;
         ui_manager->f_active_recv = NULL;
         ui_manager->f_tuning = NULL;
+	ui_manager->f_quiet = false;
         
         ui_manager->f_meta_glue.metaInterface = ui_manager;
         ui_manager->f_meta_glue.declare       = (metaDeclareFun)faust_ui_manager_meta_declare;
@@ -1016,13 +1035,15 @@ void faust_ui_manager_free(t_faust_ui_manager *x)
     freebytes(x, sizeof(*x));
 }
 
-void faust_ui_manager_init(t_faust_ui_manager *x, void* dspinstance, int isdbl)
+void faust_ui_manager_init(t_faust_ui_manager *x, void* dspinstance, int isdbl, char quiet)
 {
+    x->f_quiet = quiet;
     faust_ui_manager_prepare_changes(x, isdbl);
     buildUserInterfaceCDSPInstance((llvm_dsp *)dspinstance, (UIGlue *)&(x->f_glue));
     faust_ui_manager_finish_changes(x);
     faust_ui_manager_free_names(x);
     metadataCDSPInstance((llvm_dsp *)dspinstance, &x->f_meta_glue);
+    x->f_quiet = false;
 }
 
 void faust_ui_manager_clear(t_faust_ui_manager *x)
@@ -1033,6 +1054,35 @@ void faust_ui_manager_clear(t_faust_ui_manager *x)
     if (x->f_tuning) freebytes(x->f_tuning, 12*sizeof(t_float));
     faust_ui_manager_free_uis(x);
     faust_ui_manager_free_names(x);
+}
+
+char faust_ui_manager_get_polyphony(t_faust_ui_manager *x, char *midi, int *npoly,
+				    FAUSTFLOATX** freq, FAUSTFLOATX** gain, FAUSTFLOATX** gate)
+{
+  *midi = x->f_midi;
+  *freq = *gain = *gate = NULL;
+  if (x->f_nvoices > 0) {
+    // we prefer new-style polyphony if we have both
+    *npoly = 0;
+  } else {
+    *npoly = x->f_npoly;
+    if (x->freq_c) {
+      // suppress in GUI
+      x->freq_c->p_voice = VOICE_FREQ;
+      *freq = x->freq_c->p_zone;
+    }
+    if (x->gain_c) {
+      // suppress in GUI
+      x->gain_c->p_voice = VOICE_GAIN;
+      *gain = x->gain_c->p_zone;
+    }
+    if (x->gate_c) {
+      // suppress in GUI
+      x->gate_c->p_voice = VOICE_GATE;
+      *gate = x->gate_c->p_zone;
+    }
+  }
+  return *npoly > 0;
 }
 
 static void gui_update(FAUSTFLOAT v, t_faust_ui_proxy *r)
@@ -1636,10 +1686,10 @@ void faust_ui_manager_print(t_faust_ui_manager const *x, char const log)
     {
       if (!c->p_voice) {
         const t_symbol *name = c->p_name, *lname = c->p_longname;
-        logpost(x->f_owner, 2+log, "parameter: %s [path:%s - type:%s - init:%g - min:%g - max:%g - current:%g]",
-                name->s_name, lname->s_name,
-                faust_ui_manager_get_parameter_char(c->p_type),
-                c->p_default, c->p_min, c->p_max, faustflt(x, c->p_zone));
+	logpost(x->f_owner, 2+log, "parameter: %s [path:%s - type:%s - init:%g - min:%g - max:%g - current:%g]",
+		name->s_name, lname->s_name,
+		faust_ui_manager_get_parameter_char(c->p_type),
+		c->p_default, c->p_min, c->p_max, faustflt(x, c->p_zone));
         if (c->p_midi) {
           for (size_t i = 0; i < c->p_nmidi; i++) {
             if (c->p_midi[i].chan >= 0) {
@@ -2204,6 +2254,53 @@ void faust_ui_manager_gui(t_faust_ui_manager *x,
   SETFLOAT(argv+argc, 1); argc++;
   typedmess(ui->s_thing, gensym("obj"), argc, argv);
   argc = 0;
+  if (x->f_active_recv) {
+    x->f_active_recv->uisym = s;
+    x->f_active_recv->lname = NULL;
+  } else
+    x->f_active_recv = faust_ui_receive_new(x, s, NULL, 1);
+}
+
+// Stripped-down version of the above which just creates the receivers without
+// touching the GUI. To be used for secondary instances in old-style polyphony.
+void faust_ui_manager_gui2(t_faust_ui_manager *x,
+			   t_symbol *unique_name, t_symbol *instance_name)
+{
+  t_faust_ui *c = x->f_uis;
+  while (c) {
+    if (c->p_voice) {
+      // skip voice controls
+      c = c->p_next;
+      continue;
+    }
+    t_symbol *s = make_sym(unique_name, c->p_longname);
+    c->p_uisym = s;
+    if (c->p_uirecv) {
+      // No need to recreate any existing receiver, just make sure that the
+      // data is up-to-date.
+      c->p_uirecv->uisym = s;
+      c->p_uirecv->lname = c->p_longname;
+    } else
+      c->p_uirecv = faust_ui_receive_new(x, s, c->p_longname, 0);
+    c = c->p_next;
+  }
+  // Add the special panic, init and active controls.
+  t_symbol *s;
+  if (x->f_voices) {
+    s = make_sym(unique_name, gensym("panic"));
+    if (x->f_panic_recv) {
+      x->f_panic_recv->uisym = s;
+      x->f_panic_recv->lname = NULL;
+    } else
+      x->f_panic_recv = faust_ui_receive_new(x, s, NULL, 3);
+  }
+  s = make_sym(unique_name, gensym("init"));
+  if (x->f_init_recv) {
+    x->f_init_recv->uisym = s;
+    x->f_init_recv->lname = NULL;
+  } else
+    x->f_init_recv = faust_ui_receive_new(x, s, NULL, 2);
+  s = make_sym(unique_name, gensym("active"));
   if (x->f_active_recv) {
     x->f_active_recv->uisym = s;
     x->f_active_recv->lname = NULL;
