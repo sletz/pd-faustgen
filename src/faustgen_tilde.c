@@ -14,11 +14,6 @@
 #include <stdio.h>
 #include <sys/stat.h>
 
-#if PD_MINOR_VERSION > 55 || PD_MINOR_VERSION == 55 && PD_BUGFIX_VERSION > 0
-// API breakage in Pd 0.55.1+
-#define sys_trytoopenone(dir, name, ext, dirresult, nameresult, size, bin) sys_trytoopenit(dir, name, ext, dirresult, nameresult, size, bin, 1)
-#endif
-
 // ag: I'm not sure what this definition is supposed to do, but this will
 // almost certainly cause trouble when compiling against a Pd version that
 // uses double precision t_sample values. Disabled for now, which means that
